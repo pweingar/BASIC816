@@ -1,6 +1,19 @@
 # BASIC816
 
+This is an implementation of a classic, line-number based BASIC interpreter.
+It is designed from the ground-up to work on the WDC65C816 CPU and compatible chips.
+This version of BASIC will be tailored specifically to the C256 Foenix, but there
+should be no reason it could not be ported to other 65C816 based computers, removing
+or modifying certain statements as necessary.
+
+## Current Status
+
+The BASIC interpreter is in a very simple, non-interactive state at the moment. It
+is really just a collection of essential code and unit tests at this point.
+
 ## Commands
+
+The following commands are planned for implementation:
 
 ### NEW
 
@@ -37,6 +50,8 @@ Change the working directory to *PATH*.
 Print out the current working directory.
 
 ## Statements
+
+The following statements are planned for implementation:
 
 ### GOTO *LINE*
 
