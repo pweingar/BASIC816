@@ -403,6 +403,28 @@ TST_TOK_LET     .proc
 LINE10          .null "10 LET A%=1"
                 .pend
 
+; Check that we can tokenize END properly
+; (Also tests singleton statements)
+TST_TOK_END     .proc
+                UT_BEGIN "TST_TOK_END"
+
+                CALL INITBASIC
+
+                LD_L CURLINE,LINE10
+                CALL TOKENIZE
+
+                TRACE "TOKENIZED"
+
+                LDA LINENUM
+                CALL ADDLINE
+
+                UT_M_EQ_LIT_W BASIC_BOT+2,10,"EXPECTED 10"
+                UT_M_EQ_LIT_B BASIC_BOT+4,TOK_END,"EXPECTED END TOKEN"
+
+                UT_END
+LINE10          .null "10 END"
+                .pend
+
 ; Check that we END a program
 TST_EXEC_END    .proc
                 UT_BEGIN "TST_EXEC_END"
@@ -449,11 +471,63 @@ LINE30          .null "30 A%=2"
 VAR_A           .null "A%"
                 .pend
 
+; Check that we execute a simple IF (IF <test> THEN <line>)
+TST_EXEC_IFSIM  .proc
+                UT_BEGIN "TST_EXEC_IFSIM"
+
+                CALL INITBASIC
+
+                LD_L CURLINE,LINE10
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE20
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE30
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE40
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,BASIC_BOT
+                CALL EXECPROGRAM
+
+                ; Validate that A%=1
+                setal
+                LDA #<>VAR_A
+                STA TOFIND
+                setas
+                LDA #`VAR_A
+                STA TOFIND+2
+
+                LDA #TYPE_INTEGER
+                STA TOFINDTYPE
+
+                CALL VAR_REF            ; Try to get the result
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
+                UT_M_EQ_LIT_W ARGUMENT1,2,"EXPECTED 2"
+
+                UT_END
+LINE10          .null "10 IF 1 THEN 40"
+LINE20          .null "20 A%=1"
+LINE30          .null "30 END"
+LINE40          .null "40 A%=2"
+VAR_A           .null "A%"
+                .pend
+
 ;
 ; Run all the evaluator tests
 ;
 TST_INTERP      .proc
-                ;CALL TST_PRINT
+                CALL TST_PRINT
                 CALL TST_TOK_LET
                 CALL TST_LET_IMPLIED
                 CALL TST_ADDLINE
@@ -462,7 +536,9 @@ TST_INTERP      .proc
                 CALL TST_TOKEN_LINE
                 CALL TST_EXEC_LINE2
                 CALL TST_EXEC_GOTO
+                CALL TST_TOK_END
                 CALL TST_EXEC_END
+                CALL TST_EXEC_IFSIM
 
                 UT_LOG "TST_INTERP: PASSED"
                 RETURN

@@ -2,9 +2,53 @@
 ;;; Core BASIC Statements
 ;;;
 
+; Test an expression.
+; If it's true (non-zero), execute statements after the THEN
+; If if's false (zero), execute
+;
+; Modes:
+; Simple - IF <test> THEN <line number>
+S_IF            .proc
+                PHP
+                TRACE "S_IF"
+
+                CALL EVALEXPR               ; Evaluate the expression
+                CALL IS_ARG1_Z              ; Check to see if the result is FALSE (0)
+                BEQ is_false                ; If so, handle the FALSE case
+
+                setas
+                LDA #TOK_THEN               ; Verify that the next token is THEN and eat it
+                CALL EXPECT_TOK             ; If THEN is not the next token, it's a syntax error
+
+                CALL PARSEINT               ; Get the line number
+                CALL IS_ARG1_Z              ; Check that we got a valid one
+                BEQ syntax_err              ; If not, we have a syntax error
+                                            ; TODO: will need to be expanded to support other forms of IF
+
+                CALL FINDLINE               ; Try to find the line
+                BCC not_found               ; If not found... LINE NOT FOUND error
+
+                TRACE "TRUE"
+
+                setas                       ; Tell the interpreter to restart at the selected line
+                LDA #EXEC_GOTO
+                STA EXECACTION        
+                BRA done
+
+is_false        TRACE "FALSE"
+                CALL SKIPSTMT               ; Skip to the next EOL or ":"        
+
+done            PLP
+                RETURN
+
+syntax_err      THROW ERR_SYNTAX
+not_found       THROW ERR_NOLINE
+                .pend
+
 ; End the execution of the program
 S_END           .proc
                 PHP
+                TRACE "S_END"
 
                 setas                       ; Signal a stop to the interpreter
                 LDA #EXEC_STOP

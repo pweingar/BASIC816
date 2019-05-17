@@ -182,3 +182,32 @@ MULINT10        .proc
                 PLP
                 RETURN
                 .pend
+
+;
+; Check to see if ARGUMENT1 is 0
+;
+; Inputs:
+;   ARGUMENT1 = the value to check
+;
+; Outputs:
+;   Z set if ARGUMENT1 is zero, clear otherwise
+;
+; NOTE: currently only handles integers and related values, not floats
+;
+IS_ARG1_Z       .proc
+                PHP
+
+                setal
+                LDA ARGUMENT1
+                BNE return_false
+                LDA ARGUMENT2
+                BNE return_false
+
+return_true     PLP
+                SEP #$02        ; Set Z
+                RETURN
+
+return_false    PLP
+                REP #$02        ; Clear Z
+                RETURN
+                .pend

@@ -192,6 +192,47 @@ done        PLD
             RETURN
             .pend
 
+; Skip to the next colon or end-of-line marker
+SKIPSTMT    .proc
+            PHP
+
+            setas
+loop        LDA [BIP]           ; Check the current character
+            BEQ done            ; Is it EOL? Yes, we're done
+            CMP #':'            ; Is it a colon?
+            BEQ done            ; Yes, we're done
+            CALL INCBIP         ; Otherwise, point to the next character of the line
+            BRA loop            ; and check it...
+
+done        PLP
+            RETURN
+            .pend
+
+; Expect the next non-whitespace byte to be the token in A
+; Point BIP to the character immediately after the token
+; Throw a syntax error if anything else
+EXPECT_TOK  .proc
+            PHP
+
+            setas
+
+            PHA
+            CALL SKIPWS         ; Skip over leading white space
+            PLA
+
+            setas
+            CMP [BIP]           ; Check the character at BIP
+            BNE syntax_err      ; Throw a syntax error
+
+            CALL INCBIP         ; Skip over the token
+            CALL SKIPWS
+
+            PLP
+            RETURN
+            
+syntax_err  THROW ERR_SYNTAX
+            .pend
+
 ;
 ; Execute a statement or command
 ;
@@ -382,7 +423,9 @@ done        setas
 ;
 FINDLINE    .proc
             PHP
-            TRACE "FINDLINE"
+            setal
+            LDA CURLINE
+            TRACE_A "FINDLINE"
 
             MOVE_L INDEX,CURLINE        ; INDEX := CURLINE
 

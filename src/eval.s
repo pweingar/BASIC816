@@ -429,6 +429,12 @@ is_token    CMP #TOK_LPAREN     ; Is it an LPAREN
             CMP #TOK_RPAREN     ; Is it an RPAREN?
             BEQ is_rparen       ; Yes: handle the RPAREN
 
+            CALL TOKTYPE        ; Get the token type
+            CMP #TOK_TY_OP      ; Is it an operator?
+            BNE proc_stack      ; No: we're finished processing
+
+            LDA [BIP]           ; Yes: Get the token back
+
 chk_prec    LDX OPERATORSP      ; Is the operator stack empty?
             CPX #<>OPERATOR_TOP
             BEQ push_op         ; Yes: push the operator

@@ -170,7 +170,6 @@ nul_scan    LDA [BIP],Y
             INY
             CPY CURTOKLEN
             BCC nul_scan
-            BEQ nul_scan
             setxl
 
             LDA [BIP]               ; Check the current character
@@ -535,6 +534,11 @@ TOK_RPAREN = $8D
 TOK_PRINT = $8E
 TOK_LET = $8F
 TOK_GOTO = $90
+TOK_END = $91
+TOK_IF = $92
+TOK_THEN = $93
+TOK_ELSE = $94
+TOK_ENDIF = $95
 
 TOK_TY_OP = $00         ; The token is an operator
 TOK_TY_CMD = $10        ; The token is a command (e.g. RUN, LIST, etc.)
@@ -563,5 +567,9 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "LET", TOK_TY_STMNT, 0, S_LET, 0
             DEFTOK "GOTO", TOK_TY_STMNT, 0, S_GOTO, 0
             DEFTOK "END", TOK_TY_STMNT, 0, S_END, 0
+            DEFTOK "IF", TOK_TY_STMNT, 0, S_IF, 0
+            DEFTOK "THEN", TOK_TY_BYWRD, 0, 0, 0
+            DEFTOK "ELSE", TOK_TY_BYWRD, 0, 0, 0
+            DEFTOK "ENDIF", TOK_TY_BYWRD, 0, 0, 0
 
             .word 0, 0, 0, 0
