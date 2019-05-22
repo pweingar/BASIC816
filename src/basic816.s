@@ -29,6 +29,7 @@ RESTART     .word <>START
 .include "strings.s"
 .include "listing.s"
 .include "eval.s"
+.include "returnstack.s"
 .include "interpreter.s"
 .include "operators.s"
 .include "statements.s"

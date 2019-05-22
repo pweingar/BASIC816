@@ -24,6 +24,8 @@ loop            STA [LASTLINE],Y
                 CPY #7
                 BEQ loop
 
+                STZ GOSUBDEPTH              ; Clear the depth of the GOSUB stack
+
                 PLD
                 PLP
                 RETURN

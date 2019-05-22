@@ -50,3 +50,5 @@ ERR_MEMORY = 2          ; Out of memory
 ERR_TYPE = 3            ; Type mismatch error
 ERR_NOTFOUND = 4        ; Variable not found error
 ERR_NOLINE = 5          ; Line number not found
+ERR_STACKUNDER = 6      ; Stack underflow error
+ERR_STACKOVER = 7       ; Stack overflow error

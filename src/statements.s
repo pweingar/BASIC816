@@ -2,6 +2,87 @@
 ;;; Core BASIC Statements
 ;;;
 
+; Jump to a subroutine. Push BIP, CURLINE, and LINENUM to stack
+; RETURN will pull them back
+S_GOSUB         .proc
+                PHP
+                TRACE "S_GOSUB"
+
+                LDA CURLINE+2               ; Save the current line for later
+                PHA
+                LDA CURLINE
+                PHA
+
+                CALL SKIPWS
+
+                CALL PARSEINT               ; Get an integer line number
+
+                LDA ARGUMENT1               ; Check the number
+                BEQ syntax_err              ; If 0, no number was found... syntax error
+
+                CALL FINDLINE               ; Try to find the line
+                BCC not_found               ; If not found... LINE NOT FOUND error
+
+                TRACE "found"
+
+                setas                       ; Tell the interpreter to restart at the selected line
+                LDA #EXEC_GOTO
+                STA EXECACTION
+
+                CALL SKIPSTMT               ; Skip to the next statement
+
+                setal
+                PLA                         ; Save the old value of CURLINE to the RETURN stack            
+                CALL PHRETURN
+                PLA
+                CALL PHRETURN
+                LDA BIP+2                   ; Save the BASIC Instruction Pointer to the RETURN stack
+                CALL PHRETURN
+                LDA BIP
+                CALL PHRETURN
+
+                INC GOSUBDEPTH              ; Increase the count of GOSUBs on the stack
+
+                PLP
+                RETURN
+syntax_err      PLA
+                PLA
+                THROW ERR_SYNTAX
+not_found       PLA
+                PLA
+                THROW ERR_NOLINE
+                .pend
+
+; RETURN from a subroutine call... pulls BIP, CURLINE, and LINENUM from the stack
+S_RETURN        .proc
+                PHP
+                TRACE "S_RETURN"
+
+                setaxl
+                LDA GOSUBDEPTH              ; Check that there is at least on GOSUB on the stack
+                BEQ underflow               ; No? It's a stack underflow error
+
+                CALL PLRETURN               ; Restore BIP, and CURLINE from the return stack
+                STA BIP
+                CALL PLRETURN
+                STA BIP+2
+                CALL PLRETURN
+                STA CURLINE
+                CALL PLRETURN
+                STA CURLINE+2
+
+                DEC GOSUBDEPTH              ; Indicate we've popped that GOSUB off the stack
+
+                setas                       ; Tell the interpreter to restart at the selected line
+                LDA #EXEC_RETURN
+                STA EXECACTION           
+
+                PLP
+                RETURN
+underflow       TRACE "underflow"
+                THROW ERR_STACKUNDER
+                .pend
+
 ; Test an expression.
 ; If it's true (non-zero), execute statements after the THEN
 ; If if's false (zero), execute

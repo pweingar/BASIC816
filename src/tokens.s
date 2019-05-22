@@ -571,5 +571,7 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "THEN", TOK_TY_BYWRD, 0, 0, 0
             DEFTOK "ELSE", TOK_TY_BYWRD, 0, 0, 0
             DEFTOK "ENDIF", TOK_TY_BYWRD, 0, 0, 0
+            DEFTOK "GOSUB", TOK_TY_STMNT, 0, S_GOSUB, 0
+            DEFTOK "RETURN", TOK_TY_STMNT, 0, S_RETURN, 0
 
             .word 0, 0, 0, 0

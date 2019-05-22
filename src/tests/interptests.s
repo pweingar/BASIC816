@@ -523,6 +523,58 @@ LINE40          .null "40 A%=2"
 VAR_A           .null "A%"
                 .pend
 
+; Check that we call a subroutine
+TST_EXEC_SUB    .proc
+                UT_BEGIN "TST_EXEC_SUB"
+
+                CALL INITBASIC
+
+                LD_L CURLINE,LINE10
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE20
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE30
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE40
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,BASIC_BOT
+                CALL EXECPROGRAM
+
+                ; Validate that A%=1
+                setal
+                LDA #<>VAR_A
+                STA TOFIND
+                setas
+                LDA #`VAR_A
+                STA TOFIND+2
+
+                LDA #TYPE_INTEGER
+                STA TOFINDTYPE
+
+                CALL VAR_REF            ; Try to get the result
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
+                UT_M_EQ_LIT_W ARGUMENT1,1234,"EXPECTED 1234"
+
+                UT_END
+LINE10          .null "10 GOSUB 30"
+LINE20          .null "20 END"
+LINE30          .null "30 A%=1234"
+LINE40          .null "40 RETURN"
+VAR_A           .null "A%"
+                .pend
+
 ;
 ; Run all the evaluator tests
 ;
@@ -539,6 +591,7 @@ TST_INTERP      .proc
                 CALL TST_TOK_END
                 CALL TST_EXEC_END
                 CALL TST_EXEC_IFSIM
+                CALL TST_EXEC_SUB
 
                 UT_LOG "TST_INTERP: PASSED"
                 RETURN

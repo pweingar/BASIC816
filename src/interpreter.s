@@ -33,6 +33,7 @@ LINE_MINLEN = 6             ; Minimum length of a line
 EXEC_CONT = 0               ; Continue advancing the current line
 EXEC_STOP = 1               ; Stop execution of the program
 EXEC_GOTO = 2               ; Transfer execution to a new CURLINE that is already set
+EXEC_RETURN = 3             ; Transfer execution back to a line that was on the stack
 
 ; Point to a new error handler
 CATCH       .macro ; handler
@@ -138,6 +139,8 @@ ERRORMSG    .word <>MSG_OK
             .word <>MSG_TYPE
             .word <>MSG_NOTFND
             .word <>MSG_NOLINE
+            .word <>MSG_UNDFLOW
+            .word <>MSG_OVRFLOW
 
 MSG_OK      .null "OK"
 MSG_SYNTAX  .null "SYNTAX"
@@ -145,6 +148,8 @@ MSG_MEMORY  .null "OUT OF MEMORY"
 MSG_TYPE    .null "TYPE MISMATCH"
 MSG_NOTFND  .null "NOT FOUND"
 MSG_NOLINE  .null "LINE NUMBER NOT FOUND"
+MSG_UNDFLOW .null "STACK UNDERFLOW"
+MSG_OVRFLOW .null "STACK OVERFLOW"
             .pend
 
 ;
@@ -327,6 +332,12 @@ EXECLINE    .proc
             STA LINENUM
             TRACE_A "EXECLINE"
 
+            setas
+            LDA EXECACTION              ; If the last EXEC action was RETURN
+            CMP #EXEC_RETURN            ; BIP has already been set, so...
+            BEQ exec_loop               ; Skip over setting the BIP to the beginning of the line
+
+            setal
             CLC                         ; Set the BASIC Instruction Pointer to the first byte of the line
             LDA CURLINE
             ADC #LINE_TOKENS
@@ -375,7 +386,11 @@ EXECPROGRAM .proc
             LDA #ST_RUNNING
             STA STATE
 
+            CALL INITRETURN             ; Reset the RETURN stack
+
             setaxl
+            STZ GOSUBDEPTH              ; Clear the count of GOSUBs
+
 exec_loop   LDY #LINE_NUMBER
             LDA [CURLINE],Y             ; Get the line number of the current line
             BEQ done                    ; If it's 0, we are finished running code (implicit END)
@@ -387,6 +402,8 @@ exec_loop   LDY #LINE_NUMBER
             CMP #EXEC_STOP              ; Stop execution of the program?
             BEQ done
             CMP #EXEC_GOTO              ; Transfer execution to a new CURLINE that is already set
+            BEQ exec_loop
+            CMP #EXEC_RETURN            ; Transfer execution to the CURLINE and BIP that is already set
             BEQ exec_loop
 
             ; Queue the next line in the program to execute
@@ -424,7 +441,7 @@ done        setas
 FINDLINE    .proc
             PHP
             setal
-            LDA CURLINE
+            LDA ARGUMENT1
             TRACE_A "FINDLINE"
 
             MOVE_L INDEX,CURLINE        ; INDEX := CURLINE

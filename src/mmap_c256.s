@@ -31,6 +31,8 @@ ARGUMENT_BOT = $006000      ; Starting address of the argument stack
 ARGUMENT_TOP = $006FFF      ; Ending address of the argument stack
 OPERATOR_BOT = $007000      ; Starting address of the operator stack
 OPERATOR_TOP = $007FFF      ; Ending address of the operator stack
+RETURN_BOT = $005000        ; Starting address of the return stack
+RETURN_TOP = $005FFF        ; Ending address of the return stack
 
 HEAP_TOP = $17FFFF          ; Starting point of the heap
 BASIC_BOT = $010000         ; Starting point for BASIC programs
