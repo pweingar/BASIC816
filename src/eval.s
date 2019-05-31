@@ -273,6 +273,23 @@ EVALNUMBER  .proc
             .pend
 
 ;
+; Attempt to evaluate a variable reference
+;
+EVALREF     .proc
+            PHP
+            TRACE_L "EVALREF", BIP
+
+get_name    CALL VAR_FINDNAME   ; Try to find the variable name
+            BCC syntax_err      ; If we didn't find a name, thrown an error
+
+            CALL VAR_REF        ; Get the value of the variable
+
+            PLP
+            RETURN
+syntax_err  THROW ERR_SYNTAX
+            .pend
+
+;
 ; Evaluate a string literal
 ;
 EVALSTRING  .proc
@@ -391,7 +408,7 @@ OPSTUB      JMP (JMP16PTR)      ; Annoying JMP to get around the fact we don't h
 ;   ARGUMENTSP = top contains the value of the expression
 ;
 EVALEXPR    .proc
-            TRACE "EVALEXPR"
+            TRACE_L "EVALEXPR", BIP
             
             PHP
 
@@ -420,7 +437,17 @@ else3       CMP #'"'    ; Is it a double-quote?
             JMP is_string       ; Yes: process the string
 
             ; TODO: what happens here? For the moment, treat it as end-of-line
-else4       JMP proc_stack
+else4       CMP #'Z'+1          ; Check to see if we have upper case alphabetics
+            BCS check_lc        ; No: check for lower case
+            CMP #'A'
+            BCS is_alpha
+
+check_lc    CMP #'z'+1          ; Check to see if we have lower case alphabetics
+            BCS else5           ; No: treat as the end of the line
+            CMP #'a'
+            BCS is_alpha
+
+else5       JMP proc_stack
 
             ; A token has been seen
 is_token    CMP #TOK_LPAREN     ; Is it an LPAREN
@@ -485,8 +512,12 @@ proc_stack  LDX OPERATORSP      ; Is the operator stack empty?
             CALL PROCESSOP      ; No: process the operator stack
             BRA proc_stack
 
-is_string   TRACE "is_string"
-            CALL EVALSTRING     ; Get the pointer to the evaluated string
+is_string   CALL EVALSTRING     ; Get the pointer to the evaluated string
+            LDX #<>ARGUMENT1
+            CALL PHARGUMENT     ; And push it to the argument stack
+            JMP get_char
+
+is_alpha    CALL EVALREF        ; Attempt to evaluate the variable reference
             LDX #<>ARGUMENT1
             CALL PHARGUMENT     ; And push it to the argument stack
             JMP get_char           

@@ -2,6 +2,291 @@
 ;;; Core BASIC Statements
 ;;;
 
+; Break out of an enclosing DO loop
+S_EXIT          .proc
+                PHP
+
+                PLP
+                RETURN
+                .pend
+
+; Start a loop that may be ended conditionally
+; DO [WHILE <conditional expr> | UNTIL <conditional expr>]
+; Pushes return BIP and return CURLINE to RETURN stack
+S_DO            .proc
+                PHP
+                TRACE "S_DO"
+
+                ; TODO: process WHILE/UNTIL
+
+                PLP
+                RETURN
+                .pend
+
+; Close a DO loop
+; LOOP [WHILE <conditional expr> | UNTIL <conditional expr>]
+S_LOOP          .proc
+                PHP
+                TRACE "S_LOOP"
+
+                PLP
+                RETURN
+                .pend
+
+;
+; Iterate over a variable from an initial value to an ending value
+; FOR <variable> = <initial expr> TO <final expr> [STEP <increment>]
+;
+; Pushes to the return stack:
+;   return CURLINE (4)
+;   return BIP (4 bytes),
+;   <variable> (4 bytes),
+;   <final value> (6 bytes),
+;   <increment> (6 bytes) <== "top" of stack
+;
+S_FOR           .proc
+                PHP
+                TRACE "S_FOR"
+
+                setas
+
+                ; Save the current line to the RETURN stack
+
+                setal
+                LDA CURLINE+2
+                CALL PHRETURN
+                LDA CURLINE
+                CALL PHRETURN
+
+                ; Save the BIP for right after FOR to the RETURN stack
+                LDA BIP+2           ; Save current BIP
+                PHA
+                LDA BIP
+                PHA
+
+                CALL SKIPSTMT       ; Skip to the next statement
+                LDA BIP+2           ; Save the BIP for the next statement to the RETURN stack
+                CALL PHRETURN
+                LDA BIP
+                CALL PHRETURN
+
+                PLA                 ; Restore the original BIP
+                STA BIP
+                PLA
+                STA BIP+2
+
+                ; Find the set the initial value of the index variable
+
+                CALL SKIPWS
+
+get_name        CALL VAR_FINDNAME   ; Try to find the variable name
+                BCS push_name       ; If we didn't find a name, thrown an error
+                JMP error
+
+push_name       setas               ; Push the search record for the index variable
+                LDA TOFINDTYPE      ; To the return stack
+                CALL PHRETURNB
+                LDA TOFIND+2
+                CALL PHRETURNB
+                setal
+                LDA TOFIND
+                CALL PHRETURN
+
+else            CALL SKIPWS         ; Scan for an "="
+                setas
+                LDA [BIP]
+                CMP #TOK_EQ
+                BNE syntax_err      ; If not found: signal an syntax error
+
+                LDA TOFINDTYPE      ; Verify type of variable
+                CMP #TYPE_INTEGER   ; Is it integer?
+                BEQ process_initial ; Yes: it's ok
+                CMP #TYPE_FLOAT     ; Is it floating point?
+                BEQ process_initial ; Yes: it's ok
+
+process_initial CALL INCBIP         ; Otherwise, skip over it
+                CALL EVALEXPR       ; Evaluate the expression
+                CALL VAR_SET        ; Attempt to set the value of the variable
+
+                ; Process the limit value
+                setas
+                LDA #TOK_TO         ; Expect the next token to be TO
+                CALL EXPECT_TOK
+
+                CALL EVALEXPR       ; Evaluate the limit value
+
+                setas               ; Push the ending value
+                LDA ARGTYPE1
+                CALL PHRETURNB
+                setal
+                LDA ARGUMENT1+2
+                CALL PHRETURN
+                LDA ARGUMENT1
+                CALL PHRETURN
+
+                ; Process the optional STEP
+                setas
+                LDA #TOK_STEP
+                STA TARGETTOK
+                CALL OPT_TOK        ; Seek an optional STEP token
+                BCC default_inc     ; Not found: set a default increment of 1
+
+                CALL SKIPWS
+                CALL EVALEXPR       ; Evaluate the next expression
+
+                setas
+                LDA ARGTYPE1        ; Push the result as the increment
+                CALL PHRETURN
+                setal
+                LDA ARGUMENT1+2
+                CALL PHRETURN
+                LDA ARGUMENT1
+                CALL PHRETURN
+                BRA done
+
+default_inc     setal               ; Push 1 as the increment
+                LDA #TYPE_INTEGER
+                CALL PHRETURN
+                LDA #0
+                CALL PHRETURN
+                LDA #1
+                CALL PHRETURN
+
+done            PLP
+                RETURN
+syntax_err      THROW ERR_SYNTAX
+                .pend
+
+;
+; Structure of the record FOR pushes to the RETURN stack
+; (in order of how the parameters will appear in memory on the stack)
+;
+FOR_RECORD      .struct
+INCREMENT       .dword  ?
+INCTYPE         .word   ?
+FINAL           .dword  ?
+FINALTYPE       .word   ?
+VARIBLE         .dword  ?
+VARTYPE         .word   ?
+BIP             .dword  ?
+CURLINE         .dword  ?
+                .ends
+
+;
+; Close a FOR loop
+;
+; Expects a return stack looking like this:
+;   return CURLINE (4)
+;   return BIP (4 bytes),
+;   <variable> (4 bytes),
+;   <final value> (6 bytes),
+;   <increment> (6 bytes) <== "top" of stack
+;
+S_NEXT          .proc
+                PHP
+                PHB
+                TRACE "S_NEXT"
+
+                setdbr 0
+
+                setaxl
+
+                ; Get the final value
+
+                LDY RETURNSP                    ; Y := pointer to first byte of the FOR record
+                INY                             ; RETURNSP points to the first free slot, so move up 2 bytes
+                INY
+
+                LDA #FOR_RECORD.FINAL,B,Y       ; ARGUMENT2 := FOR_RECORD.FINAL
+                STA ARGUMENT2
+                LDA #FOR_RECORD.FINAL+2,B,Y
+                STA ARGUMENT2+2
+                setas
+                LDA #FOR_RECORD.FINALTYPE,B,Y
+                STA ARGTYPE2
+
+                ; Get the variable and its current value
+
+                LDA #FOR_RECORD.VARIBLE,B,Y     ; TOFIND := FOR_RECORD.VARIABLE
+                STA TOFIND
+                LDA #FOR_RECORD.VARIBLE+2,B,Y
+                setas
+                STA TOFIND+2
+                LDA #FOR_RECORD.VARTYPE,B,Y
+                STA TOFINDTYPE
+
+                CALL VAR_REF                    ; Get the value of the variable
+
+                LDX #ARGUMENT1
+                CALL PHARGUMENT                 ; Save the value for later
+
+                CALL OP_MINUS                   ; Are they equal?
+                CALL IS_ARG1_Z
+                BEQ end_loop                    ; Yes: end the loop
+
+                ; Not at end, so add the increment, reassign, and loop
+
+loop_back       TRACE "loop back"
+
+                LDX #ARGUMENT1
+                CALL PLARGUMENT                 ; Restore the value of the variable
+
+                LDY RETURNSP
+                INY
+                INY
+
+                LDA #FOR_RECORD.INCREMENT,B,Y   ; ARGUMENT2 := FOR_RECORD.INCREMENT
+                STA ARGUMENT2
+                LDA #FOR_RECORD.INCREMENT+2,B,Y
+                STA ARGUMENT2+2
+                setas
+                LDA #FOR_RECORD.INCTYPE,B,Y
+                STA ARGTYPE2
+
+                CALL OP_PLUS                    ; Add the increment to the current value
+                CALL VAR_SET                    ; Assign the new value to the variable
+
+                LDY RETURNSP
+                INY
+                INY
+                
+                setal                           ; Set the BIP to the correct spot (right after the FOR)
+                LDA #FOR_RECORD.BIP,B,Y
+                STA BIP
+                LDA #FOR_RECORD.BIP+2,B,Y
+                STA BIP+2
+
+                ; Set the CURLINE to the correct spot (right after the FOR)
+                LDA #FOR_RECORD.CURLINE,B,Y     ; CURLINE := FOR_RECORD.CURLINE
+                STA CURLINE
+                LDA #FOR_RECORD.CURLINE+2,B,Y
+                STA CURLINE+2
+
+                setas                           ; Set the action to RETURN to the spot
+                LDA #EXEC_RETURN
+                STA EXECACTION
+                BRA done
+
+                ; Got to the end of the loop, cleanup the RETURN stack
+
+end_loop        TRACE "end_loop"
+
+                LDX #ARGUMENT1
+                CALL PLARGUMENT                 ; Restore the value of the variable
+
+                setal
+                LDA RETURNSP
+                ADC #size(FOR_RECORD)           ; Move pointer by number of bytes in a FOR record
+                STA RETURNSP
+                LDA RETURNSP+2
+                ADC #0
+                STA RETURNSP+2
+
+done            PLB
+                PLP
+                RETURN
+                .pend
+
 ; Jump to a subroutine. Push BIP, CURLINE, and LINENUM to stack
 ; RETURN will pull them back
 S_GOSUB         .proc
@@ -32,7 +317,7 @@ S_GOSUB         .proc
                 CALL SKIPSTMT               ; Skip to the next statement
 
                 setal
-                PLA                         ; Save the old value of CURLINE to the RETURN stack            
+                PLA                         ; Save the old value of CURLINE to the RETURN stack
                 CALL PHRETURN
                 PLA
                 CALL PHRETURN
@@ -75,7 +360,7 @@ S_RETURN        .proc
 
                 setas                       ; Tell the interpreter to restart at the selected line
                 LDA #EXEC_RETURN
-                STA EXECACTION           
+                STA EXECACTION
 
                 PLP
                 RETURN
@@ -113,11 +398,11 @@ S_IF            .proc
 
                 setas                       ; Tell the interpreter to restart at the selected line
                 LDA #EXEC_GOTO
-                STA EXECACTION        
+                STA EXECACTION
                 BRA done
 
 is_false        TRACE "FALSE"
-                CALL SKIPSTMT               ; Skip to the next EOL or ":"        
+                CALL SKIPSTMT               ; Skip to the next EOL or ":"
 
 done            PLP
                 RETURN
@@ -198,7 +483,7 @@ else            CALL SKIPWS         ; Scan for an "="
                 LDA [BIP]
                 CMP #TOK_EQ
                 BNE error           ; If not found: signal an syntax error
-                
+
                 CALL INCBIP         ; Otherwise, skip over it
                 CALL EVALEXPR       ; Evaluate the expression
                 CALL VAR_SET        ; Attempt to set the value of the variable

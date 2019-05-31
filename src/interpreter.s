@@ -213,6 +213,115 @@ done        PLP
             RETURN
             .pend
 
+;
+; Skip to the next instance of the token in TARGETTOK at the current lexical depth
+; FOR and DO increase the lexical depth, NEXT and LOOP decrease it.
+; It is a syntax error if the lexical depth goes negative or if the token is not found.
+;
+; Inputs:
+;   TARGETTOK = the token to find
+;   BIP = pointer to the current position in the program
+;   CURLINE = pointer to the start of the current line
+;
+; Outputs:
+;   BIP = pointer to the current position in the program (the token found)
+;   CURLINE = pointer to the start of the current line (with the token)
+;
+SKIPTOTOK   .proc
+            PHP
+
+            setas
+            STZ NESTING
+
+loop        LDA [BIP]           ; Get the character
+            BEQ end_of_line     ; EOL? Yes: move to the next line
+            CMP TARGETTOK       ; Is it the one we want?
+            BEQ check_depth     ; Yes: check the depth
+
+            CMP #TOK_FOR        ; Is it a FOR?
+            BEQ inc_nesting     ; Yes: increment NESTING
+            CMP #TOK_DO         ; Is it a DO?
+            BEQ inc_nesting     ; Yes: increment NESTING
+
+            CMP #TOK_NEXT       ; Is it a NEXT?
+            BEQ dec_nesting     ; Yes: decrement NESTING
+            CMP #TOK_LOOP       ; Is it a LOOP?
+            BEQ dec_nesting     ; Yes: decrement NESTING 
+
+incloop     CALL INCBIP         ; Otherwise: Point to the next character
+            BRA loop            ; and keep scanning
+
+end_of_line CALL NEXTLINE       ; Go to the next line
+            setal
+            LDA LINENUM         ; Check the line number
+            BNE syntax_err      ; If it's zero, we reached the end of the program
+                                ; so we need to signal a syntax error
+            setas
+            BRA loop            ; And keep scanning
+
+inc_nesting INC NESTING         ; Track that we have entered a lexical scope for a FOR/DO
+            BRA incloop          
+
+dec_nesting DEC NESTING         ; Track that we have left a lexical scope for a FOR/DO
+            BMI syntax_err      ; If the depth goes <0, throw a syntax error
+            BRA incloop
+
+check_depth LDA NESTING         ; Get the nesting depth
+            BEQ found           ; If it's zero, we found our token
+            BRA incloop         ; Otherwise: it's a token for an enclosed FOR/DO, keep scanning
+
+found       CALL INCBIP         ; Point to the character right after the token
+            PLP
+            RETURN
+syntax_err  THROW ERR_SYNTAX
+            .pend
+
+;
+; Move to the next line in the program
+;
+; Note: the line can be the end-of-program line marker
+; in which case, LINENUM will be set to 0.
+;
+; Inputs:
+;   CURLINE = pointer to the current line
+;
+; Outputs:
+;   CURLINE = pointer to the new current line
+;   LINENUM = the line number for the new current line
+;   BIP = pointer to the first character of the new current line
+;
+NEXTLINE    .proc
+            PHP
+
+            setaxl
+            LDY #LINE_LINK
+            LDA [CURLINE],Y     ; Get the offset to the next line
+            STA SCRATCH
+
+            CLC                 ; Compute the new CURLINE
+            LDA CURLINE         ; CURLINE := [CURLINE].LINE_LINK
+            ADC SCRATCH
+            STA CURLINE
+            LDA CURLINE+2
+            ADC #0
+            STA CURLINE+2
+
+            LDY #LINE_NUMBER    ; Set the LINENUM to the new current line's number
+            LDA [CURLINE],Y     ; LINENUM := [CURLINE].LINE_NUMBER
+            STA LINENUM
+
+            CLC                 ; Point BIP to the first character of the line
+            LDA CURLINE         ; BIP := CURLINE + LINE_TOKENS
+            ADC #LINE_TOKENS
+            STA BIP
+            LDA CURLINE+2
+            ADC #0
+            STA BIP
+
+            PLP
+            RETURN
+            .pend
+
 ; Expect the next non-whitespace byte to be the token in A
 ; Point BIP to the character immediately after the token
 ; Throw a syntax error if anything else
@@ -236,6 +345,47 @@ EXPECT_TOK  .proc
             RETURN
             
 syntax_err  THROW ERR_SYNTAX
+            .pend
+
+;
+; Scan to an optional token in TARGETTOK in the current statement.
+; Point BIP to the character immediately after the token.
+; If the token is not found before a colon or eno of line is found,
+; return with carry clear. Otherwise return with carry set.
+;
+; Inputs:
+;   TARGETTOK = token to find
+;   BIP = pointer to the BASIC code
+;
+; Outputs:
+;   C is set if the token was found within the current statement
+;   C is clear otherwise
+;   BIP = pointer to the character after the token or a colon or end of line
+;
+OPT_TOK     .proc
+            PHP
+
+            setas
+            CALL SKIPWS         ; Skip over leading white space
+
+            setas
+loop        LDA [BIP]           ; Check the character at BIP
+            BEQ ret_false       ; If end-of-line, return false
+            CMP #':'
+            BEQ ret_false       ; If colon, return false
+            CMP TARGETTOK
+            BEQ ret_true        ; If matches, return true
+
+            CALL INCBIP         ; Skip over the token
+            BRA loop
+
+ret_true    PLP
+            SEC
+            RETURN
+
+ret_false   PLP
+            CLC
+            RETURN
             .pend
 
 ;

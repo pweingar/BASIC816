@@ -5,6 +5,12 @@
 ;;;
 
 ;
+; Typical things pushed to the return stack
+; GOSUB: return_line, return_bip
+; FOR: variable, end_value, increment, next_line, next_bip
+; DO ... LOOP: loop_line, loop_bip 
+
+;
 ; Initialize the RETURN stack to point to the the highest word position
 ;
 INITRETURN      .proc
@@ -43,6 +49,26 @@ PHRETURN        .proc
                 DEC RETURNSP
 
                 PLD
+                PLP
+                RETURN
+                .pend
+
+;
+; Push the lower 8 bit value in A to the RETURN stack as a 16-bit value
+;
+; Inputs:
+;   A = the 8-bit value to push to the return stack
+;   RETURNSP = the pointer to the next available position on the return stack
+;
+PHRETURNB       .proc
+                PHP
+
+                TRACE "PHRETURNB"
+
+                setaxl
+
+                AND #$00FF
+                CALL PHRETURN
                 PLP
                 RETURN
                 .pend

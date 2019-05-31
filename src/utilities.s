@@ -200,7 +200,7 @@ IS_ARG1_Z       .proc
                 setal
                 LDA ARGUMENT1
                 BNE return_false
-                LDA ARGUMENT2
+                LDA ARGUMENT1+2
                 BNE return_false
 
 return_true     PLP

@@ -37,4 +37,6 @@ ARGTYPE2    .byte ?     ; Type code for argument 2 (integer, float, string)
 JMP16PTR    .word ?     ; Pointer for 16-bit indirect jumps (within BASIC816's code base)
 GOSUBDEPTH  .word ?     ; Number of GOSUBs on the stack
 RETURNSP    .word ?     ; Pointer to the top of the return stack
+NESTING     .byte ?     ; Counter of the depth of lexical nesting for FOR/NEXT, DO/LOOP
+TARGETTOK   .byte ?     ; When searching for a token, TARGETTOK is the token to find
 .send

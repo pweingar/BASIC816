@@ -575,6 +575,115 @@ LINE40          .null "40 RETURN"
 VAR_A           .null "A%"
                 .pend
 
+; Check that we can increment an integer
+TST_EXEC_INC    .proc
+                UT_BEGIN "TST_EXEC_INC"
+
+                CALL INITBASIC
+
+                LD_L CURLINE,LINE10
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE20
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,BASIC_BOT
+                CALL EXECPROGRAM
+
+                ; Validate that A%=2
+                setal
+                LDA #<>VAR_A
+                STA TOFIND
+                setas
+                LDA #`VAR_A
+                STA TOFIND+2
+
+                LDA #TYPE_INTEGER
+                STA TOFINDTYPE
+
+                CALL VAR_REF            ; Try to get the result
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
+                UT_M_EQ_LIT_W ARGUMENT1,2,"EXPECTED 2"
+
+                UT_END
+LINE10          .null "10 A%=1"
+LINE20          .null "20 A%=A%+1"
+VAR_A           .null "A%"
+                .pend
+
+; Check that we can use a FOR loop
+TST_EXEC_FOR    .proc
+                UT_BEGIN "TST_EXEC_FOR"
+
+                CALL INITBASIC
+
+                LD_L CURLINE,LINE10
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE20
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE30
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE40
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,BASIC_BOT
+                CALL EXECPROGRAM
+
+                ; Validate that A%=11
+                setal
+                LDA #<>VAR_A
+                STA TOFIND
+                setas
+                LDA #`VAR_A
+                STA TOFIND+2
+
+                LDA #TYPE_INTEGER
+                STA TOFINDTYPE
+
+                CALL VAR_REF            ; Try to get the result
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
+                UT_M_EQ_LIT_W ARGUMENT1,11,"EXPECTED A%=11"
+
+                ; Validate that I%=11
+                setal
+                LDA #<>VAR_I
+                STA TOFIND
+                setas
+                LDA #`VAR_I
+                STA TOFIND+2
+
+                LDA #TYPE_INTEGER
+                STA TOFINDTYPE
+
+                ; TODO: should i%=10 or 11?
+                CALL VAR_REF            ; Try to get the result
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
+                UT_M_EQ_LIT_W ARGUMENT1,10,"EXPECTED I%=10"
+
+                UT_END
+LINE10          .null "10 A%=1"
+LINE20          .null "20 FOR I%=1 TO 10"
+LINE30          .null "30 A%=A%+1"
+LINE40          .null "40 NEXT"
+VAR_A           .null "A%"
+VAR_I           .null "I%"
+                .pend
+
 ;
 ; Run all the evaluator tests
 ;
@@ -592,6 +701,8 @@ TST_INTERP      .proc
                 CALL TST_EXEC_END
                 CALL TST_EXEC_IFSIM
                 CALL TST_EXEC_SUB
+                CALL TST_EXEC_INC
+                CALL TST_EXEC_FOR
 
                 UT_LOG "TST_INTERP: PASSED"
                 RETURN
