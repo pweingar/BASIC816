@@ -10,17 +10,7 @@
 
 .section code
 
-.if SYSTEM == SYSTEM_C64
-            ; Insert BASIC stub for C64 testing
-            .word ss, 10
-            .null $9e, format("%d", START)
-ss          .word 0
-.elsif SYSTEM == SYSTEM_C256
-; Override RESET vector to point to the start of BASIC
-.section vectors
-RESTART     .word <>START
-.send
-.endif
+.include "bootstrap.s"
 
 .include "bios.s"
 .include "utilities.s"
@@ -31,6 +21,7 @@ RESTART     .word <>START
 .include "eval.s"
 .include "returnstack.s"
 .include "interpreter.s"
+.include "repl.s"
 .include "operators.s"
 .include "statements.s"
 .include "commands.s"
@@ -44,27 +35,31 @@ START       CLC                 ; Go to native mode
             XCE
 
             setdp GLOBAL_VARS
-            setdbr `GLOBAL_VARS
+            setdbr BASIC_BANK
 
             setaxl
 
             CALL INITBASIC
 
+            ; Clear the screen and print the welcome message
+            CALL CLSCREEN
+
             setdbr `DATA_BLOCK
             LDX #<>GREET
-            JSL PRINTS
-            CALL PRINTCR
-            setdbr `GLOBAL_VARS
+            CALL PRINTS
+            setdbr BASIC_BANK
 
-.if UNITTEST
             setaxl
             LDA #<>WAIT         ; Send subsquent restarts to the WAIT loop
             STA RESTART
 
+.if UNITTEST
             CALL TST_BASIC      ; Run the BASIC816 unit tests
+.else
+            JMP INTERACT        ; Start accepting input from the user
+.endif
 
 WAIT        JMP WAIT
-.endif
 
 INITBASIC   .proc
             PHP
@@ -77,5 +72,5 @@ INITBASIC   .proc
 .send
 
 .section data
-GREET       .null CHAR_ESC,"[2J",CHAR_ESC,"[H","BASIC816 for the C256 Foenix"
+GREET       .null "Welcome to BASIC816 v0.0 for the C256 Foenix",13
 .send

@@ -7,9 +7,9 @@
 ;
 
 .if SYSTEM == SYSTEM_C64
-.include "mmap_cbm.s"
+.include "CBM/mmap_cbm.s"
 .elsif SYSTEM == SYSTEM_C256
-.include "mmap_c256.s"
+.include "C256/mmap_c256.s"
 .endif
 
 ;

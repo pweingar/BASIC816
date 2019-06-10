@@ -264,6 +264,7 @@ token_loop  setas
             setxs
             LDY #0
 cmp_loop    LDA [BIP],Y             ; Get the character in the window
+            CALL TOUPPERA           ; Convert the character to upper case for a case insensitive search
             CMP [SCRATCH],Y         ; Compare to the character in the token
             BNE next_token          ; If they don't match, try the next token
             INY                     ; Move to the next character in the window
@@ -592,4 +593,10 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "UNTIL", TOK_TY_BYWRD, 0, 0, 0
             DEFTOK "EXIT", TOK_TY_STMNT, 0, S_EXIT, 0
 
+            ; Commands
+
+            DEFTOK "RUN", TOK_TY_CMD, 0, CMD_RUN, 0
+            DEFTOK "NEW", TOK_TY_CMD, 0, CMD_NEW, 0
+            DEFTOK "LIST", TOK_TY_CMD, 0, CMD_LIST, 0
+            
             .word 0, 0, 0, 0

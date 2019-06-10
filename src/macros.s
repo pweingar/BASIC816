@@ -147,7 +147,7 @@ TRACE       .macro  ; name
             JSR PRTRACE         ; Print the name of the trace point
     .endif
             BRA continue
-            .null \1,CHAR_CR,CHAR_LF
+            .null \1,CHAR_CR
 continue
 .endif
             .endm

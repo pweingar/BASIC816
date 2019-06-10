@@ -3,8 +3,8 @@
 ;;;
 
 .section data
-UT_PASS_MSG .text "PASSED",CHAR_CR,CHAR_LF,0
-UT_FAIL_MSG .text "FAILED",CHAR_CR,CHAR_LF,0
+UT_PASS_MSG .text "PASSED",CHAR_CR,0
+UT_FAIL_MSG .text "FAILED",CHAR_CR,0
 .send
 
 ;
@@ -55,9 +55,9 @@ UT_FAIL_AW  .proc
 
             setas
             LDA #' '
-            CALL PUTC
+            CALL PRINTC
             LDA #'['
-            CALL PUTC
+            CALL PRINTC
 
             setal
             PLA
@@ -65,7 +65,7 @@ UT_FAIL_AW  .proc
 
             setas
             LDA #']'
-            CALL PUTC
+            CALL PRINTC
 
 .if SYSTEM = SYSTEM_C64
 WAIT        JMP WAIT
@@ -91,9 +91,9 @@ UT_FAIL_AB  .proc
 
             setas
             LDA #' '
-            CALL PUTC
+            CALL PRINTC
             LDA #'['
-            CALL PUTC
+            CALL PRINTC
 
             setas
             PLA
@@ -101,7 +101,7 @@ UT_FAIL_AB  .proc
 
             setas
             LDA #']'
-            CALL PUTC
+            CALL PRINTC
 
 .if SYSTEM = SYSTEM_C64
 WAIT        JMP WAIT
@@ -129,9 +129,9 @@ UT_FAIL_AL  .proc
 
             setas
             LDA #' '
-            CALL PUTC
+            CALL PRINTC
             LDA #'['
-            CALL PUTC
+            CALL PRINTC
 
             setas
             PLA
@@ -143,7 +143,7 @@ UT_FAIL_AL  .proc
 
             setas
             LDA #']'
-            CALL PUTC
+            CALL PRINTC
 
 .if SYSTEM = SYSTEM_C64
 WAIT        JMP WAIT
@@ -171,7 +171,7 @@ UT_LOG          .macro  ; name
                 PLB
                 BRA continue
 .section data
-TESTNAME        .null \1,CHAR_CR,CHAR_LF
+TESTNAME        .null \1,CHAR_CR
 .send
 continue        PLX
                 PLP
@@ -194,9 +194,9 @@ TESTNAME        .null \1
 .send
 continue        setas
                 LDA #':'
-                CALL PUTC
+                CALL PRINTC
                 LDA #' '
-                CALL PUTC
+                CALL PRINTC
 
                 setaxl
                 .endm

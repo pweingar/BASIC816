@@ -12,8 +12,8 @@ CMD_NEW         .proc
 
                 setdp GLOBAL_VARS
 
-                CATCH ON_ERROR              ; Register the default error handler
-                CALL S_CLR
+                CALL CLRINTERP              ; Set the interpreter state to the default
+
                 LD_L LASTLINE,BASIC_BOT     ; Delete all lines
 
                 setal                       ; Set first "line" to null
@@ -24,10 +24,45 @@ loop            STA [LASTLINE],Y
                 CPY #7
                 BEQ loop
 
-                STZ GOSUBDEPTH              ; Clear the depth of the GOSUB stack
-
                 PLD
                 PLP
                 RETURN
                 .pend
 
+;
+; Attempt to run a program
+;
+CMD_RUN         .proc
+                PHB
+                PHP
+
+                TRACE "CMD_RUN"
+
+                setdbr `MESSAGE
+
+                setaxl
+                LDX #<>MESSAGE
+                CALL PRINTS
+
+                setal
+                LDA #<>BASIC_BOT            ; Point to the first line of the program
+                STA CURLINE
+                LDA #`BASIC_BOT
+                STA CURLINE + 2
+
+                CALL CLRINTERP              ; Set the interpreter state to the default
+                CALL EXECPROGRAM
+
+                PLP
+                PLB
+                RETURN
+MESSAGE         .null "Running...",13
+                .pend
+
+;
+; List the program
+;
+CMD_LIST        .proc
+                CALL LISTPROG
+                RETURN
+                .pend

@@ -6,27 +6,31 @@
 ;;; C256 will go here. Otherwise, we just need the kernel jump table.
 ;;;
 
-;
-; C256 Foenix Kernel
-;
-FK_CLRSCREEN = $1900A8      ; Clear the screen
-FK_PUTC = $190018           ; Foenix kernel routine to print a character to the currently selected channel
-FK_PUTS  = $19001C          ; Print a string to the currently selected channel
-
+.include "kernel_c256.s"
 .include "uart.s"
+.include "keyboard.s"
+.include "screen.s"
 
 INITIO      .proc
             setas
 
-            LDA #DEV_UART
-            STA BCONSOLE
+            LDA #72             ; Make sure the screen size is right
+            STA @lCOLS_VISIBLE  ; TODO: remove this when the kernel is correct
+            LDA #52
+            STA @lLINES_VISIBLE
+
+            LDA #DEV_UART       ; DEV_SCREEN | DEV_UART
+            STA @lBCONSOLE
+
+            LDA #$20
+            STA @lCURCOLOR
 
             setal
             LDA #1              ; Select COM1
             JSL UART_SELECT
             JSL UART_INIT       ; And initialize it
 
-            ;JSL FK_CLRSCREEN
+            JSL INITIRQ         ; Initialize the IRQs
 
 done        RETURN
             .pend
@@ -42,7 +46,7 @@ SCREEN_PUTC .proc
             setas
             PHA
 
-            JSL FK_PUTC
+            CALL WRITEC     ; TODO: replce with PUTC, once PUTC handles control characters
             
             PLA
             PLP
@@ -77,9 +81,7 @@ PRINTCR     .proc
 
             setas
             LDA #CHAR_CR
-            CALL PUTC
-            LDA #CHAR_LF
-            CALL PUTC
+            CALL PRINTC
 
             setal
             PLA

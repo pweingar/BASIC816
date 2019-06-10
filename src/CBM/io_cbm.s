@@ -58,23 +58,6 @@ PUTC        .proc
             PLP
             RETURN
             .pend
-            
-;
-; Print the NUL terminated string indicated by X
-;
-PRINTS      .proc
-            PHP
-
-            setas
-loop        LDA #0,B,X
-            BEQ done
-            CALL PUTC
-            INX
-            BRA loop
-
-done        PLP
-            RETURN
-            .pend
 
 ; Print a new line
 PRINTCR     .proc
@@ -84,7 +67,7 @@ PRINTCR     .proc
 
             setas
             LDA #CHAR_CR
-            CALL PUTC
+            CALL PRINTC
 
             setal
             PLA

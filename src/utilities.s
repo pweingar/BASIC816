@@ -90,7 +90,7 @@ is_alpha    PLP
 ;
 ISNUMERAL   .proc
             PHP
-            TRACE "ISALPHA"
+            TRACE "ISNUMERAL"
 
             setas
 
@@ -108,6 +108,22 @@ ret_true    PLP
             RETURN
             .pend
 
+TOUPPERA    .proc
+            PHP
+
+            setas
+
+            CMP #'z'+1
+            BCS done
+            CMP #'a'
+            BCC done
+
+            AND #%11011111
+
+done        PLP
+            RETURN
+            .pend
+
 ;
 ; Convert a null-terminated string to upper case (in place)
 ;
@@ -121,12 +137,7 @@ TOUPPER     .proc
 
 loop        LDA #0,B,X
             BEQ done
-            CMP #'z'+1
-            BCS continue
-            CMP #'a'
-            BCC continue
-
-            AND #%11011111
+            CALL TOUPPERA
             STA #0,B,X
 
 continue    INX

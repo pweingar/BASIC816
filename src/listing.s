@@ -3,6 +3,36 @@
 ;;;
 
 ;
+; List an entire program
+;
+LISTPROG    .proc
+            PHA
+            PHY
+            PHD
+            PHP
+
+            setdp GLOBAL_VARS
+
+            setaxl
+            LDA #<>BASIC_BOT
+            STA BIP
+            LDA #`BASIC_BOT
+            STA BIP+2
+
+list_loop   LDY #LINE_NUMBER
+            LDA [BIP],Y
+            BEQ done
+            CALL LISTLINE
+            BRA list_loop
+
+done        PLP
+            PLD
+            PLY
+            PLA
+            RETURN
+            .pend
+
+;
 ; Print an entire line of BASIC
 ;
 ; Inputs:
@@ -38,7 +68,7 @@ LISTBYTE    .proc
             BEQ end_of_line     ; If it's 0, return with C set
             BMI is_token        ; If it's 0x80 - 0xFF, it's a token
 
-            CALL PUTC           ; Is not a token, just print the byte
+            CALL PRINTC         ; Is not a token, just print the byte
             BRA done            ; And return
 
 is_token    setal

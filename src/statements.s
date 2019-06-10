@@ -12,23 +12,87 @@ S_EXIT          .proc
 
 ; Start a loop that may be ended conditionally
 ; DO [WHILE <conditional expr> | UNTIL <conditional expr>]
-; Pushes return BIP and return CURLINE to RETURN stack
+;
+; Pushes to the return stack:
+;   return CURLINE (4)
+;   return BIP (4 bytes) <= "top" of stack
+;
 S_DO            .proc
                 PHP
-                TRACE "S_DO"
+                ; TRACE "S_DO"
 
-                ; TODO: process WHILE/UNTIL
+                ; ; Save the current line to the RETURN stack
+
+                ; setal
+                ; LDA CURLINE+2
+                ; CALL PHRETURN
+                ; LDA CURLINE
+                ; CALL PHRETURN
+
+                ; ; Save the BIP for right after FOR to the RETURN stack
+                ; LDA BIP+2           ; Save current BIP
+                ; PHA
+                ; LDA BIP
+                ; PHA
+
+                ; CALL SKIPSTMT       ; Skip to the next statement
+                ; LDA BIP+2           ; Save the BIP for the next statement to the RETURN stack
+                ; CALL PHRETURN
+                ; LDA BIP
+                ; CALL PHRETURN
+
+                ; PLA                 ; Restore the original BIP
+                ; STA BIP
+                ; PLA
+                ; STA BIP+2
 
                 PLP
                 RETURN
                 .pend
 
+;
+; Structure of the record DO pushes to the RETURN stack
+; (in order of how the parameters will appear in memory on the stack)
+;
+DO_RECORD       .struct
+BIP             .dword  ?
+CURLINE         .dword  ?
+                .ends
+
 ; Close a DO loop
 ; LOOP [WHILE <conditional expr> | UNTIL <conditional expr>]
+;
+; Expects the return stack to contain:
+;   return CURLINE (4)
+;   return BIP (4 bytes) <= "top" of stack
+;
 S_LOOP          .proc
                 PHP
-                TRACE "S_LOOP"
+                ; PHB
+                ; TRACE "S_LOOP"
 
+                ; setdbr 0
+
+                ; setaxl
+                ; LDY RETURNSP
+                ; INY
+                ; INY
+
+                ; LDA #DO_RECORD.CURLINE,Y        ; Pull the CURLINE for the matching DO
+                ; STA CURLINE
+                ; LDA #DO_RECORD.CURLINE+2,Y
+                ; STA CURLINE_2
+
+                ; LDA #DO_RECORD.BIP,Y            ; Pull the BIP for the matching DO
+                ; STA BIP
+                ; LDA #DO_RECORD.BIP+2,Y
+                ; STA BIP+2
+
+                ; setas                           ; jump back to that spot
+                ; LDA #EXEC_RETURN
+                ; STA EXECACTION
+
+                ; PHB
                 PLP
                 RETURN
                 .pend
@@ -439,6 +503,8 @@ S_GOTO          .proc
                 CALL FINDLINE               ; Try to find the line
                 BCC not_found               ; If not found... LINE NOT FOUND error
 
+                TRACE "foo"
+
                 setas                       ; Tell the interpreter to restart at the selected line
                 LDA #EXEC_GOTO
                 STA EXECACTION
@@ -488,6 +554,8 @@ else            CALL SKIPWS         ; Scan for an "="
                 CALL EVALEXPR       ; Evaluate the expression
                 CALL VAR_SET        ; Attempt to set the value of the variable
 
+                TRACE "S_LET DONE"
+
                 PLP
                 RETURN
 
@@ -534,7 +602,7 @@ check_nl        CALL SKIPWS
                 THROW ERR_SYNTAX    ; If we get here, we don't have a well formed statement
 
 pr_comma        LDA #CHAR_TAB       ; Print a TAB
-                CALL PUTC
+                CALL PRINTC
 
 is_more         CALL SKIPWS         ; Skip any whitespace
                 LDA [BIP]           ; Get the character
@@ -558,16 +626,30 @@ done            PLP
 PR_STRING       .proc
                 PHP
                 PHB
+                TRACE_L "PR_STRING",ARGUMENT1
 
-                setas               ; Get the data bank for the string
-                LDA ARGUMENT1+2
-                PHA
-                PLB
+                setdp GLOBAL_VARS
 
-                LDX ARGUMENT1       ; Get the pointer to the string
-                CALL PRINTS         ; And print it
+                setas
+                setxl
+                LDY #0
 
-                PLB
+loop            LDA [ARGUMENT1],Y
+                BEQ done
+                CALL PRINTC
+                INY
+                BRA loop
+
+                ; setas               ; Get the data bank for the string
+                ; LDA ARGUMENT1+2
+                ; PHA
+                ; PLB
+
+                ; setxl
+                ; LDX ARGUMENT1     ; Get the pointer to the string
+                ; CALL PRINTS         ; And print it
+
+done            PLB
                 PLP
                 RETURN
                 .pend

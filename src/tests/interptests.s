@@ -340,6 +340,16 @@ TST_EXEC_GOTO   .proc
                 LDA LINENUM
                 CALL ADDLINE
 
+                LD_L CURLINE,LINE50
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE60
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
                 LD_L CURLINE,BASIC_BOT
                 CALL EXECPROGRAM
 
@@ -375,9 +385,11 @@ TST_EXEC_GOTO   .proc
 
                 UT_END
 LINE10          .null "10 LET A%=1"
-LINE20          .null "20 GOTO 40"
+LINE20          .null "20 GOTO 60"
 LINE30          .null "30 A%=2"
 LINE40          .null "40 B%=3"
+LINE50          .null "50 END"
+LINE60          .null "60 GOTO 40"
 VAR_A           .null "A%"
 VAR_B           .null "B%"
                 .pend
@@ -688,7 +700,7 @@ VAR_I           .null "I%"
 ; Run all the evaluator tests
 ;
 TST_INTERP      .proc
-                CALL TST_PRINT
+                ;CALL TST_PRINT
                 CALL TST_TOK_LET
                 CALL TST_LET_IMPLIED
                 CALL TST_ADDLINE

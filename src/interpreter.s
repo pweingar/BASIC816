@@ -116,6 +116,27 @@ INITINTERP  .proc
             .pend
 
 ;
+; Put the interpreter into the correct state for running a program
+;
+; Sets up the error handler to the default
+; Resets the heap and clears all variables
+; Sets the GOSUB depth to 0
+; 
+CLRINTERP   .proc
+            PHD
+            PHP
+
+            setdp <>GLOBAL_VARS
+            CATCH ON_ERROR              ; Register the default error handler
+            CALL S_CLR
+            STZ GOSUBDEPTH              ; Clear the depth of the GOSUB stack
+
+            PLP
+            PLD
+            RETURN
+            .pend
+
+;
 ; Default error handler.
 ; Print the error message, reset the stacks, and launch the command line
 ;
@@ -131,7 +152,14 @@ ON_ERROR    .proc
             LDX ERRORMSG,Y
             CALL PRINTS
 
+            LDX #<>MSG_ERROR
+            CALL PRINTS
+
+.if UNITTEST
 ERRLOCK     JMP ERRLOCK
+.else
+            JMP INTERACT
+.endif
 
 ERRORMSG    .word <>MSG_OK
             .word <>MSG_SYNTAX
@@ -141,6 +169,8 @@ ERRORMSG    .word <>MSG_OK
             .word <>MSG_NOLINE
             .word <>MSG_UNDFLOW
             .word <>MSG_OVRFLOW
+
+MSG_ERROR   .null " ERROR!",13
 
 MSG_OK      .null "OK"
 MSG_SYNTAX  .null "SYNTAX"
@@ -425,13 +455,14 @@ else        CALL ISALPHA        ; Is it alphabetic?
             BPL error           ; Yes: it's a syntax error
 
             CALL TOKTYPE        ; Get the token type
+            STA SCRATCH         ; Save the type for later
 
             CMP #TOK_TY_STMNT   ; Is it a statement?
             BNE else2     
             JMP ok_to_exec      ; Yes: it's ok to try to execute it
 
 else2       LDA STATE           ; Check to see if we're in interactive mode
-            BPL is_interact
+            BEQ is_interact
 
             ; Interpreter is running a program. Only statements are allowed. 
 
@@ -443,7 +474,8 @@ is_variable CALL S_LET          ; Try to execute a LET statement
 STSTUB      setdbr `GLOBAL_VARS
             JMP (JMP16PTR)      ; Annoying JMP to get around the fact we don't have an indirect JSR
 
-is_interact CMP #TOK_TY_CMD     ; Is it a command?
+is_interact LDA SCRATCH         ; Get the token type
+            CMP #TOK_TY_CMD     ; Is it a command?
             BNE error           ; If not, it's an error
 
 ok_to_exec  LDA [BIP]           ; Get the original token again
@@ -462,6 +494,29 @@ done        PLB
             .pend
 
 ;
+; Execute an interactive command line
+;
+; NOTE: uses the internals of EXECLINE
+;
+; Inputs:
+;   CURLINE = pointer to the line to execute
+;
+EXECCMD     .proc
+            PHP
+            TRACE "EXECCMD"
+
+            CALL SETINTERACT
+
+            setal                  
+            LDA CURLINE         ; Set the BASIC Instruction Pointer to the first byte of the line
+            STA BIP
+            LDA CURLINE+2
+            STA BIP+2
+
+            JMP exec_loop
+            .pend
+
+;
 ; Execute line
 ;
 ; Inputs:
@@ -473,8 +528,7 @@ done        PLB
 ;       EXEC_GOTO - CURLINE has been set to the new line to start executing
 ;       EXEC_STOP - the interpreter should stop execution and return to the command parser
 ;
-EXECLINE    .proc
-            PHP
+EXECLINE    PHP
 
             setal
             LDY #LINE_NUMBER            ; Set the current line number
@@ -502,12 +556,12 @@ exec_loop   CALL EXECSTMT               ; Try to execute a statement
             setas                       ; Check EXECACTION (set by statements)
             LDA EXECACTION
             CMP #EXEC_CONT              ; If it's not EXEC_CONT, exit to the caller
-            BNE done
+            BNE exec_done
 
             setas
             CALL SKIPWS                 ; Skip any whitespace
             LDA [BIP]                   ; Get the current character in the line
-            BEQ done                    ; If it's NULL, we're done
+            BEQ exec_done               ; If it's NULL, we're done
 
             CMP #':'                    ; If it's colon, we have more statements
             BEQ skip_loop               ; Skip over it and try to execute the next one
@@ -518,10 +572,9 @@ exec_loop   CALL EXECSTMT               ; Try to execute a statement
 skip_loop   CALL INCBIP                 ; Skip over the colon
             BRA exec_loop               ; And try to execute another statement
 
-done        TRACE "EXECLINE DONE"
+exec_done   TRACE "EXECLINE DONE"
             PLP
             RETURN
-            .pend
 
 ;
 ; Starting with the line indicated by CURLINE, execute the BASIC program.
@@ -590,27 +643,26 @@ done        setas
 ;
 FINDLINE    .proc
             PHP
-            setal
-            LDA ARGUMENT1
-            TRACE_A "FINDLINE"
+            setaxl
+            TRACE_L "FINDLINE", ARGUMENT1
 
-            MOVE_L INDEX,CURLINE        ; INDEX := CURLINE
+            ; MOVE_L INDEX,CURLINE        ; INDEX := CURLINE
 
             setal
-            LDA LINENUM                 ; Compare the target to the current line number
-            CMP ARGUMENT1
-            BEQ ret_true                ; If they're the same, just return true
-            BGE next_line               ; If LINENUM < target line, it must be after the current line
+            ; LDA LINENUM                 ; Compare the target to the current line number
+            ; CMP ARGUMENT1
+            ; BEQ ret_true                ; If they're the same, just return true
+            ; BGE next_line               ; If LINENUM < target line, it must be after the current line
 
             LDA #<>BASIC_BOT            ; INDEX points to the first line of the program
             STA INDEX
-            setas
             LDA #`BASIC_BOT
             STA INDEX+2
 
             setal
 check_nmbrs LDY #LINE_NUMBER            ; Get the number of the possible target line
             LDA [INDEX],Y
+            BEQ ret_false               ; If new line number is 0, we got to the
             CMP ARGUMENT1               ; Compare it to the target line number
             BEQ found
             BGE ret_false               ; If the line number > target line number, the line is not present

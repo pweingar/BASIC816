@@ -3,9 +3,9 @@
 ;;;
 
 .if SYSTEM == SYSTEM_C64
-.include "io_cbm.s"
+.include "CBM/io_cbm.s"
 .elsif SYSTEM == SYSTEM_C256
-.include "io_c256.s"
+.include "C256/io_c256.s"
 .endif
 
 DEV_SCREEN = $80        ; Use the screen and keyboard for the console device
@@ -27,7 +27,7 @@ OBUFFIDX    .word ?     ; Index into the current output buffer
 ;   A = the character to print
 ;   BCONSOLE = the device number for the console
 ;
-PUTC        .proc
+PRINTC      .proc
             PHP
             setas
             setxl
@@ -53,45 +53,20 @@ send_uart   BIT BCONSOLE        ; Check to see if the UART is active
             LDA SAVE_A
             JSL UART_PUTC       ; Yes... send the character to the UART
 
+            LDA SAVE_A          ; If sending a CR to the serial port
+            CMP #CHAR_CR
+            BNE done
+            LDA #CHAR_LF        ; Send a linefeed after
+            JSL UART_PUTC
+
 done        PLY
             PLX
             PLP
             RETURN
             .pend
 
-PRSTSCRATCH .proc
-            PHP
-            PHB
-            setaxl
-            PHA
-            PHX
-            PHY
-
-            setas
-            LDA #'['
-            CALL PUTC
-
-            LDA SCRATCH+2
-            PHA
-            PLB
-
-            LDX SCRATCH
-            CALL PRINTS
-
-            LDA #']'
-            CALL PUTC
-
-            setaxl
-            PLY
-            PLX
-            PLA
-            PLB
-            PLP
-            RETURN
-            .pend
-
 ;
-; Send a string to the console
+; Send a null-terminated string to the console
 ;
 ; Inputs:
 ;   B = bank of the string to print
@@ -100,31 +75,15 @@ PRSTSCRATCH .proc
 ;
 PRINTS      .proc
             PHP
-            setaxl
-            PHA
-            PHX
 
             setas
-            LDA #DEV_BUFFER     ; Check to see if we should send to an output buffer
-            BIT BCONSOLE
-            BEQ check_scrn      ; No... move on to the hardware screen
+loop        LDA #0,B,X
+            BEQ done
+            CALL PRINTC
+            INX
+            BRA loop
 
-            CALL OBUFF_PUTS     ; Print to the output buffer
-
-check_scrn  BIT BCONSOLE        ; Check to see if we should send to the screen
-            BPL send_uart       ; If not, try the UART
-
-            CALL SCREEN_PUTS    ; Send the string to the screen
-
-send_uart   BIT BCONSOLE        ; Check to see if we should send to the UART
-            BVC done            ; No: we're done
-
-            JSL UART_PUTS       ; Yes: send the string to the UART
-
-done        setaxl
-            PLX
-            PLA
-            PLP
+done        PLP
             RETURN
             .pend
 
@@ -142,6 +101,8 @@ OBUFF_PUTC      .proc
 
                 setas
                 PHA
+
+                setdp GLOBAL_VARS
 
                 setal               ; Check to make sure a buffer is set
                 LDA OBUFFER
@@ -277,7 +238,7 @@ PRHEXN      .proc
             AND #$000F
             TAX
             LDA @lHEXDIGITS,X
-            CALL PUTC
+            CALL PRINTC
 
             PLX
             PLP
