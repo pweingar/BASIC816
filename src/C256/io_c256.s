@@ -19,7 +19,12 @@ INITIO      .proc
             LDA #52
             STA @lLINES_VISIBLE
 
-            LDA #DEV_UART       ; DEV_SCREEN | DEV_UART
+            ; DEV_SCREEN | DEV_UART
+.if UNITTEST
+            LDA #DEV_UART
+.else
+            LDA #DEV_SCREEN
+.endif
             STA @lBCONSOLE
 
             LDA #$20

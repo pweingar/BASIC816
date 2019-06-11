@@ -130,6 +130,37 @@ EXPECTED        .null "ABCXYZ"
                 .databank BASIC_BANK
                 .pend
 
+TST_ITOS        .proc
+                UT_BEGIN "TST_ITOS"
+
+                setal               ; Set ARGUMENT1 to 123
+                LDA #123
+                STA @lARGUMENT1
+                LDA #0
+                STA @lARGUMENT1+2
+                setas
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+
+                CALL ITOS
+                UT_STRIND_EQ STRPTR, EXPECTED1, "EXPECTED 123"
+
+                setal               ; Set ARGUMENT1 to -5678
+                LDA #-5678
+                STA @lARGUMENT1
+                LDA #$FFFF
+                STA @lARGUMENT1+2
+                setas
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+
+                CALL ITOS
+                UT_STRIND_EQ STRPTR, EXPECTED2, "EXPECTED -5678"
+
+                UT_END
+EXPECTED1       .null " 123"
+EXPECTED2       .null "-5678"
+                .pend
 ;
 ; Run all the evaluator tests
 ;
@@ -137,6 +168,7 @@ TST_STRINGS     .proc
                 CALL TST_STRLEN
                 CALL TST_STRCMP
                 CALL TST_STRCONCAT
+                CALL TST_ITOS
 
                 UT_LOG "TST_STRINGS: PASSED"
                 RETURN

@@ -493,3 +493,43 @@ MESSAGE         .null \3
 .send
 continue             
                 .endm          
+
+;
+; Assert that two null-terminated strings are equal
+; Where the actual string is indirect
+;
+UT_STRIND_EQ    .macro ; actual, expected, message
+                setal
+                LDA \1              ; Point ARGUMENT1 to actual
+                STA ARGUMENT1
+                setas
+                LDA \1+2
+                STA ARGUMENT1+2
+
+                setal
+                LDA #<>\2           ; Point ARGUMENT2 to expected
+                STA ARGUMENT2
+                LDA #`\2
+                STA ARGUMENT2+2   
+
+                setas               ; Set their types to string
+                LDA #TYPE_STRING
+                STA ARGTYPE1
+                STA ARGTYPE2
+
+                CALL STRCMP
+
+                LDA ARGUMENT1       ; Check to see if the result is 0 (they are equal)
+                BEQ continue
+
+                LDX #<>MESSAGE      ; No, print the error message
+                PHB
+                setdbr `DATA_BLOCK
+                CALL UT_FAIL
+                PLB
+                BRA continue
+.section data
+MESSAGE         .null \3
+.send
+continue             
+                .endm   

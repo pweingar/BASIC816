@@ -188,6 +188,26 @@ TST_OP_MULT     .proc
                 UT_END
                 .pend      
 
+TST_DIV10       .proc
+                UT_BEGIN "TST_DIV10"
+
+                setal               ; Set ARGUMENT1 to 123
+                LDA #123
+                STA @lARGUMENT1
+                LDA #0
+                STA @lARGUMENT1+2
+                setas
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+
+                CALL DIVINT10
+                UT_M_EQ_LIT_W ARGUMENT1,12,"EXPECTED 12"
+                UT_M_EQ_LIT_W ARGUMENT2,3,"EXPECTED 3"
+
+                UT_END
+EXPECTED        .null " 123"
+                .pend
+
 ; We can evaluate integers
 TST_EVAL_INT    .proc
                 UT_BEGIN "TST_EVAL_INT"
@@ -426,6 +446,7 @@ TST_EVAL        .proc
                 CALL TST_PUSH_OP
                 CALL TST_OP_MINUS
                 CALL TST_OP_MULT
+                CALL TST_DIV10
                 CALL TST_EVAL_DIVIDE
                 CALL TST_EVAL_MOD
                 CALL TST_OP_PREC

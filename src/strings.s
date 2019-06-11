@@ -3,6 +3,130 @@
 ;;;
 
 ;
+; Allocate a temporary string.
+;
+; A temporary string is allocated in memory between the BASIC program
+; and the bottom of the heap. Temporary strings may be over-written by
+; the heap at any time, so they must be used immediately or copied to
+; a regular heap-allocated string. This routine really just makes sure
+; there is a free page between the program and the bottom of the heap.
+; If there isn't, it will throw an out of memory error.
+;
+; Outputs:
+;   STRPTR = pointer to the temp string (type not set)
+;
+TEMPSTRING  .proc
+            PHP
+
+            setxl
+            setas               ; Set INDEX next free byte after the string
+            STZ STRPTR
+            LDA LASTLINE+1
+            INC A
+            INC A
+            STA STRPTR+1
+            setas
+            LDA LASTLINE+2
+            STA STRPTR+2
+
+            CMP HEAP+2          ; Check the bank see if the there is a heap collision
+            BCC has_room        ; No... return pointer
+            BEQ no_room         ; Yes... throw error
+
+            setal
+            LDA STRPTR          ; Check the lower 16 bits
+            CMP HEAP
+            BCC has_room        ; No... return pointer
+
+no_room     THROW ERR_MEMORY    ; Yes... throw error
+
+has_room    PLP
+            RETURN
+            .pend
+
+;
+; Convert the integer in ARGUMENT1 to a temporary, null-terminated string
+;
+; Note: the temporary string is not allocated on the heap and
+; can be over-written at any time. It should be used immediately
+; or copied to a heap string
+;
+; Inputs:
+;   ARGUMENT1 = the integer to convert to a string
+;
+; Outputs:
+;   STRPTR = pointer to the temporary string
+;
+ITOS        .proc
+            PHP
+            TRACE "ITOS"
+
+            setal
+            STZ SCRATCH         ; Use scratch to store if negative
+
+            LDA ARGUMENT1       ; Check to see if the number is negative
+            BPL tsalloc
+
+            EOR #$FFFF          ; Yes: make ARGUMENT1 positive
+            CLC
+            ADC #1
+            STA ARGUMENT1
+
+            LDA #$FFFF          ; Record that the number was negative
+            STA SCRATCH
+
+tsalloc     CALL TEMPSTRING     ; Allocate a temporary string
+
+            setas
+            LDA #$FF
+            STA STRPTR          ; Point to its last byte
+
+            LDA #0
+            STA [STRPTR]        ; And make sure it's NULL
+
+            LDA #$FE
+            STA STRPTR          ; And point to the first possible digit
+
+            LDA #'0'
+            STA [STRPTR]        ; Pre-load a "0"
+
+shift_loop  CALL IS_ARG1_Z      ; If ARGUMENT1 is 0....
+            BEQ check_neg       ; ... then we've finished shifting out digits
+
+            CALL DIVINT10       ; Divide by 10 (expect remainder in ARGUMENT2)
+
+            setas
+            CLC                 ; Convert the remainder to an ASCII digit
+            LDA ARGUMENT2
+            BMI fault
+            CMP #10
+            BGE fault
+            ADC #'0'
+
+            STA [STRPTR]        ; Write it to the temporary string
+
+            setas
+            DEC STRPTR          ; Move to the "next" character slot
+
+            LDA #' '            ; Write a space as a placeholder
+            STA [STRPTR]
+
+            BRA shift_loop
+
+check_neg   LDA SCRATCH         ; Check to see if the number was negative
+            BEQ done            ; No: go ahead and return
+
+            LDA #'-'
+            STA [STRPTR]
+
+done        PLP
+            RETURN
+
+fault       BRK
+            NOP
+            .pend
+
+;
 ; Calculate the length of a string
 ;
 ; Inputs:

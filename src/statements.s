@@ -663,7 +663,14 @@ done            PLB
 PR_INTEGER      .proc
                 PHP
 
-                ; TODO: print a decimal representation of ARGUMENT1
+                setal
+                CALL ITOS           ; Convert the integer to a string
+
+                LDA STRPTR          ; Copy the pointer to the string to ARGUMENT1
+                STA ARGUMENT1
+                LDA STRPTR+2
+                STA ARGUMENT1+2
+                CALL PR_STRING      ; And print it
 
                 PLP
                 RETURN

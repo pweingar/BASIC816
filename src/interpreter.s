@@ -169,6 +169,7 @@ ERRORMSG    .word <>MSG_OK
             .word <>MSG_NOLINE
             .word <>MSG_UNDFLOW
             .word <>MSG_OVRFLOW
+            .word <>MSG_MEMORY
 
 MSG_ERROR   .null " ERROR!",13
 

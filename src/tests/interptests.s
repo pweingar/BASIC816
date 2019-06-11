@@ -48,7 +48,54 @@ TST_PRINT       .proc
 
                 UT_END
 TEST            .null $8E,' "Hello, world!"'
-EXPECTED        .null 'Hello, world!',13,10
+EXPECTED        .null 'Hello, world!',13
+                .pend
+
+; Verify that we can print integers
+TST_PRINTEGER   .proc
+                UT_BEGIN "TST_PRINTEGER"
+
+                setdp GLOBAL_VARS
+                setdbr 0
+
+                setaxl
+
+                ; Interpret PRINT "Hello, world!"
+                CALL INITBASIC
+
+                ; Set up the temporary buffer
+                LDA #<>TMP_BUFF_ORG             ; Set the address of the buffer
+                STA OBUFFER
+                setas
+                LDA #`TMP_BUFF_ORG
+                STA OBUFFER
+
+                setal                           ; Set the size of rhe buffer
+                LDA #TMP_BUFF_SIZ
+                STA OBUFFSIZE
+
+                STZ OBUFFIDX                    ; Clear the index
+
+                setas
+                LDA BCONSOLE
+                ORA #DEV_BUFFER                 ; Turn on the output buffer
+                STA BCONSOLE
+
+                setal
+                LDA #<>TEST
+                STA BIP
+                LDA #`TEST
+                STA BIP+2
+
+                CALL EXECSTMT
+
+                CALL OBUFF_CLOSE
+
+                UT_STR_EQ TMP_BUFF_ORG,EXPECTED,"EXPECTED  1234{CR}'"
+
+                UT_END
+TEST            .null $8E,' 1234'
+EXPECTED        .null ' 1234',13
                 .pend
 
 ; Can assign a value to a variable using an implied LET
@@ -700,7 +747,8 @@ VAR_I           .null "I%"
 ; Run all the evaluator tests
 ;
 TST_INTERP      .proc
-                ;CALL TST_PRINT
+                CALL TST_PRINT
+                CALL TST_PRINTEGER
                 CALL TST_TOK_LET
                 CALL TST_LET_IMPLIED
                 CALL TST_ADDLINE

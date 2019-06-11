@@ -1,4 +1,22 @@
 @echo off
+
+REM The name portion of the top source file and all generated files
+set SOURCE=basic816
+
+REM The location of 64TASS
 set TASSHOME=d:\c64\64tass
 
-%TASSHOME%\64tass -D SYSTEM=2 -D UNITTEST=1 -D TRACE_LEVEL=0 --long-address --flat  -b --intel-hex -o basic816.hex --list=basic816.lst --labels=basic816.lbl src\basic816.s
+REM 1 = C64 with SuperCPU, 2 = C256
+set SYSTEM=2
+
+REM 0 = Interactive, 1 = Generate Unit Tests
+set UNITTEST=1
+
+REM 0 = No tracing informaiton, 1 = Include subroutine names, 2 = Generate trace messages
+set TRACE_LEVEL=0
+
+set OPTS=-D SYSTEM=%SYSTEM% -D UNITTEST=%UNITTEST% -D TRACE_LEVEL=%TRACE_LEVEL% --long-address --flat -b
+set DEST=--intel-hex -o %SOURCE%.hex
+set AUXFILES=--list=%SOURCE%.lst --labels=%SOURCE%.lbl
+
+%TASSHOME%\64tass %OPTS% %DEST% %AUXFILES% src\%SOURCE%.s

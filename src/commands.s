@@ -38,12 +38,6 @@ CMD_RUN         .proc
 
                 TRACE "CMD_RUN"
 
-                setdbr `MESSAGE
-
-                setaxl
-                LDX #<>MESSAGE
-                CALL PRINTS
-
                 setal
                 LDA #<>BASIC_BOT            ; Point to the first line of the program
                 STA CURLINE
@@ -56,13 +50,17 @@ CMD_RUN         .proc
                 PLP
                 PLB
                 RETURN
-MESSAGE         .null "Running...",13
                 .pend
 
 ;
 ; List the program
 ;
 CMD_LIST        .proc
+                PHP
+                TRACE "CMD_LIST"
+
                 CALL LISTPROG
+
+                PLP
                 RETURN
                 .pend
