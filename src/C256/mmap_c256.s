@@ -3,13 +3,17 @@
 ;;;
 
 ; Section of memory for the BASIC interpreter's code
-* = $002000
+* = $170000
 .dsection code
 
+; Section of memory used to handle the RESET and start BASIC
+* = $002000
+.dsection bootblock
+
 ; Section of memory for all constant data
-* = $001000
+* = $17E000
 .dsection data
-.cerror * > $001FFFF, "Too many string constants"
+.cerror * > $19FFFF, "Too many string constants"
 
 ; Section of memory for global (direct page) variables
 * = $000210
@@ -36,7 +40,7 @@ OPERATOR_BOT = $007000      ; Starting address of the operator stack
 OPERATOR_TOP = $007FFF      ; Ending address of the operator stack
 STACK_BEGIN = $008000       ; 32512 Bytes The default beginning of stack space
 STACK_END = $00FEFF         ; 0 Byte  End of stack space. Everything below this is I/O space
-HEAP_TOP = $17FFFF          ; Starting point of the heap
+HEAP_TOP = $16FFFF          ; Starting point of the heap
 BASIC_BOT = $010000         ; Starting point for BASIC programs
 
 SCREENBEGIN      = $00000C ;3 Bytes Start of screen in video RAM. This is the upper-left corrner of the current video page being written to. This may not be what's being displayed by VICKY. Update this if you change VICKY's display page.

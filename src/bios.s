@@ -34,26 +34,26 @@ PRINTC      .proc
             PHX
             PHY
 
-            STA SAVE_A
+            STA @lSAVE_A
 
-            LDA #DEV_BUFFER     ; Check to see if we should send to an output buffer
-            BIT BCONSOLE
+            LDA @lBCONSOLE      ; Check to see if we should send to an output buffer
+            BIT #DEV_BUFFER
             BEQ check_scrn      ; No... move on to the hardware screen
             
-            LDA SAVE_A
+            LDA @lSAVE_A
             CALL OBUFF_PUTC     ; Yes... print the character to the buffer
 
-check_scrn  BIT BCONSOLE        ; Check to see if the screen is selected
-            BPL send_uart
-            LDA SAVE_A
+check_scrn  BIT #DEV_SCREEN     ; Check to see if the screen is selected
+            BEQ send_uart
+            LDA @lSAVE_A
             CALL SCREEN_PUTC    ; Yes... Send the character to the screen
 
-send_uart   BIT BCONSOLE        ; Check to see if the UART is active
-            BVC done
-            LDA SAVE_A
+send_uart   BIT #DEV_UART       ; Check to see if the UART is active
+            BEQ done
+            LDA @lSAVE_A
             JSL UART_PUTC       ; Yes... send the character to the UART
 
-            LDA SAVE_A          ; If sending a CR to the serial port
+            LDA @lSAVE_A        ; If sending a CR to the serial port
             CMP #CHAR_CR
             BNE done
             LDA #CHAR_LF        ; Send a linefeed after
@@ -79,7 +79,9 @@ PRINTS      .proc
             setas
 loop        LDA #0,B,X
             BEQ done
+
             CALL PRINTC
+
             INX
             BRA loop
 
@@ -100,7 +102,7 @@ OBUFF_PUTC      .proc
                 PHB
 
                 setas
-                PHA
+                STA SAVE_A
 
                 setdp GLOBAL_VARS
 
@@ -109,7 +111,7 @@ OBUFF_PUTC      .proc
                 BNE has_buffer
                 setas
                 LDA OBUFFER+2
-                BEQ cant_write
+                BEQ done
 
 has_buffer      setxl
                 LDY OBUFFIDX        ; Check to make sure there is room
@@ -117,15 +119,12 @@ has_buffer      setxl
                 BEQ done            ; If not, exit silently
                 
                 setas
-                PLA
+                LDA SAVE_A
                 STA [OBUFFER],Y     ; Write the character to the buffer
 
                 INY                 ; Increment the index
                 STY OBUFFIDX
 
-                BRA done            ; And exit
-
-cant_write      PLA
 done            PLB
                 RETURN
                 .pend

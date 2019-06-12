@@ -432,7 +432,7 @@ else2       CMP #'9'+1          ; Check to see if we have digits
             CMP #'0'
             BCS is_digit
 
-else3       CMP #'"'    ; Is it a double-quote?
+else3       CMP #'"'            ; Is it a double-quote?
             BNE else4
             JMP is_string       ; Yes: process the string
 

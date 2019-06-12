@@ -17,10 +17,7 @@ SCROLLUP    .proc
             PHA
             PHX
             PHY
-            PHB
             PHP
-            
-            setdbr $AF
 
             setxl
             setas
@@ -44,10 +41,7 @@ SCROLLUPLINELASTLINE
             CPX #$80
             BNE SCROLLUPLINELASTLINE
 
-            setdbr 0
-
             PLP
-            PLB
             PLY
             PLX
             PLA
@@ -266,5 +260,5 @@ done        PLP
             PLX
             RETURN
 
-            .dpage 0
+            .dpage BASIC_BANK
             .pend

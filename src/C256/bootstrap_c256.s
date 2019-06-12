@@ -4,6 +4,10 @@
 
 ; Override RESET vector to point to the start of BASIC
 
+.section bootblock
+COLDSTART   JML START
+.send
+
 .section vectors
-RESTART     .word <>START
+RESTART     .word <>COLDSTART
 .send

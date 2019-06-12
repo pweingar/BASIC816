@@ -149,11 +149,13 @@ ON_ERROR    .proc
             ASL A
             TAY
 
+            setdbr `ERRORMSG
             LDX ERRORMSG,Y
             CALL PRINTS
 
             LDX #<>MSG_ERROR
             CALL PRINTS
+            setdbr BASIC_BANK
 
 .if UNITTEST
 ERRLOCK     JMP ERRLOCK

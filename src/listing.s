@@ -10,6 +10,7 @@ LISTPROG    .proc
             PHY
             PHD
             PHP
+            TRACE "LISTPROG"
 
             setdp GLOBAL_VARS
 
@@ -39,10 +40,45 @@ done        PLP
 ;   BIP = pointer to the first byte to print
 ;
 LISTLINE    .proc
+            PHP
+            TRACE "LISTLINE"
+
+            ; Print the line number
+            setaxl
+            STA ARGUMENT1
+            STZ ARGUMENT1+2
+            CALL ITOS           ; Convert the integer to a string
+
+            LDA STRPTR          ; Copy the pointer to the string to ARGUMENT1
+            INC A
+            STA ARGUMENT1
+            LDA STRPTR+2
+            STA ARGUMENT1+2
+            CALL PR_STRING      ; And print it
+
+            CLC                 ; Move the BIP to the first byte of the line
+            LDA BIP
+            ADC #LINE_TOKENS
+            STA BIP
+            LDA BIP+2
+            ADC #0
+            STA BIP+2
+
+            setas
+            LDA #CHAR_SP
+            CALL PRINTC
+            setal
 
 loop        CALL LISTBYTE
             BCC loop
 
+            setas
+            LDA #CHAR_CR
+            CALL PRINTC
+
+            CALL INCBIP         ; Move past the end of line
+
+            PLP
             RETURN
             .pend
 
@@ -58,6 +94,7 @@ LISTBYTE    .proc
             PHP
             PHD
             PHB
+            TRACE "LISTBYTE"
 
             setdp <>GLOBAL_VARS
             setdbr `GLOBAL_VARS

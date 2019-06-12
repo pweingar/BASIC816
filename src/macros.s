@@ -201,7 +201,7 @@ continue
 LDARG_EA    .macro dest,ea,type
             PHP
             setal
-            LDA #\2
+            LDA #<>\2
             STA \1
             LDA #`\2
             STA \1+2

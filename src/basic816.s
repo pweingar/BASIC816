@@ -44,7 +44,12 @@ START       CLC                 ; Go to native mode
             ; Clear the screen and print the welcome message
             CALL CLSCREEN
 
-            setdbr `DATA_BLOCK
+            setas
+            LDA #'#'
+            CALL PRINTC
+            setal
+
+            setdbr `GREET
             LDX #<>GREET
             CALL PRINTS
             setdbr BASIC_BANK

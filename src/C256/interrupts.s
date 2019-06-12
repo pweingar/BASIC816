@@ -6,6 +6,8 @@ VIRQ = $00FFEE      ; IRQ vector for native mode
 
 .include "interrupt_def.s"
 
+.section bootblock
+
 ;
 ; Initialize the interrupt system
 ;
@@ -228,3 +230,5 @@ SAVECHAR2CMDLINE
 
 done            PLD
                 RTL
+
+.send
