@@ -50,6 +50,6 @@ EXPECTED        .null '10 A%=1',13
 TST_CMD         .proc
                 CALL TST_LISTLINE
 
-                ;UT_LOG "TST_CMD: PASSED"
+                UT_LOG "TST_CMD: PASSED"
                 RETURN
                 .pend

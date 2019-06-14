@@ -47,6 +47,10 @@ PARSEINT    .proc
             setas
             STZ ARGTYPE1
 
+            LDA [BIP]           ; Check to see if it starts with '$'
+            CMP #'$'        
+            BEQ parse_hex       ; Yes: parse it as a hexadecimal number
+
 loop        setas
             LDA [BIP]           ; Get the next character
             CALL ISNUMERAL      ; Is it a numeral?
@@ -68,6 +72,29 @@ loop        setas
 
             CALL INCBIP         ; And move to the next byte
             BRA loop            ; And try to process it
+
+parse_hex   CALL INCBIP
+
+hexloop     setas
+            LDA [BIP]           ; Get the next character
+            CALL ISHEX          ; Is it a numeral?
+            BCC done            ; No, we're done parsing
+
+            CALL HEX2BIN        ; Convert hex to binary
+
+            setal
+            .rept 4             ; ARGUMENT1 << 4
+            ASL ARGUMENT1
+            ROL ARGUMENT1+2
+            .next
+
+            AND #$00FF          ; Add binary number to ARGUMENT1
+            CLC
+            ADC ARGUMENT1
+            STA ARGUMENT1
+
+            CALL INCBIP         ; And move to the next byte
+            BRA hexloop         ; And try to process it            
 
 done        PLD
             PLP

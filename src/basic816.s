@@ -44,11 +44,6 @@ START       CLC                 ; Go to native mode
             ; Clear the screen and print the welcome message
             CALL CLSCREEN
 
-            setas
-            LDA #'#'
-            CALL PRINTC
-            setal
-
             setdbr `GREET
             LDX #<>GREET
             CALL PRINTS

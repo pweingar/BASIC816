@@ -29,7 +29,8 @@
 ;;; Definitions for special areas
 ;;;
 
-BASIC_BANK = $00            ; Program Bank for BASIC816 code
+BASIC_BANK = $00            ; Memory bank for default purposes
+CODE_BANK = $17             ; Memory bank for the BASIC816 code
 
 INPUTBUF = $004F00          ; Starting address of the line input buffer (one page)
 RETURN_BOT = $005000        ; Starting address of the return stack

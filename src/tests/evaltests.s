@@ -252,6 +252,38 @@ TST_EVAL_INT2   .proc
 TEST1           .null "1234"
                 .pend
 
+; We can evaluate integers in hexadecimal
+TST_EVAL_HEX    .proc
+                UT_BEGIN "TST_EVAL_HEX"
+
+                setdp GLOBAL_VARS
+                setdbr 0
+
+                setaxl
+
+                LDA #<>TEST1
+                STA BIP
+                LDA #`TEST1
+                STA BIP+2
+
+                CALL EVALEXPR
+
+                UT_M_EQ_LIT_W ARGUMENT1,$1234,"EXPECTED $1234"
+
+                setaxl
+                LDA #<>TEST2
+                STA BIP
+                LDA #`TEST2
+                STA BIP+2
+
+                CALL EVALEXPR
+                UT_M_EQ_LIT_W ARGUMENT1,$ABCD,"EXPECTED $ABCD"
+
+                UT_END
+TEST1           .null "$1234"
+TEST2           .null "$ABcd"
+                .pend
+
 TST_EVAL_ADD    .proc
                 UT_BEGIN "TST_EVAL_ADD"
 
@@ -453,6 +485,7 @@ TST_EVAL        .proc
                 CALL TST_OP_PROCESS
                 CALL TST_EVAL_INT
                 CALL TST_EVAL_INT2
+                CALL TST_EVAL_HEX
                 CALL TST_EVAL_ADD
                 CALL TST_EVAL_MULT
                 CALL TST_EVAL_PREC1
