@@ -16,9 +16,9 @@
 .cerror * > $19FFFF, "Too many string constants"
 
 ; Section of memory for global (direct page) variables
-* = $000210
+* = $000800
 .dsection globals
-.cerror * > $2FF, "Too many global variables"
+.cerror * > $8FF, "Too many global variables"
 
 ; Section of memory for the restart vector
 ; TODO: this will need to be removed once C256 is out of the prototype stage

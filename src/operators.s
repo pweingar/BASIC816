@@ -118,3 +118,48 @@ OP_MOD      .proc
 .endif
             RTS
             .pend
+
+; Bitwise AND
+OP_AND      .proc
+            TRACE "OP_AND"
+
+            setal
+            LDA ARGUMENT1
+            AND ARGUMENT2
+            STA ARGUMENT1
+            LDA ARGUMENT1+2
+            AND ARGUMENT2+2
+            STA ARGUMENT1+2
+
+            RTS
+            .pend
+
+; Bitwise OR
+OP_OR       .proc
+            TRACE "OP_OR"
+
+            setal
+            LDA ARGUMENT1
+            ORA ARGUMENT2
+            STA ARGUMENT1
+            LDA ARGUMENT1+2
+            ORA ARGUMENT2+2
+            STA ARGUMENT1+2
+
+            RTS
+            .pend
+
+; Bitwise NOT
+OP_NOT      .proc
+            TRACE "OP_NOT"
+
+            setal
+            LDA ARGUMENT1
+            EOR #$FFFF
+            STA ARGUMENT1
+            LDA ARGUMENT1+2
+            EOR #$FFFF
+            STA ARGUMENT1+2
+
+            RTS
+            .pend

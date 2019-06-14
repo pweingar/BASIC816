@@ -39,4 +39,5 @@ GOSUBDEPTH  .word ?     ; Number of GOSUBs on the stack
 RETURNSP    .word ?     ; Pointer to the top of the return stack
 NESTING     .byte ?     ; Counter of the depth of lexical nesting for FOR/NEXT, DO/LOOP
 TARGETTOK   .byte ?     ; When searching for a token, TARGETTOK is the token to find
+KEYFLAG     .byte ?     ; Indicates if user has pressed CTRL-C
 .send

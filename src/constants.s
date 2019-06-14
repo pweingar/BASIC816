@@ -13,6 +13,7 @@ SYSTEM_C64 = 1          ; Commodore 64 with SuperCPU
 ; Characters
 ;
 
+CHAR_CTRL_C = $03       ; CTRL-C: used as a program interrupt key
 CHAR_BELL = $07         ; Ring the console bell
 CHAR_BS = $08           ; Backspace
 CHAR_TAB = $09          ; TAB
@@ -45,10 +46,11 @@ TYPE_NAV = $FF          ; Not-A-Value
 ;
 
 ERR_OK = 0              ; No error
-ERR_SYNTAX = 1          ; A syntax error was found on the current line
-ERR_MEMORY = 2          ; Out of memory
-ERR_TYPE = 3            ; Type mismatch error
-ERR_NOTFOUND = 4        ; Variable not found error
-ERR_NOLINE = 5          ; Line number not found
-ERR_STACKUNDER = 6      ; Stack underflow error
-ERR_STACKOVER = 7       ; Stack overflow error
+ERR_BREAK = 1           ; The user pressed an interrupt key
+ERR_SYNTAX = 2          ; A syntax error was found on the current line
+ERR_MEMORY = 3          ; Out of memory
+ERR_TYPE = 4            ; Type mismatch error
+ERR_NOTFOUND = 5        ; Variable not found error
+ERR_NOLINE = 6          ; Line number not found
+ERR_STACKUNDER = 7      ; Stack underflow error
+ERR_STACKOVER = 8       ; Stack overflow error

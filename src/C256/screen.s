@@ -148,6 +148,9 @@ cursor_down LDY CURSORY
             CPY LINES_VISIBLE
             BCC set_xy
 
+            DEY
+            JSL FK_LOCATE
+
             CALL SCROLLUP       ; Scroll the screen up one row, if we're on the bottom
             BRA done
 

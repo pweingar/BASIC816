@@ -594,9 +594,9 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "<", TOK_TY_OP, 4, 0, 0
             DEFTOK "=", TOK_TY_OP, 4, 0, 0
             DEFTOK ">", TOK_TY_OP, 4, 0, 0
-            DEFTOK "NOT", TOK_TY_OP, 5, 0, 0 
-            DEFTOK "AND", TOK_TY_OP, 6, 0, 0 
-            DEFTOK "OR", TOK_TY_OP, 7, 0, 0 
+            DEFTOK "NOT", TOK_TY_OP, 5, OP_NOT, 0 
+            DEFTOK "AND", TOK_TY_OP, 6, OP_AND, 0 
+            DEFTOK "OR", TOK_TY_OP, 7, OP_OR, 0 
             DEFTOK "(", TOK_TY_PUNCT, $FF, 0, 0
             DEFTOK ")", TOK_TY_PUNCT, 0, 0, 0
 

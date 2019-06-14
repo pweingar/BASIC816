@@ -49,16 +49,74 @@ CATCH       .macro ; handler
 
 ; Throw an error of type errcode
 THROW       .macro ; errcode
-            PHP
-            PHD
             setdp <>GLOBAL_VARS
             setas
             LDA #\1
-            STA ERROR
-            PLD
-            PLP
+            STA @lERROR
             JMP [HANDLEERR]
             .endm
+
+;
+; Default error handler.
+; Print the error message, reset the stacks, and launch the command line
+;
+ON_ERROR    .proc
+            TRACE "ON_ERROR"
+
+            setas
+            setxl
+            LDA @lERROR
+            ASL A
+            TAY
+
+            setdbr `ERRORMSG        ; Print the error message
+            LDX ERRORMSG,Y
+            CALL PRINTS
+
+            setal
+            LDA LINENUM
+            BEQ skip_at
+
+            LDX #<>MSG_AT           ; Print " AT "
+            CALL PRINTS
+            setdbr BASIC_BANK
+                
+            LDA @lLINENUM           ; Print the line number
+            STA @lARGUMENT1
+            CALL PR_INTEGER
+            CALL PRINTCR
+
+skip_at
+
+.if UNITTEST
+ERRLOCK     JMP ERRLOCK
+.else
+            JMP INTERACT
+.endif
+
+ERRORMSG    .word <>MSG_OK
+            .word <>MSG_BREAK
+            .word <>MSG_SYNTAX
+            .word <>MSG_MEMORY
+            .word <>MSG_TYPE
+            .word <>MSG_NOTFND
+            .word <>MSG_NOLINE
+            .word <>MSG_UNDFLOW
+            .word <>MSG_OVRFLOW
+            .word <>MSG_MEMORY
+
+MSG_AT      .null " AT"
+
+MSG_OK      .null "OK"
+MSG_BREAK   .null "BREAK"
+MSG_SYNTAX  .null "SYNTAX ERROR"
+MSG_MEMORY  .null "OUT OF MEMORY ERROR"
+MSG_TYPE    .null "TYPE MISMATCH ERROR"
+MSG_NOTFND  .null "VARIABLE NOT FOUND"
+MSG_NOLINE  .null "LINE NUMBER NOT FOUND"
+MSG_UNDFLOW .null "STACK UNDERFLOW ERROR"
+MSG_OVRFLOW .null "STACK OVERFLOW ERROR"
+            .pend
 
 ;
 ; Set the status of the interpreter to running
@@ -134,55 +192,6 @@ CLRINTERP   .proc
             PLP
             PLD
             RETURN
-            .pend
-
-;
-; Default error handler.
-; Print the error message, reset the stacks, and launch the command line
-;
-ON_ERROR    .proc
-            TRACE "ON_ERROR"
-
-            setas
-            setxl
-            LDA ERROR
-            ASL A
-            TAY
-
-            setdbr `ERRORMSG
-            LDX ERRORMSG,Y
-            CALL PRINTS
-
-            LDX #<>MSG_ERROR
-            CALL PRINTS
-            setdbr BASIC_BANK
-
-.if UNITTEST
-ERRLOCK     JMP ERRLOCK
-.else
-            JMP INTERACT
-.endif
-
-ERRORMSG    .word <>MSG_OK
-            .word <>MSG_SYNTAX
-            .word <>MSG_MEMORY
-            .word <>MSG_TYPE
-            .word <>MSG_NOTFND
-            .word <>MSG_NOLINE
-            .word <>MSG_UNDFLOW
-            .word <>MSG_OVRFLOW
-            .word <>MSG_MEMORY
-
-MSG_ERROR   .null " ERROR!",13
-
-MSG_OK      .null "OK"
-MSG_SYNTAX  .null "SYNTAX"
-MSG_MEMORY  .null "OUT OF MEMORY"
-MSG_TYPE    .null "TYPE MISMATCH"
-MSG_NOTFND  .null "NOT FOUND"
-MSG_NOLINE  .null "LINE NUMBER NOT FOUND"
-MSG_UNDFLOW .null "STACK UNDERFLOW"
-MSG_OVRFLOW .null "STACK OVERFLOW"
             .pend
 
 ;
@@ -445,6 +454,9 @@ EXECSTMT    .proc
             setas               ; Set EXECACTION to EXEC_CONT, the default behavior
             LDA #EXEC_CONT      ; This will tell EXECLINE and EXECPROG to procede in a
             STA EXECACTION      ; linear fashion through the program
+            
+check_break LDA KEYFLAG         ; Check the keyboard flags
+            BMI throw_break     ; If MSB: user pressed an interrupt key, stop the program
 
             CALL SKIPWS
             LDA [BIP]
@@ -470,6 +482,8 @@ else2       LDA STATE           ; Check to see if we're in interactive mode
             ; Interpreter is running a program. Only statements are allowed. 
 
 error       THROW ERR_SYNTAX    ; Throw a syntax error
+
+throw_break THROW ERR_BREAK     ; Throw a BREAK
 
 is_variable CALL S_LET          ; Try to execute a LET statement
             JMP done
@@ -507,6 +521,8 @@ done        PLB
 EXECCMD     .proc
             PHP
             TRACE "EXECCMD"
+
+            CLI
 
             CALL SETINTERACT
 
@@ -588,9 +604,15 @@ exec_done   TRACE "EXECLINE DONE"
 EXECPROGRAM .proc
             PHP
             TRACE "EXECPROGRAM"
+
+            CLI
+
             setas                       ; Set interpreter state to RUNNING
             LDA #ST_RUNNING
             STA STATE
+
+            STZ KEYFLAG                 ; Clear the key flag... interrupt handler will raise MSB
+                                        ; if the user presses an interrupt key (CTRL-C)
 
             CALL INITRETURN             ; Reset the RETURN stack
 

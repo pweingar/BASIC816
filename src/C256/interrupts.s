@@ -165,7 +165,6 @@ KB_WR_2_SCREEN
                 JSL SAVECHAR2CMDLINE
                 setas
                 PLA
-                ; JSL PUTC
                 JMP KB_CHECK_B_DONE
 
 KB_SET_SHIFT    LDA KEYBOARD_SC_FLG
@@ -215,6 +214,8 @@ SAVECHAR2CMDLINE
 
                 CMP #0
                 BEQ done
+                CMP #CHAR_CTRL_C        ; Is it CTRL-C?
+                BEQ flag_break          ; Yes: flag a break
 
                 LDX KEY_BUFFER_WPOS     ; So the Receive Character is saved in the Buffer
 
@@ -230,5 +231,9 @@ SAVECHAR2CMDLINE
 
 done            PLD
                 RTL
+
+flag_break      LDA #$80                ; Flag that an interrupt key has been pressed
+                STA @lKEYFLAG           ; The interpreter should see this soon and throw a BREAK
+                BRA done
 
 .send

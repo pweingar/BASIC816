@@ -12,17 +12,20 @@ CMD_NEW         .proc
 
                 setdp GLOBAL_VARS
 
+                setaxl
+
                 CALL CLRINTERP              ; Set the interpreter state to the default
 
                 LD_L LASTLINE,BASIC_BOT     ; Delete all lines
 
-                setal                       ; Set first "line" to null
+                setaxl
                 LDA #0
-                LDY #0
-loop            STA [LASTLINE],Y
-                INY
-                CPY #7
-                BEQ loop
+                LDY #LINE_LINK
+                STA [LASTLINE],Y
+                LDY #LINE_NUMBER
+                STA [LASTLINE],Y
+                LDY #LINE_TOKENS
+                STA [LASTLINE],Y
 
                 PLD
                 PLP
