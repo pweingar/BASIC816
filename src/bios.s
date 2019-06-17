@@ -37,18 +37,25 @@ PRINTC      .proc
             STA @lSAVE_A
 
             LDA @lBCONSOLE      ; Check to see if we should send to an output buffer
-            BIT #DEV_BUFFER
+            AND #DEV_BUFFER
             BEQ check_scrn      ; No... move on to the hardware screen
             
             LDA @lSAVE_A
             CALL OBUFF_PUTC     ; Yes... print the character to the buffer
 
-check_scrn  BIT #DEV_SCREEN     ; Check to see if the screen is selected
+check_scrn  LDA @lBCONSOLE
+            AND #DEV_SCREEN     ; Check to see if the screen is selected
+.if UARTSUPPORT = 1
             BEQ send_uart
+.else
+            BEQ done
+.endif
             LDA @lSAVE_A
             CALL SCREEN_PUTC    ; Yes... Send the character to the screen
 
-send_uart   BIT #DEV_UART       ; Check to see if the UART is active
+.if UARTSUPPORT = 1
+send_uart   LDA @lBCONSOLE
+            AND #DEV_UART       ; Check to see if the UART is active
             BEQ done
             LDA @lSAVE_A
             JSL UART_PUTC       ; Yes... send the character to the UART
@@ -58,6 +65,7 @@ send_uart   BIT #DEV_UART       ; Check to see if the UART is active
             BNE done
             LDA #CHAR_LF        ; Send a linefeed after
             JSL UART_PUTC
+.endif
 
 done        PLY
             PLX

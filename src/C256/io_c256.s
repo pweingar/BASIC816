@@ -7,7 +7,9 @@
 ;;;
 
 .include "kernel_c256.s"
+.if UARTSUPPORT = 1
 .include "uart.s"
+.endif
 .include "keyboard.s"
 .include "screen.s"
 
@@ -20,7 +22,7 @@ INITIO      .proc
             STA @lLINES_VISIBLE
 
             ; DEV_SCREEN | DEV_UART
-.if UNITTEST
+.if UNITTEST = 1
             LDA #DEV_UART
 .else
             LDA #DEV_SCREEN
@@ -30,10 +32,12 @@ INITIO      .proc
             LDA #$20
             STA @lCURCOLOR
 
+.if UARTSUPPORT = 1
             setal
             LDA #1              ; Select COM1
             JSL UART_SELECT
             JSL UART_INIT       ; And initialize it
+.endif
 
             JSL INITIRQ         ; Initialize the IRQs
 

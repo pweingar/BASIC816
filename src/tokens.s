@@ -11,7 +11,7 @@ precedence  .byte \precedence
 length      .byte \length
 name        .word <>\name
 eval        .word <>\eval
-print       .word <>\eval
+print       .word <>\print
             .ends
 
 DEFTOK      .macro  ; NAME, TYPE, PRECEDENCE, EVALUATE, PRINT
@@ -624,6 +624,6 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
 
             DEFTOK "RUN", TOK_TY_CMD, 0, CMD_RUN, 0
             DEFTOK "NEW", TOK_TY_CMD, 0, CMD_NEW, 0
-            DEFTOK "LIST", TOK_TY_CMD, 0, CMD_LIST, 0
+LISTTOK     DEFTOK "LIST", TOK_TY_CMD, 0, CMD_LIST, 0
             
             .word 0, 0, 0, 0

@@ -17,8 +17,10 @@ LISTPROG    .proc
             setaxl
             LDA #<>BASIC_BOT
             STA BIP
+            STA CURLINE
             LDA #`BASIC_BOT
             STA BIP+2
+            STA CURLINE+2
 
 list_loop   LDY #LINE_NUMBER
             LDA [BIP],Y

@@ -526,6 +526,10 @@ EXECCMD     .proc
 
             CALL SETINTERACT
 
+            setas
+            STZ KEYFLAG                 ; Clear the key flag... interrupt handler will raise MSB
+                                        ; if the user presses an interrupt key (CTRL-C)
+
             setal                  
             LDA CURLINE         ; Set the BASIC Instruction Pointer to the first byte of the line
             STA BIP
