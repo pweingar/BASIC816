@@ -2,82 +2,85 @@
 
 ## System Tasks
 
-- [X] Move BASIC code to higher memory
-- [ ] Update ADDLINE to handle out of order entry
-- [ ] - [ ] Update io_c256.s once kernel is finalized
-- [ ] Remove RESET vector once C256 is “done” or the interpreter is folded into the kernel ROM
-- [ ] Update screen.s scrolling once DMA is available
-- [ ] Update screen.s scrolling to work with multiple text screen sizes
-- [ ] Flesh out division for other systems
-- [ ] Implement the garbage collector
-- [ ] Implement floating points
-- [X] Add a BREAK/Interrupt key
+1. [X] Add a BREAK/Interrupt key
+1. [X] Move BASIC code to higher memory
+1. [ ] Update ADDLINE to handle out of order entry
+1. [ ] Flesh out division for other systems
+1. [ ] Implement the garbage collector
+1. [ ] Implement floating points
+1. [ ] Update screen.s scrolling once DMA is available
+1. [ ] Update screen.s scrolling to work with multiple text screen sizes
+1. [ ] Update io_c256.s once kernel is finalized
+1. [ ] Remove RESET vector once C256 is “done” or the interpreter is folded into the kernel ROM
 
 ## Statements
 
-- [ ] Flesh out other forms of IF THEN ELSE
-- [ ] Expand PRINT to support FLOATS and other types?
-- [ ] DO loops
-- [ ] POKE
-- [ ] CLOSE
-- [ ] CLR
-- [ ] DATA
-- [ ] DEF FN
-- [ ] DIM
-- [ ] GET
-- [ ] GET#
-- [ ] INPUT
-- [ ] INPUT#
-- [ ] ON … GOTO
-- [ ] OPEN
-- [ ] PRINT#
-- [ ] READ
-- [ ] REM
-- [ ] RESTORE
-- [ ] STOP
-- [ ] SYS
+1. [ ] Flesh out other forms of IF THEN ELSE
+1. [ ] Expand PRINT to support FLOATS and other types?
+1. [ ] DO loops
+1. [ ] POKE / WPOKE
+1. [ ] BEGIN / BEND
+1. [ ] CLOSE
+1. [ ] CLR
+1. [ ] DATA
+1. [ ] DEF FN
+1. [ ] DIM
+1. [ ] FOR / NEXT
+1. [ ] GET
+1. [ ] GET#
+1. [ ] INPUT
+1. [ ] INPUT#
+1. [ ] ON … GOTO
+1. [ ] OPEN
+1. [ ] PRINT#
+1. [ ] READ
+1. [ ] REM
+1. [ ] RESTORE
+1. [ ] STOP
+1. [ ] SYS
 
 ## Operators
 
-- [x] AND
-- [x] NOT
-- [x] OR
+1. [x] AND
+1. [x] OR
+1. [x] NOT
 
 ## Functions
 
-- [ ] PEEK()
-- [ ] ABS
-- [ ] ASC
-- [ ] CHR$
-- [ ] COS
-- [ ] EXP
-- [ ] FN
-- [ ] FRE
-- [ ] INT
-- [ ] LEFT$
-- [ ] LEN
-- [ ] LOG
-- [ ] MID$
-- [ ] WPEEK()
-- [ ] WPOKE
-- [ ] RIGHT$
-- [ ] RND
-- [ ] SGN
-- [ ] SIN
-- [ ] SPC
-- [ ] SQR
-- [ ] STATUS
-- [ ] STR$
-- [ ] TAB
-- [ ] TAN
-- [ ] TIME
-- [ ] TIME$
-- [ ] USR
-- [ ] VAL
+1. [ ] ABS
+1. [ ] ASC
+1. [ ] CHR$
+1. [ ] COS
+1. [ ] DEC
+1. [ ] EXP
+1. [ ] FN
+1. [ ] FRE
+1. [ ] HEX$
+1. [ ] INT
+1. [ ] LEFT$
+1. [ ] LEN
+1. [ ] LOG
+1. [ ] MID$
+1. [ ] PEEK() / WPEEK()
+1. [ ] RIGHT$
+1. [ ] RND
+1. [ ] SGN
+1. [ ] SIN
+1. [ ] SPC
+1. [ ] SQR
+1. [ ] STATUS
+1. [ ] STR$
+1. [ ] TAB
+1. [ ] TAN
+1. [ ] TIME
+1. [ ] TIME$
+1. [ ] USR
+1. [ ] VAL
 
 ## Commands
 
-- [ ] LIST
-- [ ] CONT
-- [ ] LOAD
-- [ ] SAVE
+1. [ ] LIST
+    1. [ ] Support line target ranges
+1. [ ] CONT
+1. [ ] LOAD
+1. [ ] SAVE

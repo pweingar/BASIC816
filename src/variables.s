@@ -92,6 +92,7 @@ cmp_loop        LDA [SCRATCH],Y         ; Check the character in the variable na
                 BNE cmp_loop
 
 is_end          LDA [TOFIND],Y          ; Check the character in the name to find
+                CALL TOUPPERA
                 CALL ISVARCHAR          ; Is it a variable name character?
                 BCS return_false        ; YES: we do not have a match
 
@@ -300,6 +301,7 @@ blank_loop      STA [INDEX],Y
                 LDY #0
 name_loop       LDA [TOFIND],Y      ; Copy TOFIND to the NAME field
                 BEQ set_type
+                CALL TOUPPERA
                 CALL ISVARCHAR
                 BCC set_type
                 STA [INDEX],Y

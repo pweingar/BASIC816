@@ -21,6 +21,10 @@ INITIO      .proc
             LDA #52
             STA @lLINES_VISIBLE
 
+            LDA #32             ; Set the border width
+            STA BORDER_X_SIZE
+            STA BORDER_Y_SIZE
+
             ; DEV_SCREEN | DEV_UART
 .if UNITTEST = 1
             LDA #DEV_UART

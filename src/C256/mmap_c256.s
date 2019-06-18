@@ -29,6 +29,8 @@
 ;;; Definitions for special areas
 ;;;
 
+.include "vicky_def.s"
+
 BASIC_BANK = $00            ; Memory bank for default purposes
 CODE_BANK = $17             ; Memory bank for the BASIC816 code
 
@@ -53,9 +55,6 @@ COLS_PER_LINE    = $000011 ;2 Bytes Columns in memory per screen line. A virtual
 LINES_VISIBLE    = $000013 ;2 Bytes The number of rows visible on the screen. Default=25
 LINES_MAX        = $000015 ;2 Bytes The number of rows in memory for the screen. Default=64
 CURCOLOR         = $00001E ;2 Bytes Color of next character to be printed to the screen.
-
-CS_TEXT_MEM_PTR  = $AFA000
-CS_COLOR_MEM_PTR = $AFC000
 
 ;;;
 ;;; Math co-processor

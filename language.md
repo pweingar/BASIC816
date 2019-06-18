@@ -11,6 +11,11 @@ to install a "pack" of new statements to expand the language as they need.
 
 The following commands are planned for implementation:
 
+### CONT
+
+If a program executed the STOP statement to end execution, CONT will restart the program at the next
+available statement.
+
 ### NEW
 
 Erase the current BASIC program and all variable.s
@@ -69,16 +74,47 @@ Evaluate the expression *TEST*, if it is true, execute all statements in *TRUE S
 When the statements are either line numbers or GOTO statements, and the entire IF statement is on one line, no END IF is required.
 If any other statements are used, the IF is in block form and requires a closing END IF.
 
+### BEGIN *STATEMENTS* BEND
+
+Executes a collection of statements that can be on multiple lines. This construct is used in IF/THEN/ELSE statements to let them
+span lines.
+
 ### DO [WHILE *CONDITION* | UNTIL *CONDITION*] *STATEMENTS* LOOP [WHILE *CONDITION* | UNTIL *CONDITION*]
 
 Execute the *STATEMENTS* repeatedly. A WHILE or UNTIL condition can be applied either to the DO statement
 or the LOOP statement. When applied to the DO statement, the condition can prevent the statements from
 being executed at all. When applied to the LOOP, the statements will execute at least once. A program can force a premature exit from a DO loop with a BREAK statement.
 
+### EXIT
+
+Stop execution of the closest enclosing DO loop. Execution will continue with the statement immediately
+after its LOOP statement.
+
 ### FOR *VARIABLE* = *INITIAL* TO *LIMIT* [STEP *INCREMENT*] *STATEMENTS* NEXT [*VARIABLE*]
 
 Loop through *STATEMENTS*. For the first execution, *VARIABLE* will be set to *INITIAL*. *VARIABLE* will go up by 1, unless *INCREMENT* is
 provided, in which case it will go up or down by *INCREMENT*. The loop will stop when *VARIABLE* reaches *LIMIT*.
+
+### DATA *VALUE* [, *VALUE*]...
+
+Insert a string or numeric value into the program.
+
+### READ *VARIABLE* [, *VARIABLE] ...
+
+Read values the next set of data values into the named variables.
+
+### RESTORE
+
+Reset the DATA pointer so the next READ will get values from the first DATA statement.
+
+### REM *comments*
+
+Insert a comment into the program. Everything on the line following REM is ignored by the interpreter.
+
+### STOP
+
+Stops execution of the current program but in a way that it can be restarted where it left off.
+The CONT command will restart execution with the next statement after the STOP.
 
 ### POKE *ADDRESS*,*VALUE*
 
