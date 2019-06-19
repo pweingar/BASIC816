@@ -605,7 +605,8 @@ check_nl        CALL SKIPWS
 pr_comma        LDA #CHAR_TAB       ; Print a TAB
                 CALL PRINTC
 
-is_more         CALL SKIPWS         ; Skip any whitespace
+is_more         CALL INCBIP         ; Skip the separator
+                CALL SKIPWS         ; Skip any whitespace
                 LDA [BIP]           ; Get the character
                 BEQ done            ; If it's NULL, return without printing a newline
                 LDA #':'            ; If it's a colon

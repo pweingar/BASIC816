@@ -118,26 +118,35 @@ WRITEC      .proc
             CMP #$20
             BCC check_ctrl0     ; [$00..$1F]: check for arrows
             CMP #$7F
-            BCC printc          ; [$20..$7E]: print it
-            CMP #$A0
+            BCS check_A0        ; [$20..$7E]: print it
+            JMP printc
+check_A0    CMP #$A0
             BCS printc          ; [$A0..$FF]: print it
 
 check_ctrl1 CMP #K_DOWN         ; If the down arrow key was pressed
             BEQ go_down         ; ... move the cursor down one row
             CMP #K_LEFT         ; If the left arrow key was pressed
             BEQ go_left         ; ... move the cursor left one column
-            BRA done
+            JMP done
 
-check_ctrl0 CMP #CHAR_BS        ; Print a backspace and let the kernel handle it
-            BEQ printc
+check_ctrl0 CMP #CHAR_TAB       ; If it's a TAB...
+            BEQ do_TAB          ; ... move to the next TAB stop
+            CMP #CHAR_BS        ; If it's a backspace...
+            BEQ backspace       ; ... move the cursor back and replace with a space
             CMP #CHAR_CR        ; If the carriage return was pressed
             BEQ do_cr           ; ... move cursor down and to the first column
             CMP #K_UP           ; If the up arrow key was pressed
             BEQ go_up           ; ... move the cursor up one row
             CMP #K_RIGHT        ; If the right arrow key was pressed
             BEQ go_right        ; ... move the cursor right one column
+            JMP done            ; Ignore anything else
 
-            BRA done            ; Ignore anything else
+backspace   JSL FK_PUTC         ; Print the backspace
+            LDA #' '            ; Clear the space
+            JSL FK_PUTC
+            LDA #CHAR_BS        ; And move the cursor back again
+            JSL FK_PUTC
+            BRA done
 
 do_cr       LDX #0              ; Handle a carriage return
             BRA cursor_down
@@ -145,14 +154,7 @@ do_cr       LDX #0              ; Handle a carriage return
 go_down     LDX CURSORX         ; Move the cursor down one row
 cursor_down LDY CURSORY
             INY
-            CPY LINES_VISIBLE
-            BCC set_xy
-
-            DEY
-            JSL FK_LOCATE
-
-            CALL SCROLLUP       ; Scroll the screen up one row, if we're on the bottom
-            BRA done
+            BRA set_xy
 
 go_up       LDX CURSORX         ; Move the cursor up one row
             LDY CURSORY
@@ -163,9 +165,7 @@ go_up       LDX CURSORX         ; Move the cursor up one row
 go_right    LDX CURSORX         ; Move the cursor right one column
             LDY CURSORY
             INX
-            CPX COLS_VISIBLE
-            BCC set_xy
-            BRA done
+            BRA set_xy
 
 go_left     LDX CURSORX         ; Move the cursor left one column
             BEQ done
@@ -173,24 +173,43 @@ go_left     LDX CURSORX         ; Move the cursor left one column
             LDY CURSORY
             BRA set_xy
 
-set_xy      JSL FK_LOCATE       ; Set the cursor position
+do_TAB      setal
+            LDA CURSORX         ; Get the current column
+            AND #$FFF8          ; See which group of 8 it's in
+            CLC
+            ADC #$0008          ; And move it to the next one
+            TAX
+            LDY CURSORY
+
+set_xy      CPX COLS_VISIBLE    ; Check if we're still on screen horizontally
+            BCC check_row       ; Yes: check the row
+            LDX #0              ; No: move to the first column...
+            INY                 ; ... and the next row
+
+check_row   CPY LINES_VISIBLE   ; Check if we're still on the screen vertically
+            BCC do_locate       ; Yes: reposition the cursor
+
+            CALL SCROLLUP       ; No: scroll the screen
+            DEY                 ; And set the row to the last one   
+
+do_locate   JSL FK_LOCATE       ; Set the cursor position
             BRA done
 
             ; TODO: make this more robust for variable screen sizes
             
-printc      LDY CURSORY         ; Check to see if the character
+printc      JSL FK_PUTC         ; Print the character
+
+            LDY CURSORY         ; Check to see if the character
             CPY #51             ; Is in the last cell...
-            BLT do_putc         ; If not, we can return to the caller
+            BLT done            ; If not, we can return to the caller
             LDX CURSORX
             CPX #71
-            BLT do_putc
+            BLT done
 
             CALL SCROLLUP       ; Otherwise scroll
 
             LDX #0              ; And reposition the cursor
-            JSL FK_LOCATE
-
-do_putc     JSL FK_PUTC
+            JSL FK_LOCATE    
 
 done        PLP
             PLD
