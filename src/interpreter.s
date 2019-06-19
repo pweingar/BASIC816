@@ -735,8 +735,8 @@ MVPROGDN    .proc
             PHP
             TRACE "MVPROGDN"
 
-            setas
-mvd_loop    LDA [SCRATCH]       ; Move a byte
+mvd_loop    setas
+            LDA [SCRATCH]       ; Move a byte
             STA [INDEX]
 
             setal               ; Check to see if we've moved the last byte
@@ -769,15 +769,14 @@ MVPROGUP    .proc
             PHP
             TRACE "MVPROGUP"
 
-            setas
-mvu_loop    LDA [SCRATCH]       ; Move a byte
+mvu_loop    setas
+            LDA [SCRATCH]       ; Move a byte
             STA [INDEX]
 
             setal               ; Check to see if we've moved the last byte
             LDA SCRATCH
             CMP BIP
             BNE decrement
-            setas
             LDA SCRATCH+2
             CMP BIP+2
             BEQ done            ; Yes: return
@@ -787,7 +786,7 @@ decrement   DEC_L SCRATCH       ; No: increment SCRATCH
  
             BRA mvu_loop        ; And try again  
 
-            PLP
+done        PLP
             RETURN
             .pend
 
@@ -795,17 +794,11 @@ decrement   DEC_L SCRATCH       ; No: increment SCRATCH
 ; Delete a line from the BASIC program
 ;
 ; Inputs:
-;   ARGUMENT1 = the number of the line to delete
+;   INDEX = the line to delete
 ;
 DELLINE     .proc
             PHP
             TRACE "DELLINE"
-
-            LD_L CURLINE,BASIC_BOT
-            CALL FINDLINE
-            BCC done
-
-            MOVE_L INDEX,CURLINE    ; INDEX := address of found line
 
             LDY #LINE_LINK          ; SCRATCH := INDEX + [INDEX].LINK (address of the following line)
             setal
@@ -846,16 +839,18 @@ done        PLP
             .pend
 
 ;
-; Add an already tokenized line to the BASIC program
+; Append an already tokenized line to the end of the BASIC program
 ;
 ; Inputs:
 ;   A = the line number
 ;   CURRLINE = pointer to the tokenized line (without the line number)
 ;   
 ;
-ADDLINE     .proc
+APPLINE     .proc
             PHP
-            TRACE "ADDLINE"
+            TRACE "APPLINE"
+
+            setdp GLOBAL_VARS
 
             setaxl
             LDY #LINE_NUMBER    ; Set the line number of the new line
@@ -911,5 +906,218 @@ blank_loop  STA [LASTLINE],Y    ; Set the "line" after the last line to nulls
             BNE blank_loop
 
             PLP
+            RETURN
+            .pend
+
+;
+; Find the point where a line should be inserted into the program memory space
+;
+; Inputs:
+;   LINENUM = the number of the line to be inserted
+;
+; Outputs:
+;   INDEX = the location in memory where the line should go
+;   A = indicator of what was found:
+;       0 = LINENUM was not found before the end of the program
+;       1 = INDEX shows where the line should be inserted
+;       2 = INDEX shows where a line with the same LINENUM is (delete and insert)
+;
+FINDINSPT   .proc
+            PHD
+            PHP
+            TRACE "FINDINSPT"
+
+            setdp GLOBAL_VARS
+            setaxl
+
+            LDA #<>BASIC_BOT
+            STA INDEX
+            LDA #`BASIC_BOT
+            STA INDEX+2
+
+loop        LDY #LINE_NUMBER
+            LDA [INDEX],Y
+            BEQ found_end           ; Got to end without finding it
+
+            CMP LINENUM
+            BEQ found_line          ; LINENUM = [INDEX].LINE_NUMBER: return we found the exact line
+            BGE found_spot          ; LINENUM > [INDEX].LINE_NUMBER: return we found spot to insert
+
+            LDY #LINE_LINK
+            CLC                     ; Move INDEX to the next line
+            LDA INDEX
+            ADC [INDEX],Y
+            STA SCRATCH
+            LDA INDEX+2
+            ADC #0
+            STA INDEX+2
+            LDA SCRATCH
+            STA INDEX
+
+            BRA loop                ; And check that line
+
+found_end   LDA #0                  ; Return that we reached the end of the program
+            PLP
+            PLD
+            RETURN
+
+found_spot  LDA #1                  ; Return that we the found the spot to insert the line
+            PLP                     ; But that it wasn't already there
+            PLD
+            RETURN
+
+found_line  LDA #2                  ; Return that we found the line
+            PLP
+            PLD
+            RETURN
+            .pend
+
+;
+; Insert a tokenized line into the BASIC program.
+;
+; Inputs:
+;   INDEX = the spot to insert the line
+;   CURLINE = pointer to the first byte of the tokenized line
+;   LINENUM = the number of the line to insert
+;
+INSLINE     .proc
+            PHP
+            TRACE "INSLINE"
+
+            setaxl
+
+            ; Calculate number of bytes to move the BASIC program into SCRATCH2
+            LDA #LINE_TOKENS+1  ; Set SCRATCH2 to the size of the line header with the end-of-line
+            STA SCRATCH2
+
+            LDY #0
+count_loop  setas
+            LDA [CURLINE],Y     ; Get the byte of the line
+            BEQ shift_prog      ; If it's end-of-line, SCRATCH2 is the length
+            setal
+            INC SCRATCH2
+            INY
+            BRA count_loop      ; Count and continue
+
+            ; Open a spot in the BASIC program
+
+shift_prog  setal
+
+            LDA INDEX           ; BIP = the address of the first byte for the new line
+            STA BIP
+            LDA INDEX+2
+            STA BIP+2
+
+            CLC                 ; SCRATCH = address of highest byte to copy
+            LDA LASTLINE
+            ADC #LINE_TOKENS
+            STA SCRATCH
+            LDA LASTLINE+2
+            ADC #0
+            STA SCRATCH+2
+
+            CLC                 ; Adjust LASTLINE to its new position after the insert
+            LDA LASTLINE
+            ADC SCRATCH2
+            STA LASTLINE
+            LDA LASTLINE+2
+            ADC #0
+            STA LASTLINE+2
+
+            CLC                 ; INDEX = address of the highest location to copy into
+            LDA LASTLINE
+            ADC #LINE_TOKENS
+            STA INDEX
+            LDA LASTLINE+2
+            ADC #0
+            STA INDEX+2
+
+            CALL MVPROGUP       ; Whew... actually move the program space up
+
+            ; Copy the line to the BASIC program
+
+            setal
+            LDA SCRATCH2
+            LDY #LINE_LINK
+            STA [BIP],Y         ; [BIP].LINK_LINK = length of the new line
+
+            LDA LINENUM
+            LDY #LINE_NUMBER
+            STA [BIP],Y         ; [BIP].LINE_NUMBER = number of the new line
+
+            CLC                 ; Point BIP to the first byte of the new line
+            LDA BIP
+            ADC #LINE_TOKENS
+            STA BIP
+            LDA BIP+2
+            ADC #0
+            STA BIP+2
+
+            LDY #0
+            setas
+copy_loop   LDA [CURLINE],Y     ; Get the byte of the tokenized line
+            STA [BIP],Y         ; Copy it to its correct location in the program
+            BEQ done            ; If it was end-of-line byte, we're done
+            INY
+            BRA copy_loop       ; Otherwise, continue with the next
+
+done        PLP
+            RETURN
+            .pend
+
+;
+; Add a tokenized line to the BASIC program.
+;
+; If there is already a line with that number, it will be deleted.
+; If there is a line with a greater line number, the line will be
+; inserted into the correct location. Otherwise, the line will be
+; appended to the end of the program.
+;
+; Inputs:
+;   A = the number of the line to add
+;   CURLINE = pointer to the first byte of the line (without line number)
+;
+ADDLINE     .proc
+            PHP
+            TRACE "ADDLINE"
+
+            setaxl
+            STA LINENUM
+
+            CALL FINDINSPT      ; Try to find where the line goes
+            CMP #0
+            BEQ do_append       ; End-of-program found, add the line to the end
+            CMP #1
+            BEQ do_insert       ; Spot was found: insertion required
+
+            ; Otherwise: we found a line with the same line number
+
+            setal
+            LDA INDEX
+            PHA
+            LDA INDEX+2
+            PHA
+            CALL DELLINE        ; Delete the line
+            PLA
+            STA INDEX+2
+            PLA
+            STA INDEX
+
+            LDA CURLINE         ; Check to see if there is any non-whitespace on the line
+            STA BIP
+            LDA CURLINE+2
+            STA BIP+2
+            CALL SKIPWS
+            setas
+            LDA [BIP]
+            BEQ done            ; If not, we're done
+
+do_insert   CALL INSLINE        ; Insert the line
+            BRA done
+
+do_append   LDA LINENUM
+            CALL APPLINE        ; Append the line to the end of the program
+
+done        PLP
             RETURN
             .pend

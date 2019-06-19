@@ -25,6 +25,7 @@ GLOBAL_VARS = *
 BIP         .dword ?    ; Pointer to the current byte in the current BASIC program
 INDEX       .dword ?    ; A temporary pointer
 SCRATCH     .dword ?    ; A temporary scratch variable
+SCRATCH2    .dword ?    ; A temporary scratch variable
 STRPTR      .long ?     ; A temporary pointer for strings
 CURLINE     .dword ?    ; Pointer to the current input line needing tokenization
 CURTOKLEN   .byte ?     ; Length of the text of the current token

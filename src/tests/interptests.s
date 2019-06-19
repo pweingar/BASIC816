@@ -136,8 +136,8 @@ VARIABLE        .null "A%"
                 .pend
 
 ; Can add a tokenized line of BASIC to the current program
-TST_ADDLINE     .proc
-                UT_BEGIN "TST_ADDLINE"
+TST_APPLINE     .proc
+                UT_BEGIN "TST_APPLINE"
 
                 CALL INITBASIC
 
@@ -146,13 +146,11 @@ TST_ADDLINE     .proc
                 setaxl
                 LDA #<>TEST
                 STA CURLINE
-                setas
                 LDA #`TEST
                 STA CURLINE+2
 
-                setal
                 LDA #10
-                CALL ADDLINE
+                CALL APPLINE
 
                 UT_M_NE_LIT_L LASTLINE,BASIC_BOT,"EXPECTED LASTLINE <> BASIC_BOT"
                 UT_M_EQ_LIT_W BASIC_BOT+LINE_NUMBER,10,"EXPECTED 10"
@@ -179,7 +177,7 @@ TST_DELLINE     .proc
 
                 setal
                 LDA #10
-                CALL ADDLINE
+                CALL APPLINE
 
                 UT_M_NE_LIT_L LASTLINE,BASIC_BOT,"EXPECTED LASTLINE <> BASIC_BOT"
                 UT_M_EQ_LIT_W BASIC_BOT+LINE_NUMBER,10,"EXPECTED 10"
@@ -188,6 +186,8 @@ TST_DELLINE     .proc
                 TRACE "ADDED"
 
                 LDARG_EA ARGUMENT1,10,TYPE_INTEGER
+                CALL FINDLINE
+                MOVE_L INDEX,CURLINE
                 CALL DELLINE
 
                 UT_M_EQ_LIT_L LASTLINE,BASIC_BOT,"EXPECTED LASTLINE = BASIC_BOT"
@@ -224,7 +224,7 @@ TST_EXECLINE    .proc
 
                 setal
                 LDA #10
-                CALL ADDLINE
+                CALL APPLINE
 
                 TRACE "ADDED"
 
@@ -296,7 +296,7 @@ TST_TOKEN_LINE  .proc
                 UT_M_EQ_LIT_W LINENUM,20,"EXPECTED 20"
 
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 UT_M_EQ_LIT_W BASIC_BOT+LINE_NUMBER,20,"EXPECTED 20"
                 UT_M_EQ_LIT_B BASIC_BOT+LINE_TOKENS,"Z","EXPECTED 'Z'"
@@ -314,12 +314,12 @@ TST_EXEC_LINE2  .proc
                 LD_L CURLINE,LINE10
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE20
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,BASIC_BOT
                 CALL EXECPROGRAM
@@ -370,32 +370,32 @@ TST_EXEC_GOTO   .proc
                 LD_L CURLINE,LINE10
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE20
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE30
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE40
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE50
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE60
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,BASIC_BOT
                 CALL EXECPROGRAM
@@ -453,7 +453,7 @@ TST_TOK_LET     .proc
                 TRACE "TOKENIZED"
 
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 UT_M_EQ_LIT_W BASIC_BOT+2,10,"EXPECTED 10"
                 UT_M_EQ_LIT_B BASIC_BOT+4,TOK_LET,"EXPECTED LET TOKEN"
@@ -475,7 +475,7 @@ TST_TOK_END     .proc
                 TRACE "TOKENIZED"
 
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 UT_M_EQ_LIT_W BASIC_BOT+2,10,"EXPECTED 10"
                 UT_M_EQ_LIT_B BASIC_BOT+4,TOK_END,"EXPECTED END TOKEN"
@@ -493,17 +493,17 @@ TST_EXEC_END    .proc
                 LD_L CURLINE,LINE10
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE20
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE30
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,BASIC_BOT
                 CALL EXECPROGRAM
@@ -539,22 +539,22 @@ TST_EXEC_IFSIM  .proc
                 LD_L CURLINE,LINE10
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE20
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE30
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE40
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,BASIC_BOT
                 CALL EXECPROGRAM
@@ -591,22 +591,22 @@ TST_EXEC_SUB    .proc
                 LD_L CURLINE,LINE10
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE20
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE30
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE40
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,BASIC_BOT
                 CALL EXECPROGRAM
@@ -643,12 +643,12 @@ TST_EXEC_INC    .proc
                 LD_L CURLINE,LINE10
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE20
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,BASIC_BOT
                 CALL EXECPROGRAM
@@ -683,22 +683,22 @@ TST_EXEC_FOR    .proc
                 LD_L CURLINE,LINE10
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE20
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE30
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,LINE40
                 CALL TOKENIZE
                 LDA LINENUM
-                CALL ADDLINE
+                CALL APPLINE
 
                 LD_L CURLINE,BASIC_BOT
                 CALL EXECPROGRAM
@@ -743,6 +743,281 @@ VAR_A           .null "A%"
 VAR_I           .null "I%"
                 .pend
 
+; Check that we can find lines for updating / deleting
+TST_FINDLINE    .proc
+                UT_BEGIN "TST_FINDLINE"
+
+                CALL INITBASIC
+
+                LD_L CURLINE,LINE10
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE20
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE30
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE40
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LDA #120
+                STA LINENUM
+                CALL FINDINSPT
+
+                UT_A_EQ_LIT_W 0,"EXPECTED 0"
+                UT_M_EQ_M_L INDEX,LASTLINE,"EXPECTED LASTLINE"
+
+                LDA #20
+                STA LINENUM
+                CALL FINDINSPT
+
+                UT_A_EQ_LIT_W 2,"EXPECTED 2"
+                UT_M_EQ_LIT_L INDEX,BASIC_BOT+9,"EXPECTED BASIC_BOT+9"
+
+                LDA #15
+                STA LINENUM
+                CALL FINDINSPT
+
+                UT_A_EQ_LIT_W 1,"EXPECTED 1"
+                UT_M_EQ_LIT_L INDEX,BASIC_BOT+9,"EXPECTED BASIC_BOT+9"
+
+                UT_END
+LINE10          .null "10 A%=1"
+LINE20          .null "20 FOR I%=1 TO 10"
+LINE30          .null "30 A%=A%+1"
+LINE40          .null "40 NEXT"
+VAR_A           .null "A%"
+VAR_I           .null "I%"
+                .pend
+
+; Check that we can insert a line into a program
+TST_INSLINE     .proc
+                UT_BEGIN "TST_INSLINE"
+
+                setdp GLOBAL_VARS
+
+                CALL INITBASIC
+
+                ; Set up the temporary buffer
+                setal
+                LDA #<>TMP_BUFF_ORG             ; Set the address of the buffer
+                STA OBUFFER
+                setas
+                LDA #`TMP_BUFF_ORG
+                STA OBUFFER
+
+                setal                           ; Set the size of rhe buffer
+                LDA #TMP_BUFF_SIZ
+                STA OBUFFSIZE
+
+                STZ OBUFFIDX                    ; Clear the index
+
+                setas
+                LDA BCONSOLE
+                ORA #DEV_BUFFER                 ; Turn on the output buffer
+                STA BCONSOLE
+
+                setal
+                LD_L CURLINE,LINE10
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE30
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE40
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE20
+                CALL TOKENIZE
+
+                LDA #20
+                STA LINENUM
+                CALL FINDINSPT
+
+                LDA LINENUM
+                CALL INSLINE
+
+                CALL CMD_LIST
+
+                CALL OBUFF_CLOSE
+
+                UT_STR_EQ TMP_BUFF_ORG,EXPECTED,"EXPECTED LINES IN CORRECT ORDER"
+
+                UT_END
+LINE10          .null "10 A%=1"
+LINE20          .null "20 FOR I%=1 TO 10"
+LINE30          .null "30 A%=A%+1"
+LINE40          .null "40 NEXT"
+EXPECTED        .text "10 A%=1",13
+                .text "20 FOR I%=1 TO 10",13
+                .text "30 A%=A%+1",13
+                .null "40 NEXT",13
+                .pend
+
+; Check that we can insert a line at the beginning of the program
+TST_INSLINE2    .proc
+                UT_BEGIN "TST_INSLINE2"
+
+                setdp GLOBAL_VARS
+
+                CALL INITBASIC
+
+                ; Set up the temporary buffer
+                setal
+                LDA #<>TMP_BUFF_ORG             ; Set the address of the buffer
+                STA OBUFFER
+                setas
+                LDA #`TMP_BUFF_ORG
+                STA OBUFFER
+
+                setal                           ; Set the size of rhe buffer
+                LDA #TMP_BUFF_SIZ
+                STA OBUFFSIZE
+
+                STZ OBUFFIDX                    ; Clear the index
+
+                setas
+                LDA BCONSOLE
+                ORA #DEV_BUFFER                 ; Turn on the output buffer
+                STA BCONSOLE
+
+                setal
+                LD_L CURLINE,LINE20
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE30
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE40
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE10
+                CALL TOKENIZE
+
+                LDA #10
+                STA LINENUM
+                CALL FINDINSPT
+
+                CALL INSLINE
+
+                CALL CMD_LIST
+
+                CALL OBUFF_CLOSE
+
+                UT_STR_EQ TMP_BUFF_ORG,EXPECTED,"EXPECTED LINES IN CORRECT ORDER"
+
+                UT_END
+LINE10          .null "10 A%=1"
+LINE20          .null "20 FOR I%=1 TO 10"
+LINE30          .null "30 A%=A%+1"
+LINE40          .null "40 NEXT"
+EXPECTED        .text "10 A%=1",13
+                .text "20 FOR I%=1 TO 10",13
+                .text "30 A%=A%+1",13
+                .null "40 NEXT",13
+                .pend
+
+; Check that we can replace a line in a program
+TST_EDITLINE    .proc
+                UT_BEGIN "TST_EDITLINE"
+
+                setdp GLOBAL_VARS
+
+                CALL INITBASIC
+
+                ; Set up the temporary buffer
+                setal
+                LDA #<>TMP_BUFF_ORG             ; Set the address of the buffer
+                STA OBUFFER
+                setas
+                LDA #`TMP_BUFF_ORG
+                STA OBUFFER
+
+                setal                           ; Set the size of rhe buffer
+                LDA #TMP_BUFF_SIZ
+                STA OBUFFSIZE
+
+                STZ OBUFFIDX                    ; Clear the index
+
+                setas
+                LDA BCONSOLE
+                ORA #DEV_BUFFER                 ; Turn on the output buffer
+                STA BCONSOLE
+
+                setal
+                LD_L CURLINE,LINE10
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE20_1
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE30_1
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                LD_L CURLINE,LINE40
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                ; Replace line 20
+
+                LD_L CURLINE,LINE20_2
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                ; Delete line 30
+                LD_L CURLINE,LINE30_2
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL ADDLINE
+
+                CALL CMD_LIST
+
+                CALL OBUFF_CLOSE
+
+                UT_STR_EQ TMP_BUFF_ORG,EXPECTED,"EXPECTED LINES IN CORRECT ORDER"
+
+                UT_END
+LINE10          .null "10 A%=1"
+LINE20_1        .null "20 FOR K%=1 TO 10"
+LINE20_2        .null "20 FOR I%=1 TO 10"
+LINE30_1        .null "30 A%=A%+1"
+LINE30_2        .null "30    "
+LINE40          .null "40 NEXT"
+EXPECTED        .text "10 A%=1",13
+                .text "20 FOR I%=1 TO 10",13
+                .null "40 NEXT",13
+
+                .pend
+
 ;
 ; Run all the evaluator tests
 ;
@@ -751,7 +1026,7 @@ TST_INTERP      .proc
                 CALL TST_PRINTEGER
                 CALL TST_TOK_LET
                 CALL TST_LET_IMPLIED
-                CALL TST_ADDLINE
+                CALL TST_APPLINE
                 CALL TST_DELLINE
                 CALL TST_EXECLINE
                 CALL TST_TOKEN_LINE
@@ -763,6 +1038,10 @@ TST_INTERP      .proc
                 CALL TST_EXEC_SUB
                 CALL TST_EXEC_INC
                 CALL TST_EXEC_FOR
+                CALL TST_FINDLINE
+                ;CALL TST_INSLINE
+                CALL TST_INSLINE2
+                CALL TST_EDITLINE
 
                 UT_LOG "TST_INTERP: PASSED"
                 RETURN

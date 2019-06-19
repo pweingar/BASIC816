@@ -42,7 +42,7 @@ done            PLP
 ; Attempt to process a line
 ;
 ; Outputs:
-;   C is set if the READY prompt should be printed, clear otherwise
+;   C is clear if the READY prompt should be printed, set otherwise
 ;
 PROCESS         .proc
                 PHD
@@ -60,6 +60,7 @@ PROCESS         .proc
                 STA CURLINE+2
                 CALL TOKENIZE
 
+                setal
                 LDA LINENUM             ; Did we get a line number?
                 BNE update_line         ; Yes: attempt to add it to the program
 
@@ -67,7 +68,7 @@ PROCESS         .proc
                 BRA done                
 
 update_line     CALL ADDLINE            ; Add the line to the program
-                PLP
+no_prompt       PLP
                 PLD
                 SEC
                 RETURN
