@@ -7,7 +7,7 @@ ST_INTERACT = $00           ; The interpreter is in interactive mode
 
 .section globals
 STATE       .byte ?         ; The state of the interpreter ()
-ERROR       .byte ?         ; The type of the error
+ERROR_NUM   .byte ?         ; The type of the error
 HANDLEERR   .long ?         ; Pointer to the error handler
 LINENUM     .word ?         ; The current line number
 LASTLINE    .long ?         ; Pointer to the next free space over the BASIC program
@@ -52,7 +52,7 @@ THROW       .macro ; errcode
             setdp <>GLOBAL_VARS
             setas
             LDA #\1
-            STA @lERROR
+            STA @lERROR_NUM
             JMP [HANDLEERR]
             .endm
 
@@ -65,23 +65,28 @@ ON_ERROR    .proc
 
             setas
             setxl
-            LDA @lERROR
+
+            CALL PRINTCR            ; Newline
+
+            LDA @lERROR_NUM         ; Calculate index to the error message pointer
             ASL A
+            setal
+            AND #$00FF
             TAY
 
             setdbr `ERRORMSG        ; Print the error message
             LDX ERRORMSG,Y
             CALL PRINTS
 
-            setal
+            setal                   ; Check to see if we have a current line number
             LDA LINENUM
             BEQ skip_at
 
-            LDX #<>MSG_AT           ; Print " AT "
+            LDX #<>MSG_AT           ; If so... print " AT "
             CALL PRINTS
             setdbr BASIC_BANK
                 
-            LDA @lLINENUM           ; Print the line number
+            LDA @lLINENUM           ; ... and then the line number
             STA @lARGUMENT1
             CALL PR_INTEGER
             CALL PRINTCR
@@ -105,17 +110,17 @@ ERRORMSG    .word <>MSG_OK
             .word <>MSG_OVRFLOW
             .word <>MSG_MEMORY
 
-MSG_AT      .null " AT"
+MSG_AT      .null " at"
 
 MSG_OK      .null "OK"
-MSG_BREAK   .null "BREAK"
-MSG_SYNTAX  .null "SYNTAX ERROR"
-MSG_MEMORY  .null "OUT OF MEMORY ERROR"
-MSG_TYPE    .null "TYPE MISMATCH ERROR"
-MSG_NOTFND  .null "VARIABLE NOT FOUND"
-MSG_NOLINE  .null "LINE NUMBER NOT FOUND"
-MSG_UNDFLOW .null "STACK UNDERFLOW ERROR"
-MSG_OVRFLOW .null "STACK OVERFLOW ERROR"
+MSG_BREAK   .null "Break"
+MSG_SYNTAX  .null "Syntax error"
+MSG_MEMORY  .null "Out of memory"
+MSG_TYPE    .null "Type mismatch"
+MSG_NOTFND  .null "Variable not found"
+MSG_NOLINE  .null "Line number not found"
+MSG_UNDFLOW .null "Stack underflow"
+MSG_OVRFLOW .null "Stack overflow"
             .pend
 
 ;

@@ -145,7 +145,8 @@ S_FOR           .proc
 
 get_name        CALL VAR_FINDNAME   ; Try to find the variable name
                 BCS push_name       ; If we didn't find a name, thrown an error
-                JMP error
+
+                THROW ERR_NOTFOUND
 
 push_name       setas               ; Push the search record for the index variable
                 LDA TOFINDTYPE      ; To the return stack
@@ -542,13 +543,13 @@ S_LET           .proc
 
 get_name        CALL VAR_FINDNAME   ; Try to find the variable name
                 BCS else            ; If we didn't find a name, thrown an error
-                JMP error
+                JMP syntax_err
 
 else            CALL SKIPWS         ; Scan for an "="
                 setas
                 LDA [BIP]
                 CMP #TOK_EQ
-                BNE error           ; If not found: signal an syntax error
+                BNE syntax_err      ; If not found: signal an syntax error
 
                 CALL INCBIP         ; Otherwise, skip over it
                 CALL EVALEXPR       ; Evaluate the expression
@@ -559,7 +560,7 @@ else            CALL SKIPWS         ; Scan for an "="
                 PLP
                 RETURN
 
-error           THROW ERR_SYNTAX    ; Throw a syntax error
+syntax_err      THROW ERR_SYNTAX    ; Throw a syntax error
                 .pend
 
 ; Print expressions to the screen
