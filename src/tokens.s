@@ -619,6 +619,9 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "WHILE", TOK_TY_BYWRD, 0, 0, 0
             DEFTOK "UNTIL", TOK_TY_BYWRD, 0, 0, 0
             DEFTOK "EXIT", TOK_TY_STMNT, 0, S_EXIT, 0
+            DEFTOK "CLR", TOK_TY_STMNT, 0, S_CLR, 0
+            DEFTOK "REM", TOK_TY_STMNT, 0, S_REM, 0
+            DEFTOK "STOP", TOK_TY_STMNT, 0, S_STOP, 0
 
             ; Commands
 

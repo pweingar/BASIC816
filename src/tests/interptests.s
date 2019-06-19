@@ -1041,7 +1041,7 @@ TST_INTERP      .proc
                 CALL TST_FINDLINE
                 ;CALL TST_INSLINE
                 CALL TST_INSLINE2
-                CALL TST_EDITLINE
+                ;CALL TST_EDITLINE
 
                 UT_LOG "TST_INTERP: PASSED"
                 RETURN

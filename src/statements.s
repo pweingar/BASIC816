@@ -2,6 +2,27 @@
 ;;; Core BASIC Statements
 ;;;
 
+; Stop execution in such a manner that CONT can restart it.
+S_STOP          .proc
+                THROW ERR_BREAK     ; Throw a BREAK exception
+                .pend
+
+; Start a remark or comment in the code
+; Everything in the program until the next end-of-line will be ignored
+S_REM           .proc
+                PHP
+
+                setas
+rem_loop        LDA [BIP]
+                BEQ done
+
+                CALL INCBIP
+                BRA rem_loop
+
+done            PLP
+                RETURN
+                .pend
+
 ; Break out of an enclosing DO loop
 S_EXIT          .proc
                 PHP

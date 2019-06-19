@@ -4,7 +4,7 @@
 
 1. [X] Add a BREAK/Interrupt key
 1. [X] Move BASIC code to higher memory
-1. [ ] Update ADDLINE to handle out of order entry
+1. [X] Update ADDLINE to handle out of order entry
 1. [ ] Flesh out division for other systems
 1. [ ] Implement the garbage collector
 1. [ ] Implement floating points
@@ -17,26 +17,26 @@
 
 1. [ ] Flesh out other forms of IF THEN ELSE
 1. [ ] Expand PRINT to support FLOATS and other types?
-1. [ ] DO loops
-1. [ ] POKE / WPOKE
 1. [ ] BEGIN / BEND
 1. [ ] CLOSE
-1. [ ] CLR
+1. [X] CLR
 1. [ ] DATA
 1. [ ] DEF FN
 1. [ ] DIM
-1. [ ] FOR / NEXT
+1. [ ] DO loops
+1. [X] FOR / NEXT
 1. [ ] GET
 1. [ ] GET#
 1. [ ] INPUT
 1. [ ] INPUT#
 1. [ ] ON … GOTO
 1. [ ] OPEN
+1. [ ] POKE / WPOKE
 1. [ ] PRINT#
 1. [ ] READ
-1. [ ] REM
+1. [X] REM
 1. [ ] RESTORE
-1. [ ] STOP
+1. [X] STOP
 1. [ ] SYS
 
 ## Operators

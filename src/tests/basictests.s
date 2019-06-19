@@ -9,15 +9,17 @@
 .include "stringtests.s"
 .include "interptests.s"
 .include "cmdtests.s"
+.include "statementtests.s"
 .include "variabletests.s"
 
 TST_BASIC       .proc
-                CALL TST_EVAL
-                CALL TST_HEAP
-                CALL TST_STRINGS
-                CALL TST_VARIABLES
-                CALL TST_INTERP
+                ;CALL TST_EVAL
+                ;CALL TST_HEAP
+                ;CALL TST_STRINGS
+                ;CALL TST_VARIABLES
+                ; CALL TST_INTERP
                 ; CALL TST_CMD
+                CALL TST_STMNTS
 
                 UT_LOG "TST_BASIC: PASSED"
                 RETURN
