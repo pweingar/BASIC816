@@ -295,6 +295,7 @@ syntax_err  THROW ERR_SYNTAX
 EVALSTRING  .proc
             PHP
             PHD
+            TRACE "EVALSTRING"
 
             setdp GLOBAL_VARS
 
@@ -347,6 +348,38 @@ done        LDA #0
             PLD
             PLP
             RETURN
+            .pend
+
+;
+; Evaluate a function
+;
+; Inputs:
+;   BIP = pointer to the token for the function
+;
+; Outputs:
+;   ARGUMENT1 = the value of the function
+;   BIP = pointer to the first byte after the function call
+;
+EVAL_FUNC   .proc
+            PHP
+            TRACE "EVAL_FUNC"
+
+            setas
+            LDA [BIP]           ; Get the token
+
+            setal
+            AND #$00FF
+            CALL TOKEVAL        ; Get the subroutine to evaluate the function
+            STA JMP16PTR
+
+            setdbr 0
+            CALL OPSTUB         ; Call the opcode's evaluation function via the indirection stub
+
+            PLP
+            RETURN
+
+OPSTUB      CALL INCBIP         ; Skip past the token
+            JMP (JMP16PTR)      ; Annoying JMP to get around the fact we don't have an indirect JSR
             .pend
 
 ;
@@ -443,12 +476,14 @@ else3       CMP #'$'            ; Check for a hexadecimal prefix
 else4       CMP #'Z'+1          ; Check to see if we have upper case alphabetics
             BCS check_lc        ; No: check for lower case
             CMP #'A'
-            BCS is_alpha
+            BCC check_lc
+            JMP is_alpha
 
 check_lc    CMP #'z'+1          ; Check to see if we have lower case alphabetics
             BCS else5           ; No: treat as the end of the line
             CMP #'a'
-            BCS is_alpha
+            BCC else5
+            JMP is_alpha
 
 else5       JMP proc_stack
 
@@ -460,7 +495,15 @@ is_token    CMP #TOK_LPAREN     ; Is it an LPAREN
             BEQ is_rparen       ; Yes: handle the RPAREN
 
             CALL TOKTYPE        ; Get the token type
-            CMP #TOK_TY_OP      ; Is it an operator?
+            CMP #TOK_TY_FUNC    ; Is it a function?
+            BNE chk_op          ; No: check if it's an operator
+
+            CALL EVAL_FUNC      ; Yes: evaluate the function
+            LDX #<>ARGUMENT1
+            CALL PHARGUMENT     ; And push it to the argument stack
+            JMP get_char
+
+chk_op      CMP #TOK_TY_OP      ; Is it an operator?
             BNE proc_stack      ; No: we're finished processing
 
             LDA [BIP]           ; Yes: Get the token back
@@ -493,8 +536,16 @@ is_lparen   CALL PHOPERATOR     ; Push the LPAREN to the operator stack
 
             ; Handle the RPAREN token by processing the stack until we get to the "("
 is_rparen   setas
+
+            LDY OPERATORSP      ; Is the operator stack empty?
+            CPY #<>OPERATOR_TOP
+            BEQ done            ; Yes: we're done evaluating things
+                                ; (this is a close paren for a function, maybe)
+
 paren_loop  LDY OPERATORSP      ; Peek at the top operator
             LDA #1,B,Y
+            CMP #TOK_FUNC_OPEN  ; Is it the LPAREN of a function?
+            BEQ close_func      ; Yes: close out the function
             CMP #TOK_LPAREN     ; Is it an LPAREN?
             BEQ done_rparen     ; Yes: we're finished processing
 
@@ -502,12 +553,16 @@ paren_loop  LDY OPERATORSP      ; Peek at the top operator
             BRA paren_loop
 
 done_rparen CALL PLOPERATOR     ; We've found the LPAREN... pop it off the stack
-            BRA next_char
 
 next_char   CALL INCBIP         ; Point to the next character
             JMP get_char
 
-            ; Process all the operators on the stack
+            ; We have hit the right parenthesis at the end of a function call
+            ; Pop the associated left parenthesis and finish evaluating the
+            ; current expression
+close_func  CALL PLOPERATOR     ; Pop the marker off the stack
+
+            ; Process all the operators on the stack and quit
 proc_stack  LDX OPERATORSP      ; Is the operator stack empty?
             CPX #<>OPERATOR_TOP
             BGE done            ; Yes: return to the caller
@@ -515,15 +570,17 @@ proc_stack  LDX OPERATORSP      ; Is the operator stack empty?
             CALL PROCESSOP      ; No: process the operator stack
             BRA proc_stack
 
+            ; We found a string... read it
 is_string   CALL EVALSTRING     ; Get the pointer to the evaluated string
             LDX #<>ARGUMENT1
             CALL PHARGUMENT     ; And push it to the argument stack
             JMP get_char
 
+            ; We found an alphabetic character... treat it as a variable reference
 is_alpha    CALL EVALREF        ; Attempt to evaluate the variable reference
             LDX #<>ARGUMENT1
             CALL PHARGUMENT     ; And push it to the argument stack
-            JMP get_char           
+            JMP get_char     
 
 done        PLP
             RETURN

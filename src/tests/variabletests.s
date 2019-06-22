@@ -209,7 +209,7 @@ TST_VAR_MULTI   .proc
 
                 CALL VAR_SET
 
-                TRACE "SET A%"
+                TRACE "SET ABC%"
 
                 ; Try to set the new value
  
@@ -246,7 +246,7 @@ TST_VAR_MULTI   .proc
                 UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
                 UT_M_EQ_LIT_W ARGUMENT1,$1234,"EXPECTED $1234"
 
-                TRACE "GOT A%"
+                TRACE "GOT ABC%"
 
                 ; Verify that B%=$5678
                 CALL INITEVALSP         ; Clear arguments
@@ -266,7 +266,7 @@ TST_VAR_MULTI   .proc
                 UT_M_EQ_LIT_W ARGUMENT1,$5678,"EXPECTED $5678"
 
                 UT_END
-VAR_A           .null "A%"
+VAR_A           .null "ABC%"
 VAR_B           .null "B%"
                 .pend
 

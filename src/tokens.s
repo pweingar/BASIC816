@@ -547,6 +547,8 @@ TOKTYPE     .proc
 ;;;
 
 TOK_EOL = $00
+TOK_FUNC_OPEN = $01         ; A pseudo-token to push to the operator stack to mark
+                            ; the left parenthesis of a function argument list
 
 TOK_PLUS = $80
 TOK_MINUS = $81
@@ -622,6 +624,10 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "CLR", TOK_TY_STMNT, 0, S_CLR, 0
             DEFTOK "REM", TOK_TY_STMNT, 0, S_REM, 0
             DEFTOK "STOP", TOK_TY_STMNT, 0, S_STOP, 0
+
+            ; Functions
+
+            DEFTOK "LEN", TOK_TY_FUNC, 0, FN_LEN, 0
 
             ; Commands
 

@@ -573,10 +573,31 @@ else            CALL SKIPWS         ; Scan for an "="
                 BNE syntax_err      ; If not found: signal an syntax error
 
                 CALL INCBIP         ; Otherwise, skip over it
+
+                LDA TOFINDTYPE      ; Save the variable name for later
+                PHA                 ; (it will get over-written by variable references)
+                LDA TOFIND+2
+                PHA
+                LDA TOFIND+1
+                PHA
+                LDA TOFIND
+                PHA                
+
                 CALL EVALEXPR       ; Evaluate the expression
+
+                PLA                 ; Restore the variable name
+                STA TOFIND
+                PLA
+                STA TOFIND+1
+                PLA
+                STA TOFIND+2
+                PLA
+                STA TOFINDTYPE
+
+
                 CALL VAR_SET        ; Attempt to set the value of the variable
 
-                TRACE "S_LET DONE"
+                TRACE_L "S_LET DONE", BIP
 
                 PLP
                 RETURN

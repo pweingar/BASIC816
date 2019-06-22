@@ -144,10 +144,72 @@ LINE30          .null "30 A%=5678"
 VAR_A           .null "A%"
                 .pend
 
+
+; Test that we can execut the LET statement in various forms
+TST_LET         .proc
+                UT_BEGIN "TST_LET"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                LD_L CURLINE,LINE10
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                CALL CMD_RUN
+
+                ; Validate that ABC%=1234
+                setal
+                LDA #<>VAR_ABC
+                STA TOFIND
+                setas
+                LDA #`VAR_ABC
+                STA TOFIND+2
+
+                LDA #TYPE_INTEGER
+                STA TOFINDTYPE
+
+                CALL VAR_REF            ; Try to get the result
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
+                UT_M_EQ_LIT_W ARGUMENT1,1234,"EXPECTED ABC%=1234"
+
+                TRACE "CHECK N$"
+
+                ; Validate that NAME$ is a string
+                setal
+                LDA #<>VAR_NAME
+                STA TOFIND
+                setas
+                LDA #`VAR_NAME
+                STA TOFIND+2
+
+                LDA #TYPE_STRING
+                STA TOFINDTYPE
+
+                CALL VAR_REF            ; Try to get the result
+
+                MOVE_L SCRATCH2,ARGUMENT1
+
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_STRING,"EXPECTED STRING"
+                UT_STRIND_EQ SCRATCH2,EXPECTED,"EXPECTED 'FOO'"
+
+                UT_END
+LINE10          .null '10 ABC%=1234:NAME$="FOO"'
+VAR_ABC         .null "ABC%"
+VAR_NAME        .null "NAME$"
+EXPECTED        .null "FOO"
+                .pend
+
 TST_STMNTS      .proc
                 CALL TST_REM
                 CALL TST_CLR
-                CALL TST_STOP
+                CALL TST_LET
+                ; CALL TST_STOP
 
                 UT_LOG "TST_STMNTS: PASSED"
                 RETURN

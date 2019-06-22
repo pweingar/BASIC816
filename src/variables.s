@@ -76,7 +76,8 @@ return_true     SEC
 ;   C is set if the names match, clear otherwise
 VARNAMECMP      .proc
                 PHP
-                TRACE "VARNAMECMP"
+                TRACE_L "VARNAMECMP", SCRATCH
+                TRACE_L "SEEKING: ", TOFIND
 
                 setas
                 setxl
@@ -96,11 +97,13 @@ is_end          LDA [TOFIND],Y          ; Check the character in the name to fin
                 CALL ISVARCHAR          ; Is it a variable name character?
                 BCS return_false        ; YES: we do not have a match
 
-return_true     PLP
+return_true     TRACE "VARNAMECMP: TRUE"
+                PLP
                 SEC
                 RETURN
 
-return_false    PLP
+return_false    TRACE "VARNAMECMP: FALSE"
+                PLP
                 CLC
                 RETURN
                 .pend
@@ -235,7 +238,8 @@ VAR_REF         .proc
 
                 THROW ERR_NOTFOUND
 
-found           setaxl
+found           TRACE_L "VAR_REF: FOUND",INDEX
+                setaxl
                 LDY #BINDING.VALUE
                 LDA [INDEX],Y
                 STA ARGUMENT1

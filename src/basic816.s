@@ -24,8 +24,10 @@
 .include "repl.s"
 .include "operators.s"
 .include "statements.s"
+.include "functions.s"
 .include "commands.s"
 .include "variables.s"
+.include "floats.s"
 
 .if UNITTEST
 .include "tests/basictests.s"
