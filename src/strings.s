@@ -45,6 +45,30 @@ has_room    PLP
             .pend
 
 ;
+; Attempt to add a BCD digit in A to temporary string
+;
+; Ignore leading zeros
+;
+; Inputs:
+;   A = the digit to add (0 - 9)
+;   STRPTR = the base address of the string to build
+;   Y = the index to the digits location in the string
+; 
+ITOS_DIGIT  .proc
+            CMP #0          ; Is it 0?
+            BNE add_digit   ; No: go ahead and add it
+
+            CPY #1          ; Are we on the first digit?
+            BEQ done        ; Yes: ignore this leading 0
+
+add_digit   ORA #$30        ; Convert it to ASCII
+            STA [STRPTR],Y  ; Save it to the string
+            INY             ; And point to the next location
+
+done        RETURN
+            .pend
+
+;
 ; Convert the integer in ARGUMENT1 to a temporary, null-terminated string
 ;
 ; Note: the temporary string is not allocated on the heap and
@@ -64,60 +88,90 @@ ITOS        .proc
             setal
             STZ SCRATCH         ; Use scratch to store if negative
 
-            LDA ARGUMENT1       ; Check to see if the number is negative
-            BPL tsalloc
-
-            EOR #$FFFF          ; Yes: make ARGUMENT1 positive
-            CLC
+            LDA ARGUMENT1+2     ; Check to see if the number is negative
+            BPL start_cnvt
+         
+            CLC                 ; Yes: make ARGUMENT1 positive
+            LDA ARGUMENT1
+            EOR #$FFFF
             ADC #1
             STA ARGUMENT1
+            LDA ARGUMENT1+2
+            EOR #$FFFF
+            ADC #0
+            STA ARGUMENT1+2
 
             LDA #$FFFF          ; Record that the number was negative
             STA SCRATCH
 
-tsalloc     CALL TEMPSTRING     ; Allocate a temporary string
+start_cnvt  ; Convert the binary number in ARGUMENT1 into a BCD
+            ; equivalent in SCRATCH2
 
+            STZ SCRATCH2        ; SCRATCH2 will be our BCD version of the number
+            STZ SCRATCH2+2
+
+            LDX #31
+            SED                 ; Yes, we're really using BCD mode
+
+shift_loop  ASL ARGUMENT1       ; Shift ARGUMENT1 left one bit
+            ROL ARGUMENT1+2
+
+            LDA SCRATCH2        ; SCRATCH2 := SCRATCH2 + SCRATCH2 + Carry
+            ADC SCRATCH2
+            STA SCRATCH2
+            LDA SCRATCH2+2
+            ADC SCRATCH2+2
+            STA SCRATCH2+2
+
+            DEX
+            BPL shift_loop      ; Loop through all 32 bits of ARGUMENT1
+
+            CLD                 ; Switch back out of BCD mode
             setas
-            LDA #$FF
-            STA STRPTR          ; Point to its last byte
 
-            LDA #0
-            STA [STRPTR]        ; And make sure it's NULL
+            ; Convert the BCD number in SCRATCH2 to a string
 
-            LDA #$FE
-            STA STRPTR          ; And point to the first possible digit
+            CALL TEMPSTRING     ; Allocate a temporary string
 
-            LDA #'0'
-            STA [STRPTR]        ; Pre-load a "0"
+            LDY #0              ; Y will be index into the temporary string
 
-shift_loop  CALL IS_ARG1_Z      ; If ARGUMENT1 is 0....
-            BEQ check_neg       ; ... then we've finished shifting out digits
+            LDA SCRATCH         ; Check to see if the number was negative
+            BEQ is_pos          ; No: write a leading space
 
-            CALL DIVINT10       ; Divide by 10 (expect remainder in ARGUMENT2)
+            LDA #'-'            ; If negative, write the minus sign
+            BRA wr_lead
 
-            setas
-            CLC                 ; Convert the remainder to an ASCII digit
-            LDA ARGUMENT2
-            BMI fault
-            CMP #10
-            BGE fault
-            ADC #'0'
+is_pos      LDA #CHAR_SP        ; Write a leading space
+wr_lead     STA [STRPTR],Y
+            INY
 
-            STA [STRPTR]        ; Write it to the temporary string
+            ; Skip over leading 0s
+            LDX #3
 
-            setas
-            DEC STRPTR          ; Move to the "next" character slot
+            ; Process first nybble
+ascii_loop  LDA SCRATCH2,X
+            AND #$F0
+            .rept 4
+            LSR A
+            .next
+            CALL ITOS_DIGIT
 
-            LDA #' '            ; Write a space as a placeholder
+            ; Process lower nybble
+            LDA SCRATCH2,X
+            AND #$0F
+            CALL ITOS_DIGIT
+
+            DEX
+            BPL ascii_loop
+
+            CPY #1              ; Did we write anything?
+            BNE null_term       ; Yes: add a NULL to terminate
+
+            LDA #'0'            ; No: write a "0" to the string
             STA [STRPTR]
 
-            BRA shift_loop
-
-check_neg   LDA SCRATCH         ; Check to see if the number was negative
-            BEQ done            ; No: go ahead and return
-
-            LDA #'-'
-            STA [STRPTR]
+null_term   LDA #0
+            STA [STRPTR],Y      ; And terminate the string
 
 done        PLP
             RETURN
