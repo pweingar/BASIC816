@@ -20,7 +20,7 @@ INITRETURN      .proc
                 setdp GLOBAL_VARS
 
                 setaxl
-                LDA #RETURN_TOP-1
+                LDA #RETURN_TOP-2
                 STA @lRETURNSP
 
                 PLD

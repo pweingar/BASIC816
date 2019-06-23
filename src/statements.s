@@ -15,20 +15,27 @@ S_POKE          .proc
                 CALL EVALEXPR       ; Get the address
 
                 setal
-                LDA ARGUMENT1       ; And put it in INDEX
-                STA INDEX
-                LDA ARGUMENT1+2
-                STA INDEX+2
+                LDA ARGUMENT1+2     ; And save it to the stack
+                PHA
+                LDA ARGUMENT1
+                PHA
 
                 setas
-                LDA #','
-                CALL EXPECT_TOK     ; Look for a comma
+                LDA [BIP]
+                CMP #','
+                BNE syntax_err
+                CALL INCBIP
 
                 CALL EVALEXPR       ; Get the value
 
                 setal
                 LDA ARGUMENT1+2
                 BNE range_err
+
+                PLA                 ; Pull the target address from the stack
+                STA INDEX           ; and into INDEX
+                PLA
+                STA INDEX+2
 
                 setas
                 LDA ARGUMENT1
