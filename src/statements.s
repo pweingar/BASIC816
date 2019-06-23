@@ -311,6 +311,7 @@ S_NEXT          .proc
                 TRACE "S_NEXT"
 
                 setdbr 0
+                setdp GLOBAL_VARS
 
                 setaxl
 
@@ -329,7 +330,7 @@ S_NEXT          .proc
                 STA ARGTYPE2
 
                 ; Get the variable and its current value
-
+                setal
                 LDA #FOR_RECORD.VARIBLE,B,Y     ; TOFIND := FOR_RECORD.VARIABLE
                 STA TOFIND
                 LDA #FOR_RECORD.VARIBLE+2,B,Y

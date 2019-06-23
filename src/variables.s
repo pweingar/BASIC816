@@ -139,14 +139,26 @@ VAR_FIND        .proc
                 setas
                 setxl
 
-                ; Convert TOFIND to upper case
-                PHB                     
-                LDA TOFIND+2
-                PHA
-                PLB
-                LDX TOFIND
-                CALL TOUPPER
-                PLB
+                ; Convert TOFIND to upper case in a temporary buffer
+                LDY #0
+                LDX #0
+upper_loop      LDA [TOFIND],Y          ; Get a character
+                BEQ done_upper
+                CALL TOUPPERA           ; Make sure it's upper case
+                STA @lTEMPBUF,X         ; And save it to the temp
+                INY
+                INX
+                BRA upper_loop          ; Go back for another
+
+done_upper      LDA #0
+                STA @lTEMPBUF,X         ; NULL terminate the temporary string
+
+                setal
+                LDA #<>TEMPBUF          ; Make the temporary string the string
+                STA TOFIND              ; the variable name to find
+                setas
+                LDA #`TEMPBUF
+                STA TOFIND+2
 
                 ; INDEX := VARIABLES
                 ; return false if VARIABLES == 0
