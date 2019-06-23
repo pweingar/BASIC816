@@ -2,6 +2,43 @@
 ;;; Core BASIC Statements
 ;;;
 
+; Clear the screen and move the cursor to the home position
+S_CLS           .proc
+                CALL CLSCREEN
+                RETURN
+                .pend
+
+; Write an 8-bit value to an address in memory
+; POKE <address>,<value>
+S_POKE          .proc
+
+                CALL EVALEXPR       ; Get the address
+
+                setal
+                LDA ARGUMENT1       ; And put it in INDEX
+                STA INDEX
+                LDA ARGUMENT1+2
+                STA INDEX+2
+
+                setas
+                LDA #','
+                CALL EXPECT_TOK     ; Look for a comma
+
+                CALL EVALEXPR       ; Get the value
+
+                setal
+                LDA ARGUMENT1+2
+                BNE range_err
+
+                setas
+                LDA ARGUMENT1
+                STA [INDEX]         ; And write it to the address
+
+                RETURN
+syntax_err      THROW ERR_SYNTAX
+range_err       THROW ERR_RANGE
+                .pend
+
 ; Stop execution in such a manner that CONT can restart it.
 S_STOP          .proc
                 THROW ERR_BREAK     ; Throw a BREAK exception

@@ -86,8 +86,11 @@ ON_ERROR    .proc
             CALL PRINTS
             setdbr BASIC_BANK
                 
+            setal
             LDA @lLINENUM           ; ... and then the line number
             STA @lARGUMENT1
+            LDA #0
+            STA @lARGUMENT1+2
             CALL PR_INTEGER
             CALL PRINTCR
 

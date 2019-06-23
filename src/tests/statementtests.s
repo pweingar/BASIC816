@@ -205,10 +205,58 @@ VAR_NAME        .null "NAME$"
 EXPECTED        .null "FOO"
                 .pend
 
+; Test that we can POKE an 8-bit value into a memory location
+; and that we can PEEK it too
+TST_POKE        .proc
+                UT_BEGIN "TST_POKE"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                LD_L CURLINE,LINE10
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE20
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                CALL CMD_RUN
+
+                UT_M_EQ_LIT_B $020000,$55, "EXPECTED $55"
+
+                ; Validate that A%=$55
+                setal
+                LDA #<>VAR_A
+                STA TOFIND
+                setas
+                LDA #`VAR_A
+                STA TOFIND+2
+
+                LDA #TYPE_INTEGER
+                STA TOFINDTYPE
+
+                CALL VAR_REF
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
+                UT_M_EQ_LIT_W ARGUMENT1,$55,"EXPECTED A%=$55"
+
+                UT_END
+LINE10          .null '10 POKE $020000,$55'
+LINE20          .null "20 A%=PEEK($020000)"
+VAR_A           .null "A%"
+                .pend
+
 TST_STMNTS      .proc
                 CALL TST_REM
                 CALL TST_CLR
                 CALL TST_LET
+                CALL TST_POKE
                 ; CALL TST_STOP
 
                 UT_LOG "TST_STMNTS: PASSED"

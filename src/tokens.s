@@ -624,10 +624,13 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "CLR", TOK_TY_STMNT, 0, S_CLR, 0
             DEFTOK "REM", TOK_TY_STMNT, 0, S_REM, 0
             DEFTOK "STOP", TOK_TY_STMNT, 0, S_STOP, 0
+            DEFTOK "POKE", TOK_TY_STMNT, 0, S_POKE, 0
+            DEFTOK "CLS", TOK_TY_STMNT, 0, S_CLS, 0
 
             ; Functions
 
             DEFTOK "LEN", TOK_TY_FUNC, 0, FN_LEN, 0
+            DEFTOK "PEEK", TOK_TY_FUNC, 0, FN_PEEK, 0
 
             ; Commands
 

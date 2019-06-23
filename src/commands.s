@@ -62,6 +62,7 @@ CMD_LIST        .proc
                 PHP
                 TRACE "CMD_LIST"
 
+                CALL PRINTCR
                 CALL LISTPROG
 
                 PLP

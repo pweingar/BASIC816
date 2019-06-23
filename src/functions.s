@@ -74,3 +74,31 @@ FN_LEN          .proc
 
 type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
+
+;
+; PEEK(ADDR) -- Read the 8-bit value at ADDR
+;
+FN_PEEK         .proc
+                FN_START "FN_PEEK"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+
+                ; TODO: convert float to integer
+
+                setas               ; Throw an error if it's not a string
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_mismatch
+
+                setas
+                LDA [ARGUMENT1]
+                STA ARGUMENT1
+                STZ ARGUMENT1+1
+                STZ ARGUMENT1+2
+                STZ ARGUMENT1+13
+
+                FN_END
+                RETURN
+
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend

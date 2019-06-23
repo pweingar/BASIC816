@@ -54,3 +54,4 @@ ERR_NOTFOUND = 5        ; Variable not found error
 ERR_NOLINE = 6          ; Line number not found
 ERR_STACKUNDER = 7      ; Stack underflow error
 ERR_STACKOVER = 8       ; Stack overflow error
+ERR_RANGE = 9           ; Out-of-range error

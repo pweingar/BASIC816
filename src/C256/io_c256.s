@@ -12,9 +12,12 @@
 .endif
 .include "keyboard.s"
 .include "screen.s"
+.include "font.s"
 
 INITIO      .proc
             setas
+
+            CALL INITFONT       ; Set up the BASIC font
 
             LDA #72             ; Make sure the screen size is right
             STA @lCOLS_VISIBLE  ; TODO: remove this when the kernel is correct

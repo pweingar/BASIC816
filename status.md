@@ -23,13 +23,15 @@
 1. [ ] Expand PRINT to support FLOATS and other types?
 1. [ ] BEGIN / BEND
 1. [X] CLR
+1. [X] CLS
 1. [ ] DATA
 1. [ ] DEF FN
 1. [ ] DIM
 1. [ ] DO loops
 1. [X] FOR / NEXT
 1. [ ] ON … GOTO
-1. [ ] POKE / WPOKE
+1. [X] POKE
+    1. [ ] WPOKE
 1. [ ] READ
 1. [X] REM
 1. [ ] RESTORE
@@ -63,10 +65,11 @@
 1. [ ] HEX$
 1. [ ] INT
 1. [ ] LEFT$
-1. [ ] LEN
+1. [X] LEN
 1. [ ] LOG
 1. [ ] MID$
-1. [ ] PEEK() / WPEEK()
+1. [X] PEEK()
+    1. [ ] WPEEK()
 1. [ ] RIGHT$
 1. [ ] RND
 1. [ ] SGN
