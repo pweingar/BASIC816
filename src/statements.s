@@ -406,6 +406,7 @@ end_loop        TRACE "end_loop"
                 CALL PLARGUMENT                 ; Restore the value of the variable
 
                 setal
+                CLC
                 LDA RETURNSP
                 ADC #size(FOR_RECORD)           ; Move pointer by number of bytes in a FOR record
                 STA RETURNSP

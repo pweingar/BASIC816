@@ -51,12 +51,17 @@
 1. [x] AND
 1. [x] OR
 1. [x] NOT
+1. [ ] Comparisons
+    1. [ ] =
+    1. [ ] <
+    1. [ ] >
+    1. [ ] <>
 
 ## Functions
 
 1. [ ] ABS
 1. [ ] ASC
-1. [ ] CHR$
+1. [X] CHR$
 1. [ ] COS
 1. [ ] DEC
 1. [ ] EXP

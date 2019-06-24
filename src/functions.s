@@ -102,3 +102,44 @@ FN_PEEK         .proc
 
 type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
+
+;
+; CHR$(value) -- convert the integer value to a single character string
+;
+; NOTE: the string returned is in the TEMPBUF, and is temporary
+; it can be over-written at pretty much any time.
+;
+FN_CHR          .proc
+                FN_START "FN_CHR"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+
+                ; TODO: convert float to integer
+
+                setas               ; Throw an error if it's not a string
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_mismatch
+
+                CALL TEMPSTRING
+
+                LDA ARGUMENT1       ; Get the numberic value
+                STA [STRPTR]        ; And save it as the first character
+                LDA #0              ; Null terminate the string
+                LDY #1
+                STA [STRPTR],Y
+
+                setal               ; And return the temporary string
+                LDA STRPTR
+                STA ARGUMENT1
+                LDA STRPTR+2
+                STA ARGUMENT1+2
+                
+                setas
+                LDA #TYPE_STRING
+                STA ARGTYPE1
+
+                FN_END
+                RETURN
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend

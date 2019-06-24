@@ -7,6 +7,33 @@ but with some differences. Statements relating to graphics, sound, disk, and oth
 likely be different. Also, BASIC816 will have some sort of foreign function interface that will allow a user
 to install a "pack" of new statements to expand the language as they need.
 
+## Data Types
+
+BASIC816 supports two data types: 32-bit integers, and strings. (Eventually, other data types will be
+supported, like single precision floating point numbers.)
+
+### Integers
+
+BASIC816 supports signed, 32-bit integers. Integer literals may be entered in either decimal or
+hexadecimal formats:
+
+- 1234
+- -42
+- $AF0005
+
+### Strings
+
+BASIC816 supports character strings, where each character is an 8-bit byte.
+BASIC816 assumes the characters are compatible with ASCII / ISO-8859-x, but the specific interpretation
+of the bytes is really up to the program and the font. String literals may be entered in double-quotes:
+
+- "Hello, world."
+- "Bumbles bounce!"
+
+(At the moment, there is no character escaping in strings. This may or may not be a feature to add later.)
+
+Internally, strings are C-style, null-terminated arrays of bytes. While there is a facility for temporary strings, string variables will be allocated on the heap at the high end of memory.
+
 ## Commands
 
 The following commands are planned for implementation:
@@ -78,6 +105,14 @@ If any other statements are used, the IF is in block form and requires a closing
 
 Executes a collection of statements that can be on multiple lines. This construct is used in IF/THEN/ELSE statements to let them
 span lines.
+
+### CLR
+
+Clear all storage. Delete all variables and all allocated data.
+
+### CLS
+
+Clear the screen and move the cursor to the home position.
 
 ### DO [WHILE *CONDITION* | UNTIL *CONDITION*] *STATEMENTS* LOOP [WHILE *CONDITION* | UNTIL *CONDITION*]
 

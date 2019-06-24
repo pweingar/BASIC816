@@ -252,12 +252,81 @@ LINE20          .null "20 A%=PEEK($020000)"
 VAR_A           .null "A%"
                 .pend
 
+; Test that we can nest FOR/NEXT loops
+TST_NESTEDFOR   .proc
+                UT_BEGIN "TST_NESTEDFOR"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                LD_L CURLINE,LINE10
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE20
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE30
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE40
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE50
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE60
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                CALL CMD_RUN
+
+                ; Validate that A%=200
+                setal
+                LDA #<>VAR_A
+                STA TOFIND
+                setas
+                LDA #`VAR_A
+                STA TOFIND+2
+
+                LDA #TYPE_INTEGER
+                STA TOFINDTYPE
+
+                CALL VAR_REF
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
+                UT_M_EQ_LIT_W ARGUMENT1,200,"EXPECTED A%=200"
+
+                UT_END
+LINE10          .null "10 A%=0"
+LINE20          .null "20 FOR I%=1 TO 10"
+LINE30          .null "30 FOR J%=1 TO 20"
+LINE40          .null "40 A%=A%+1"
+LINE50          .null "50 NEXT"
+LINE60          .null "60 NEXT"
+VAR_A           .null "A%"
+                .pend
+
 TST_STMNTS      .proc
                 CALL TST_REM
                 CALL TST_CLR
                 CALL TST_LET
                 CALL TST_POKE
                 ; CALL TST_STOP
+                CALL TST_NESTEDFOR
 
                 UT_LOG "TST_STMNTS: PASSED"
                 RETURN

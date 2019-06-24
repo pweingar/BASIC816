@@ -15,10 +15,13 @@ loop            LDA @lBASIC_FONT,X    ; RAM Content
                 CPX #$0800
                 BNE loop
 
+                LDA #$7F
+                STA @lVKY_TXT_CURSOR_CHAR_REG
+
                 PLP
                 RETURN
                 .pend
 
-;BASIC_FONT      .binary "resources/MSX_8x8.bin", 0, 2048
-BASIC_FONT      .binary "resources/AppleLikeFont.bin", 0, 2048
+BASIC_FONT      .binary "resources/MSX_8x8.bin", 0, 2048
+;BASIC_FONT      .binary "resources/AppleLikeFont.bin", 0, 2048
 ;BASIC_FONT      .binary "resources/CBM-ASCII_8x8.bin", 0, 2048

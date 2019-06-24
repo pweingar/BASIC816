@@ -631,6 +631,7 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
 
             DEFTOK "LEN", TOK_TY_FUNC, 0, FN_LEN, 0
             DEFTOK "PEEK", TOK_TY_FUNC, 0, FN_PEEK, 0
+            DEFTOK "CHR$", TOK_TY_FUNC, 0, FN_CHR, 0
 
             ; Commands
 
