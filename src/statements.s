@@ -425,9 +425,9 @@ S_GOSUB         .proc
                 PHP
                 TRACE "S_GOSUB"
 
-                LDA CURLINE+2               ; Save the current line for later
+                LDA CURLINE                 ; Save the current line for later
                 PHA
-                LDA CURLINE
+                LDA CURLINE+2
                 PHA
 
                 CALL SKIPWS
@@ -453,6 +453,7 @@ S_GOSUB         .proc
                 CALL PHRETURN
                 PLA
                 CALL PHRETURN
+
                 LDA BIP+2                   ; Save the BASIC Instruction Pointer to the RETURN stack
                 CALL PHRETURN
                 LDA BIP

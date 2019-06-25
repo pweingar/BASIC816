@@ -608,6 +608,16 @@ TST_EXEC_SUB    .proc
                 LDA LINENUM
                 CALL APPLINE
 
+                LD_L CURLINE,LINE50
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
+                LD_L CURLINE,LINE60
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+
                 LD_L CURLINE,BASIC_BOT
                 CALL EXECPROGRAM
 
@@ -627,10 +637,12 @@ TST_EXEC_SUB    .proc
                 UT_M_EQ_LIT_W ARGUMENT1,1234,"EXPECTED 1234"
 
                 UT_END
-LINE10          .null "10 GOSUB 30"
-LINE20          .null "20 END"
-LINE30          .null "30 A%=1234"
-LINE40          .null "40 RETURN"
+LINE10          .null "10 A%=1232"
+LINE20          .null "20 GOSUB 50"
+LINE30          .null "30 A%=A%+1"
+LINE40          .null "40 END"
+LINE50          .null "50 A%=A%+1"
+LINE60          .null "60 RETURN"
 VAR_A           .null "A%"
                 .pend
 
