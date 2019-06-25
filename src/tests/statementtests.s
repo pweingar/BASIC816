@@ -199,9 +199,9 @@ TST_LET         .proc
                 UT_STRIND_EQ SCRATCH2,EXPECTED,"EXPECTED 'FOO'"
 
                 UT_END
-LINE10          .null '10 ABC%=1234:NAME$="FOO"'
+LINE10          .null '10 ABC%=1234:BAND$="FOO"'
 VAR_ABC         .null "ABC%"
-VAR_NAME        .null "NAME$"
+VAR_NAME        .null "BAND$"
 EXPECTED        .null "FOO"
                 .pend
 
@@ -321,8 +321,8 @@ VAR_A           .null "A%"
                 .pend
 
 TST_STMNTS      .proc
-                CALL TST_REM
-                CALL TST_CLR
+                ;CALL TST_REM
+                ;CALL TST_CLR
                 CALL TST_LET
                 CALL TST_POKE
                 ; CALL TST_STOP

@@ -180,14 +180,19 @@ TKFINDTOKEN .proc
 next_size   setxl
             CALL TKNEXTBIG          ; Find the size of the token to find
             LDA CURTOKLEN           ; Are there any keywords left?
-            BEQ done                ; No: return to caller
+            BNE else               
+            JMP done                ; No: return to caller
 
-            setal                   ; Set BIP to the beginning of the line
+else        setal                   ; Set BIP to the beginning of the line
             LDA CURLINE
             STA BIP
             setas
             LDA CURLINE+2
             STA BIP+2
+
+            setal
+            STZ BIPPREV             ; Clear BIPPREV (point to the previous character)
+            STZ BIPPREV+2
 
             ; Check to see if there's room for the token keyword left in the string
 check_len   setaxs
@@ -201,15 +206,46 @@ nul_scan    LDA [BIP],Y
 
             LDA [BIP]               ; Check the current character
             CMP #CHAR_DQUOTE        ; Is it a double quote?
-            BNE try_match           ; No: go ahead and try to do the match
+            BNE chk_keyword         ; No: check to see if we are at the start of a possible keyword
 
-            CALL SKIPQUOTED         ; Yes: skip to after the next double quote
-            BRA check_len           ; And check we have room for the token
+            CALL SKIPQUOTED         ; Yes: skip to the next double quote
+            BRA go_next             ; And move on to the next character
+
+            ; Check for keyword delimiters
+            ; Tokens longer than one character need a whitespace in front of them
+            ; or have to be the first thing on the line
+chk_keyword LDA CURTOKLEN           ; If the token length is 1
+            CMP #1
+            BEQ try_match           ; ... we don't need a delimiter, go ahead and convert it
+
+            setal
+            LDA BIP                 ; Check to see if we're at the start of the line   
+            CMP CURLINE
+            BNE chk_delim           ; No: we need to check for a delimiters
+            setas
+            LDA BIP+2
+            CMP CURLINE+2
+            BEQ try_match           ; Yes: this can be a keyword
+
+            ; In the middle of the line... need a non-alphanumeric character delimiter
+chk_delim   TRACE "chk_delim"
+            setas
+            LDA [BIPPREV]           ; Get the previous character
+            CALL ISVARCHAR          ; Is it a possible variable name character?
+            BCS go_next             ; Yes: we can't start a keyword here
 
             ; There is room for the token left in the string
-try_match   CALL TKMATCH            ; Try to find the matching token
+try_match   setas
+            CALL TKMATCH            ; Try to find the matching token
             CMP #0                  ; Did we get one?
             BNE done                ; Yes: return it
+
+go_next     setal
+            LDA BIP                 ; Update BIPPREV as the point to the previous character
+            STA BIPPREV
+            setas
+            LDA BIP+2
+            STA BIPPREV+2
 
             CALL INCBIP             ; Move to the next character in the line
             BRA check_len           ; And try there
@@ -234,10 +270,6 @@ loop        CALL INCBIP             ; Advance the BIP
             BEQ done                ; If EOL, just return
             CMP #CHAR_DQUOTE        ; Is it a double quote?
             BNE loop                ; No: keep skipping
-
-            CALL INCBIP             ; Skip one more byte
-            LDA [BIP]
-            BEQ done                ; And return if it's NUL
 
 done        PLP
             RETURN

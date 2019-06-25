@@ -44,6 +44,7 @@ INITVARS        .proc
 ;   C is set if the character is valid for a variable name, clear otherwise
 ;
 ISVARCHAR       .proc
+                TRACE "ISVARCHAR"
                 CMP #'_'            ; Check if it's an underscore
                 BEQ return_true     ; Yes: return true
 

@@ -23,6 +23,7 @@ DATA_BLOCK = *
 .section globals
 GLOBAL_VARS = *
 BIP         .dword ?    ; Pointer to the current byte in the current BASIC program
+BIPPREV     .dword ?    ; Pointer to the previous bytein the current BASIC program
 INDEX       .dword ?    ; A temporary pointer
 SCRATCH     .dword ?    ; A temporary scratch variable
 SCRATCH2    .dword ?    ; A temporary scratch variable
