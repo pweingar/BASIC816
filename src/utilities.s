@@ -70,11 +70,13 @@ not_upper   CMP #'z'+1
             CMP #'a'
             BGE is_alpha
 
-not_alpha   PLP
+not_alpha   TRACE "not alpha"
+            PLP
             CLC
             RETURN
 
-is_alpha    PLP
+is_alpha    TRACE "is alpha"
+            PLP
             SEC
             RETURN
             .pend

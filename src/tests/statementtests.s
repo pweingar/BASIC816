@@ -38,12 +38,12 @@ TST_REM         .proc
 
                 CALL VAR_REF            ; Try to get the result
                 UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
-                UT_M_EQ_LIT_W ARGUMENT1,1234,"EXPECTED A%=1234"
+                UT_M_EQ_LIT_W ARGUMENT1,1234,"EXPECTED ABC%=1234"
 
                 UT_END
-LINE10          .null "10 A%=1234"
-LINE20          .null "20 REM:A%=5678"
-VAR_A           .null "A%"
+LINE10          .null "10 ABC%=1234"
+LINE20          .null "20 REM:ABC%=5678"
+VAR_A           .null "ABC%"
                 .pend
 
 ; Test that we can clear variables and heap

@@ -53,8 +53,13 @@ ISVARCHAR       .proc
                 BGE return_true     ; Yes: return true
 
 else1           CMP #'Z'+1          ; Check if its in [A-Z]
-                BGE return_false    ; No: return false
+                BGE not_upper       ; No: check lower case
                 CMP #'A'
+                BGE return_true     ; Yes: return true
+
+not_upper       CMP #'z'+1          ; Check if its in [a-z]
+                BGE return_false    ; No: return false
+                CMP #'a'
                 BGE return_true     ; Yes: return true
 
 return_false    CLC

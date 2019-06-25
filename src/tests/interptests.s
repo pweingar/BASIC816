@@ -131,8 +131,8 @@ TST_LET_IMPLIED .proc
                 UT_M_EQ_LIT_W ARGUMENT1,1234,"EXPECTED 1234"
 
                 UT_END
-TEST            .null "A%",TOK_EQ,"1234"
-VARIABLE        .null "A%"
+TEST            .null "abc%",TOK_EQ,"1234"
+VARIABLE        .null "ABC%"
                 .pend
 
 ; Can add a tokenized line of BASIC to the current program

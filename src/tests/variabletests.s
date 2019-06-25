@@ -266,7 +266,7 @@ TST_VAR_MULTI   .proc
                 UT_M_EQ_LIT_W ARGUMENT1,$5678,"EXPECTED $5678"
 
                 UT_END
-VAR_A           .null "ABC%"
+VAR_A           .null "abc%"
 VAR_B           .null "B%"
                 .pend
 
@@ -274,9 +274,9 @@ VAR_B           .null "B%"
 ; Run all the evaluator tests
 ;
 TST_VARIABLES   .proc
-                ;CALL TST_VAR_CREATE
-                ;CALL TST_VAR_LOOKUP
-                ;CALL TST_VAR_SET
+                CALL TST_VAR_CREATE
+                CALL TST_VAR_LOOKUP
+                CALL TST_VAR_SET
                 CALL TST_VAR_MULTI
 
                 UT_LOG "TST_VARIABLES: PASSED"
