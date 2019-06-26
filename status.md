@@ -54,41 +54,46 @@
 1. [ ] Comparisons
     1. [ ] =
     1. [ ] <
+    1. [ ] <=
     1. [ ] >
+    1. [ ] >=
     1. [ ] <>
 
 ## Functions
 
-1. [ ] ABS
-1. [ ] ASC
-1. [X] CHR$
-1. [ ] COS
-1. [ ] DEC
-1. [ ] EXP
-1. [ ] FN
-1. [ ] FRE
-1. [ ] HEX$
-1. [ ] INT
-1. [ ] LEFT$
-1. [X] LEN
-1. [ ] LOG
-1. [ ] MID$
-1. [X] PEEK()
-    1. [ ] WPEEK()
-1. [ ] RIGHT$
-1. [ ] RND
-1. [ ] SGN
-1. [ ] SIN
-1. [ ] SPC
-1. [ ] SQR
-1. [ ] STATUS
-1. [ ] STR$
-1. [ ] TAB
-1. [ ] TAN
-1. [ ] TIME
-1. [ ] TIME$
-1. [ ] USR
-1. [ ] VAL
+1. [ ] Floating Point Functions
+    1. [ ] COS
+    1. [ ] EXP
+    1. [ ] INT
+    1. [ ] LOG
+    1. [ ] RND
+    1. [ ] SIN
+    1. [ ] SQR
+    1. [ ] TAN
+1. [ ] String Functions
+    1. [ ] ASC
+    1. [X] CHR$
+    1. [ ] HEX$
+    1. [ ] LEFT$
+    1. [X] LEN
+    1. [ ] MID$
+    1. [ ] RIGHT$
+    1. [ ] SPC
+    1. [ ] STR$
+    1. [ ] TAB
+    1. [ ] TIME$
+    1. [ ] VAL
+1. [ ] Other Functions
+    1. [ ] ABS
+    1. [ ] DEC
+    1. [ ] FN
+    1. [ ] FRE
+    1. [X] PEEK()
+        1. [ ] WPEEK()
+    1. [ ] SGN
+    1. [ ] STATUS
+    1. [ ] TIME
+    1. [ ] USR
 
 ## Commands
 

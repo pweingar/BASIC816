@@ -142,6 +142,9 @@ mv_curline  setal                   ; CURLINE := BIP (current position)
             LDA BIP+2
             STA CURLINE+2
 
+            CALL FINDREM            ; Prescan for REM to tokenize it
+                                    ; this is done to keep the tokenizer from altering comments
+
             setas
 loop        CALL TKFINDTOKEN        ; Find the next token in the line
             CMP #0                  ; Did we find a token?
@@ -152,6 +155,88 @@ loop        CALL TKFINDTOKEN        ; Find the next token in the line
 
 done        PLD
             PLP
+            RETURN
+            .pend
+
+;
+; Prescan a line for "REM". If the keyword is found, convert it to its token.
+;
+; Inputs:
+;   CURLINE = pointer to the bytes to tokenize
+;   
+FINDREM     .proc
+            PHP
+
+            setal
+            LDA CURLINE             ; Point BIP to the beginning of the line
+            STA BIP
+            LDA CURLINE+2
+            STA BIP+2
+
+            LDX #0                  ; X will be a flag that we're at the beginning
+
+            setas
+
+loop        LDY #0
+            CPX #0                  ; If we are at the first space on the line
+            BEQ skip_delim          ; ... skip looking for a delimiter
+
+            ; REM must be preceded by a space or a colon
+
+            LDA [BIP],Y             ; Get the first character
+            BEQ done                ; Is it null? Then we're done
+            CMP #':'                ; Is it ":"
+            BEQ found_delim         ; Yes: we might have a REM... look for E
+            CMP #CHAR_SP
+            BNE next_pos            ; No: we didn't find REM here... check next position
+
+found_delim INY
+
+skip_delim  LDA [BIP],Y             ; Get the first character
+            BEQ done                ; Is it null? Then we're done
+            CMP #'R'                ; Is it "R"
+            BEQ found_R             ; Yes: we might have a REM... look for E
+            CMP #'r'
+            BNE next_pos            ; No: we didn't find REM here... check next position
+
+            LDA [BIP],Y             ; Get the first character
+            BEQ done                ; Is it null? Then we're done
+            CMP #'R'                ; Is it "R"
+            BEQ found_R             ; Yes: we might have a REM... look for E
+            CMP #'r'
+            BNE next_pos            ; No: we didn't find REM here... check next position
+
+found_R     INY
+
+            LDA [BIP],Y             ; Get the first character
+            BEQ done                ; Is it null? Then we're done
+            CMP #'E'                ; Is it "E"
+            BEQ found_E             ; Yes: we might have a REM... look for M
+            CMP #'e'
+            BNE next_pos            ; No: we didn't find REM here... check next position
+
+found_E     INY
+
+            LDA [BIP],Y             ; Get the first character
+            BEQ done                ; Is it null? Then we're done
+            CMP #'M'                ; Is it "E"
+            BEQ found_REM           ; Yes: we might have a REM... look for M
+            CMP #'m'
+            BEQ found_REM
+
+next_pos    INX                     ; Indicate we're no longer at the first position
+            CALL INCBIP             ; Move to the next byte in the string
+            BRA loop
+
+            ; We found REM... tokenize it and return
+found_REM   LDA #3
+            STA CURTOKLEN           ; Set the size
+
+            LDA #TOK_REM            ; And the token to write
+
+            CALL TKWRITE            ; And write the token
+
+done        PLP
             RETURN
             .pend
 
@@ -199,6 +284,9 @@ check_len   setaxs
             LDY #0
 nul_scan    LDA [BIP],Y
             BEQ next_size
+            CMP #TOK_REM            ; Tokenization stops at REMarks too
+            BEQ next_size
+
             INY
             CPY CURTOKLEN
             BCC nul_scan
@@ -593,24 +681,13 @@ TOK_EQ = $87
 TOK_LPAREN = $8C
 TOK_RPAREN = $8D
 
-TOK_PRINT = $8E
-TOK_LET = $8F
-TOK_GOTO = $90
-TOK_END = $91
-TOK_IF = $92
-TOK_THEN = $93
-TOK_ELSE = $94
-TOK_GOSUB = $95
-TOK_RETURN = $96
-TOK_FOR = $97
-TOK_TO = $98
-TOK_STEP = $99
-TOK_NEXT = $9A
-TOK_DO = $9B
-TOK_LOOP = $9C
-TOK_UNTIL = $9D
-TOK_WHILE = $9E
-
+TOK_REM = $8E
+TOK_PRINT = $8F
+TOK_LET = $90
+TOK_END = $92
+TOK_THEN = $94
+TOK_TO = $99
+TOK_STEP = $9A
 
 TOK_TY_OP = $00         ; The token is an operator
 TOK_TY_CMD = $10        ; The token is a command (e.g. RUN, LIST, etc.)
@@ -625,9 +702,9 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "/", TOK_TY_OP, 2, OP_DIVIDE, 0
             DEFTOK "MOD", TOK_TY_OP, 2, OP_MOD, 0
             DEFTOK "^", TOK_TY_OP, 0, 0, 0
-            DEFTOK "<", TOK_TY_OP, 4, 0, 0
-            DEFTOK "=", TOK_TY_OP, 4, 0, 0
-            DEFTOK ">", TOK_TY_OP, 4, 0, 0
+            DEFTOK "<", TOK_TY_OP, 4, OP_LT, 0
+            DEFTOK "=", TOK_TY_OP, 4, OP_EQ, 0
+            DEFTOK ">", TOK_TY_OP, 4, OP_GT, 0
             DEFTOK "NOT", TOK_TY_OP, 5, OP_NOT, 0 
             DEFTOK "AND", TOK_TY_OP, 6, OP_AND, 0 
             DEFTOK "OR", TOK_TY_OP, 7, OP_OR, 0 
@@ -635,6 +712,7 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK ")", TOK_TY_PUNCT, 0, 0, 0
 
             ; Statements
+            DEFTOK "REM", TOK_TY_STMNT, 0, S_REM, 0
             DEFTOK "PRINT", TOK_TY_STMNT, 0, S_PRINT, 0
             DEFTOK "LET", TOK_TY_STMNT, 0, S_LET, 0
             DEFTOK "GOTO", TOK_TY_STMNT, 0, S_GOTO, 0
@@ -654,7 +732,6 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "UNTIL", TOK_TY_BYWRD, 0, 0, 0
             DEFTOK "EXIT", TOK_TY_STMNT, 0, S_EXIT, 0
             DEFTOK "CLR", TOK_TY_STMNT, 0, S_CLR, 0
-            DEFTOK "REM", TOK_TY_STMNT, 0, S_REM, 0
             DEFTOK "STOP", TOK_TY_STMNT, 0, S_STOP, 0
             DEFTOK "POKE", TOK_TY_STMNT, 0, S_POKE, 0
             DEFTOK "CLS", TOK_TY_STMNT, 0, S_CLS, 0

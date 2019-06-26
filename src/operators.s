@@ -163,3 +163,87 @@ OP_NOT      .proc
 
             RTS
             .pend
+
+;
+; Less-than: is ARGUMENT1 < ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1 = -1 if ARGUMENT1 was < ARGUMENT2, 0 otherwise
+OP_LT       .proc
+            TRACE "OP_LT"
+
+            ; TODO: handle floating point and string comparisons
+
+            setal
+            LDA ARGUMENT1+2
+            CMP ARGUMENT2+2
+            BLT return_true
+            LDA ARGUMENT1
+            CMP ARGUMENT2
+            BLT return_true
+
+            STZ ARGUMENT1
+            STZ ARGUMENT1+2
+            RTS
+
+return_true LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
+            RTS
+            .pend
+
+;
+; greater-than: is ARGUMENT1 > ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1 = -1 if ARGUMENT1 was > ARGUMENT2, 0 otherwise
+OP_GT       .proc
+            TRACE "OP_GT"
+
+            ; TODO: handle floating point and string comparisons
+
+            setal
+            LDA ARGUMENT2+2
+            CMP ARGUMENT1+2
+            BLT return_true
+            LDA ARGUMENT2
+            CMP ARGUMENT1
+            BLT return_true
+
+            STZ ARGUMENT1
+            STZ ARGUMENT1+2
+            RTS
+
+return_true LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
+            RTS
+            .pend
+
+;
+; equal-to: is ARGUMENT1 = ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1 = -1 if ARGUMENT1 was = ARGUMENT2, 0 otherwise
+OP_EQ       .proc
+            TRACE "OP_GT"
+
+            ; TODO: handle floating point and string comparisons
+
+            setal
+            LDA ARGUMENT2+2
+            CMP ARGUMENT1+2
+            BNE ret_false
+            LDA ARGUMENT2
+            CMP ARGUMENT1
+            BNE ret_false
+
+            LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
+            RTS
+
+ret_false   STZ ARGUMENT1
+            STZ ARGUMENT1+2
+            RTS
+            .pend

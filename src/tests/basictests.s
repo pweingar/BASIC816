@@ -13,6 +13,7 @@
 .include "statementtests.s"
 .include "variabletests.s"
 .include "functests.s"
+.include "optests.s"
 
 TST_BASIC       .proc
                 CALL TST_EVAL
@@ -22,6 +23,7 @@ TST_BASIC       .proc
                 CALL TST_VARIABLES
                 CALL TST_INTERP
                 ;CALL TST_CMD
+                CALL TST_OPS
                 CALL TST_STMNTS
                 CALL TST_FUNCS
 

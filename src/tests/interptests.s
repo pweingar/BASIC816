@@ -47,7 +47,7 @@ TST_PRINT       .proc
                 UT_STR_EQ TMP_BUFF_ORG,EXPECTED,"EXPECTED 'Hello, world!{CR}'"
 
                 UT_END
-TEST            .null $8E,' "Hello, world!"'
+TEST            .null TOK_PRINT,' "Hello, world!"'
 EXPECTED        .null 'Hello, world!',13
                 .pend
 
@@ -94,7 +94,7 @@ TST_PRINTEGER   .proc
                 UT_STR_EQ TMP_BUFF_ORG,EXPECTED,"EXPECTED  1234{CR}'"
 
                 UT_END
-TEST            .null $8E,' 1234'
+TEST            .null TOK_PRINT,' 1234'
 EXPECTED        .null ' 1234',13
                 .pend
 

@@ -533,3 +533,34 @@ MESSAGE         .null \3
 .send
 continue             
                 .endm   
+
+; Macro to append a line to the test program
+TSTLINE         .macro              ; line
+                LD_L CURLINE,LINETEXT
+                CALL TOKENIZE
+                LDA LINENUM
+                CALL APPLINE
+                BRA continue
+LINETEXT        .null \1
+
+continue
+                .endm
+
+UT_VAR_EQ_W     .macro      ; variable name, type_code, expected value
+                setal
+                LDA #<>VAR_NAME
+                STA TOFIND
+                LDA #`VAR_NAME
+                STA TOFIND+2
+
+                setas
+                LDA #\2
+                STA TOFINDTYPE
+
+                CALL VAR_REF            ; Try to get the result
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,format("EXPECTED TYPE %d", \2)
+                UT_M_EQ_LIT_W ARGUMENT1,\3,format("EXPECTED %s=%s", \1, \2)
+                BRA continue
+VAR_NAME        .null \1
+continue
+                .endm

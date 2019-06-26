@@ -40,10 +40,21 @@ TST_REM         .proc
                 UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
                 UT_M_EQ_LIT_W ARGUMENT1,1234,"EXPECTED ABC%=1234"
 
+                setal
+                CLC
+                LDA @lBASIC_BOT         ; Point SCRATCH2 to the line (20)
+                ADC #4                  ; Skip over the offset and line numbers
+                STA SCRATCH2
+                LDA #`BASIC_BOT
+                STA SCRATCH2+2
+
+                UT_STRIND_EQ SCRATCH2,EXPECTED, "EXPECTED REM:ABC%=5678"
+
                 UT_END
 LINE10          .null "10 ABC%=1234"
 LINE20          .null "20 REM:ABC%=5678"
 VAR_A           .null "ABC%"
+EXPECTED        .null TOK_REM,":ABC%=5678"
                 .pend
 
 ; Test that we can clear variables and heap
