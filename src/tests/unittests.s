@@ -558,8 +558,8 @@ UT_VAR_EQ_W     .macro      ; variable name, type_code, expected value
                 STA TOFINDTYPE
 
                 CALL VAR_REF            ; Try to get the result
-                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,format("EXPECTED TYPE %d", \2)
-                UT_M_EQ_LIT_W ARGUMENT1,\3,format("EXPECTED %s=%s", \1, \2)
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,format("EXPECTED TYPE %d", \3)
+                UT_M_EQ_LIT_W ARGUMENT1,\3,format("EXPECTED %s=%s", \1, \3)
                 BRA continue
 VAR_NAME        .null \1
 continue

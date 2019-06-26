@@ -247,3 +247,92 @@ ret_false   STZ ARGUMENT1
             STZ ARGUMENT1+2
             RTS
             .pend
+
+;
+; not-equal-to: is ARGUMENT1 <> ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1 = -1 if ARGUMENT1 was <> ARGUMENT2, 0 otherwise
+OP_NE       .proc
+            TRACE "OP_NE"
+
+            ; TODO: handle floating point and string comparisons
+
+            setal
+            LDA ARGUMENT2+2
+            CMP ARGUMENT1+2
+            BNE ret_false
+            LDA ARGUMENT2
+            CMP ARGUMENT1
+            BNE ret_false
+
+            LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
+            RTS
+
+ret_false   STZ ARGUMENT1
+            STZ ARGUMENT1+2
+            RTS
+            .pend
+
+;
+; greater-than-equal: is ARGUMENT1 >= ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1 = -1 if ARGUMENT1 was >= ARGUMENT2, 0 otherwise
+OP_GTE      .proc
+            TRACE "OP_GTE"
+
+            ; TODO: handle floating point and string comparisons
+
+            setal
+            LDA ARGUMENT1+2
+            CMP ARGUMENT2+2
+            BLT ret_false
+            BNE ret_true
+            
+            LDA ARGUMENT1
+            CMP ARGUMENT2
+            BLT ret_false
+
+ret_true    LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
+            RTS
+
+ret_false   STZ ARGUMENT1
+            STZ ARGUMENT1+2
+            RTS
+            .pend
+
+;
+; less-than-equal: is ARGUMENT1 <= ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1 = -1 if ARGUMENT1 was <= ARGUMENT2, 0 otherwise
+OP_LTE      .proc
+            TRACE "OP_LTE"
+
+            ; TODO: handle floating point and string comparisons
+
+            setal
+            LDA ARGUMENT1+2
+            CMP ARGUMENT2+2
+            BLT ret_true
+            BEQ check_low
+
+ret_false   STZ ARGUMENT1
+            STZ ARGUMENT1+2
+            RTS
+
+check_low   LDA ARGUMENT1
+            CMP ARGUMENT2
+            BEQ ret_true
+            BGE ret_false
+
+ret_true    LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
+            RTS
+            .pend

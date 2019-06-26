@@ -736,6 +736,11 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "POKE", TOK_TY_STMNT, 0, S_POKE, 0
             DEFTOK "CLS", TOK_TY_STMNT, 0, S_CLS, 0
 
+            ; More operators I forgot
+            DEFTOK "<=", TOK_TY_OP, 4, OP_LTE, 0
+            DEFTOK ">=", TOK_TY_OP, 4, OP_GTE, 0
+            DEFTOK "<>", TOK_TY_OP, 4, OP_NE, 0
+
             ; Functions
 
             DEFTOK "LEN", TOK_TY_FUNC, 0, FN_LEN, 0
