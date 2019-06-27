@@ -31,7 +31,7 @@
 1. [X] FOR / NEXT
 1. [ ] ON … GOTO
 1. [X] POKE
-    1. [ ] WPOKE
+    1. [X] POKEW
 1. [ ] READ
 1. [X] REM
 1. [ ] RESTORE
@@ -58,6 +58,7 @@
     1. [X] >
     1. [X] >=
     1. [X] <>
+1. [ ] String +
 
 ## Functions
 
@@ -84,13 +85,13 @@
     1. [ ] TIME$
     1. [ ] VAL
 1. [ ] Other Functions
-    1. [ ] ABS
+    1. [X] ABS
     1. [ ] DEC
     1. [ ] FN
     1. [ ] FRE
     1. [X] PEEK()
-        1. [ ] WPEEK()
-    1. [ ] SGN
+        1. [X] PEEKW()
+    1. [X] SGN
     1. [ ] STATUS
     1. [ ] TIME
     1. [ ] USR

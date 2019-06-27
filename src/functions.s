@@ -85,7 +85,7 @@ FN_PEEK         .proc
 
                 ; TODO: convert float to integer
 
-                setas               ; Throw an error if it's not a string
+                setas               ; Throw an error if it's not an integer
                 LDA ARGTYPE1
                 CMP #TYPE_INTEGER
                 BNE type_mismatch
@@ -96,6 +96,32 @@ FN_PEEK         .proc
                 STZ ARGUMENT1+1
                 STZ ARGUMENT1+2
                 STZ ARGUMENT1+13
+
+                FN_END
+                RETURN
+
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
+;
+; PEEKW(ADDR) -- Read the 16-bit value at ADDR
+;
+FN_PEEKW        .proc
+                FN_START "FN_PEEKW"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+
+                ; TODO: convert float to integer
+
+                setas               ; Throw an error if it's not an integer
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_mismatch
+
+                setal
+                LDA [ARGUMENT1]
+                STA ARGUMENT1
+                STZ ARGUMENT1+2
 
                 FN_END
                 RETURN
@@ -275,4 +301,77 @@ done            LDA #TYPE_STRING    ; And set the return type to STRING
                 RETURN
 type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
 err_limit       THROW ERR_RANGE     ; Throw an argument range error
+                .pend
+
+;
+; ABS(value) -- Return the absolute value of a number
+;
+FN_ABS          .proc
+                FN_START "FN_ABS"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+
+                ; TODO: handle floats
+
+                setas               ; Throw an error if it's not an integer
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_mismatch
+
+                setal
+                LDA ARGUMENT1+2     ; Is it positive already?
+                BPL done            ; Yes: we don't need to do anythign further
+
+                EOR #$FFFF          ; Otherwise, take the two's compliment
+                STA ARGUMENT1+2     ; Of ARGUMENT1
+                LDA ARGUMENT1
+                EOR #$FFFF
+                CLC
+                ADC #1
+                STA ARGUMENT1       ; And save it back to ARGUMENT1
+                LDA ARGUMENT1+2
+                ADC #0
+                STA ARGUMENT1+2
+
+done            FN_END
+                RETURN
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
+;
+; SGN(value) -- Return the sign of the number: 0 => 0, <0 => -1, >0 => +1
+;
+FN_SGN          .proc
+                FN_START "FN_SGN"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+
+                ; TODO: handle floats
+
+                setas               ; Throw an error if it's not an integer
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_mismatch
+
+                setal
+                LDA ARGUMENT1+2
+                BMI is_negative     ; Negative: return -1
+                BNE is_positive     ; Is it not 0? Then return 1
+
+                LDA ARGUMENT1       ; Is the lower word 0?
+                BEQ done            ; Yes: the whole thing is zero: return 0
+
+is_positive     LDA #0              ; It's positive: return 1
+                STA ARGUMENT1+2
+                LDA #1
+                STA ARGUMENT1
+                BRA done
+
+is_negative     LDA #$FFFF          ; It's negative: return -1
+                STA ARGUMENT1+2
+                STA ARGUMENT1
+
+done            FN_END
+                RETURN
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend

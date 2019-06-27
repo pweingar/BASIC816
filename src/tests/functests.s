@@ -183,12 +183,64 @@ VAR_NAME        .null "A$"
 EXPECTED        .byte 9,9,9,9,9,0
                 .pend
 
+; Check that we can take the absolute value of an integer
+TST_ABS         .proc
+                UT_BEGIN "TST_ABS"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE '10 A%=ABS(-20)'
+                TSTLINE '20 B%=ABS(20)'
+                TSTLINE '30 C%=ABS(0)'
+
+                CALL CMD_RUN
+
+                ; Validate we get the absolute values back
+                UT_VAR_EQ_W "A%",TYPE_INTEGER,20
+                UT_VAR_EQ_W "B%",TYPE_INTEGER,20
+                UT_VAR_EQ_W "C%",TYPE_INTEGER,0
+
+                UT_END
+                .pend
+
+; Check that we can get the sign of an integer
+TST_SGN         .proc
+                UT_BEGIN "TST_SGN"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE '10 A%=SGN(-20)'
+                TSTLINE '20 B%=SGN(20)'
+                TSTLINE '30 C%=SGN(0)'
+
+                CALL CMD_RUN
+
+                ; Validate we get the absolute values back
+                UT_VAR_EQ_W "A%",TYPE_INTEGER,-1
+                UT_VAR_EQ_W "B%",TYPE_INTEGER,1
+                UT_VAR_EQ_W "C%",TYPE_INTEGER,0
+
+                UT_END
+                .pend
+
 TST_FUNCS       .proc
                 CALL TST_LEN
                 CALL TST_CHR
                 CALL TST_ASC
                 CALL TST_SPC
                 CALL TST_TAB
+                CALL TST_ABS
+                CALL TST_SGN
 
                 UT_LOG "TST_FUNCS: PASSED"
                 RETURN

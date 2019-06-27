@@ -8,6 +8,44 @@ S_CLS           .proc
                 RETURN
                 .pend
 
+; Write an 16-bit value to an address in memory
+; POKEW <address>,<value>
+S_POKEW         .proc
+
+                CALL EVALEXPR       ; Get the address
+
+                setal
+                LDA ARGUMENT1+2     ; And save it to the stack
+                PHA
+                LDA ARGUMENT1
+                PHA
+
+                setas
+                LDA [BIP]
+                CMP #','
+                BNE syntax_err
+                CALL INCBIP
+
+                CALL EVALEXPR       ; Get the value
+
+                setal
+                LDA ARGUMENT1+2
+                BNE range_err
+
+                PLA                 ; Pull the target address from the stack
+                STA INDEX           ; and into INDEX
+                PLA
+                STA INDEX+2
+
+                setal
+                LDA ARGUMENT1
+                STA [INDEX]         ; And write it to the address
+
+                RETURN
+syntax_err      THROW ERR_SYNTAX
+range_err       THROW ERR_RANGE
+                .pend
+
 ; Write an 8-bit value to an address in memory
 ; POKE <address>,<value>
 S_POKE          .proc
@@ -27,6 +65,10 @@ S_POKE          .proc
                 CALL INCBIP
 
                 CALL EVALEXPR       ; Get the value
+
+                setas
+                LDA ARGUMENT1+1     ; Make sure the value is from 0 - 255
+                BNE range_err
 
                 setal
                 LDA ARGUMENT1+2
