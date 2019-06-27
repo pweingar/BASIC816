@@ -54,10 +54,10 @@
 1. [ ] Comparisons
     1. [X] =
     1. [X] <
-    1. [ ] <=
+    1. [X] <=
     1. [X] >
-    1. [ ] >=
-    1. [ ] <>
+    1. [X] >=
+    1. [X] <>
 
 ## Functions
 
@@ -71,16 +71,16 @@
     1. [ ] SQR
     1. [ ] TAN
 1. [ ] String Functions
-    1. [ ] ASC
+    1. [X] ASC
     1. [X] CHR$
     1. [ ] HEX$
     1. [ ] LEFT$
     1. [X] LEN
     1. [ ] MID$
     1. [ ] RIGHT$
-    1. [ ] SPC
+    1. [X] SPC
     1. [ ] STR$
-    1. [ ] TAB
+    1. [X] TAB
     1. [ ] TIME$
     1. [ ] VAL
 1. [ ] Other Functions

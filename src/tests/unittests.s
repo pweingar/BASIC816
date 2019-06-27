@@ -564,3 +564,23 @@ UT_VAR_EQ_W     .macro      ; variable name, type_code, expected value
 VAR_NAME        .null \1
 continue
                 .endm
+
+UT_VAR_EQ_STR   .macro      ; variable name, expected value
+                setal
+                LDA #<>VAR_NAME
+                STA TOFIND
+                LDA #`VAR_NAME
+                STA TOFIND+2
+
+                setas
+                LDA #TYPE_STRING
+                STA TOFINDTYPE
+
+                CALL VAR_REF            ; Try to get the result
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_STRING,"EXPECTED STRING"
+                UT_STRIND_EQ ARGUMENT1,EXPECTED,format("EXPECTED %s=[%s]", \1, \2)
+                BRA continue
+VAR_NAME        .null \1
+EXPECTED        .null \2
+continue
+                .endm

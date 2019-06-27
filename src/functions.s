@@ -143,3 +143,136 @@ FN_CHR          .proc
                 RETURN
 type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
+
+;
+; Return the ASCII code for the first character of the string
+;
+FN_ASC          .proc
+                FN_START "FN_CHR"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+
+                setas               ; Throw an error if it's not a string
+                LDA ARGTYPE1
+                CMP #TYPE_STRING
+                BNE type_mismatch
+
+                LDA [ARGUMENT1]     ; Get the character
+                STA ARGUMENT1       ; Save its code to ARGUMENT1
+                STZ ARGUMENT1+1
+                STZ ARGUMENT1+2
+                STZ ARGUMENT1+3
+
+                LDA #TYPE_INTEGER   ; And set the return type to integer
+                STA ARGTYPE1
+
+                FN_END
+                RETURN
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
+;
+; Return a string of X spaces, where X is the number in ARGUMENT1
+;
+FN_SPC          .proc
+                FN_START "FN_SPC"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+
+                ; TODO: convert from FLOAT
+
+                setas               ; Throw an error if it's not a string
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_mismatch
+
+                setas
+                LDA ARGUMENT1+3     ; Throw an error if ARGUMENT1 is negative or > 255
+                BNE err_limit
+                LDA ARGUMENT1+2
+                BNE err_limit
+                LDA ARGUMENT1+1
+                BNE err_limit
+
+                setxl
+                CALL TEMPSTRING     ; Get the temporary string
+                LDY ARGUMENT1       ; Get the length
+
+                setas
+                LDA #0
+                STA [STRPTR],Y      ; Write the NULL at the end of the string
+                DEY
+                BMI done
+
+                LDA #CHAR_SP
+loop            STA [STRPTR],Y      ; Write a space
+                DEY
+                BPL loop            ; And keep writing until we're done
+
+done            LDA #TYPE_STRING    ; And set the return type to STRING
+                STA ARGTYPE1
+
+                setal
+                LDA STRPTR          ; Write the pointer to the return results
+                STA ARGUMENT1
+                LDA STRPTR+2
+                STA ARGUMENT1+2
+
+                FN_END
+                RETURN
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+err_limit       THROW ERR_RANGE     ; Throw an argument range error
+                .pend
+
+;
+; Return a string of X TABs, where X is the number in ARGUMENT1
+;
+FN_TAB          .proc
+                FN_START "FN_TAB"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+
+                ; TODO: convert from FLOAT
+
+                setas               ; Throw an error if it's not a string
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_mismatch
+
+                setas
+                LDA ARGUMENT1+3     ; Throw an error if ARGUMENT1 is negative or > 255
+                BNE err_limit
+                LDA ARGUMENT1+2
+                BNE err_limit
+                LDA ARGUMENT1+1
+                BNE err_limit
+
+                setxl
+                CALL TEMPSTRING     ; Get the temporary string
+                LDY ARGUMENT1       ; Get the length
+
+                setas
+                LDA #0
+                STA [STRPTR],Y      ; Write the NULL at the end of the string
+                DEY
+                BMI done
+
+                LDA #CHAR_TAB
+loop            STA [STRPTR],Y      ; Write a space
+                DEY
+                BPL loop            ; And keep writing until we're done
+
+done            LDA #TYPE_STRING    ; And set the return type to STRING
+                STA ARGTYPE1
+
+                setal
+                LDA STRPTR          ; Write the pointer to the return results
+                STA ARGUMENT1
+                LDA STRPTR+2
+                STA ARGUMENT1+2
+
+                FN_END
+                RETURN
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+err_limit       THROW ERR_RANGE     ; Throw an argument range error
+                .pend
