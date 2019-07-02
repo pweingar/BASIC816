@@ -38,6 +38,82 @@ FN_END          .macro
                 .endm
 
 ;
+;VAL(value$) -- convert a string to an integer
+;
+FN_VAL          .proc
+                FN_START "FN_VAL"
+
+                CALL EVALEXPR       ; Get the number to convert
+
+                setxl               ; Throw an error if it's not an integer
+                setas
+                LDA ARGTYPE1
+                CMP #TYPE_STRING
+                BNE type_mismatch
+
+                setal
+                LDA BIP             ; preserve BIP for later
+                STA SAVEBIP
+                LDA BIP+2
+                STA SAVEBIP+2
+
+                LDA ARGUMENT1       ; Temporarily point BIP to the string to parse
+                STA BIP
+                LDA ARGUMENT1+2
+                STA BIP+2
+
+                CALL PARSEINT
+
+                LDA SAVEBIP         ; Restore BIP
+                STA BIP
+                LDA SAVEBIP+2
+                STA BIP+2
+
+                FN_END
+                RETURN
+
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
+;
+; STR$(value) -- convert an integer to a decimal string
+;
+FN_STR          .proc
+                FN_START "FN_STR"
+                PHP
+
+                CALL EVALEXPR       ; Get the number to convert
+
+                ; TODO: process FLOAT
+
+                setxl               ; Throw an error if it's not an integer
+                setas
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_mismatch  
+
+                CALL ITOS           ; Convert the number to a temporary string
+
+                setal
+                LDA STRPTR          ; Prepare the return result
+                STA ARGUMENT1
+                LDA STRPTR+2
+                STA ARGUMENT1+2
+
+                setas
+                LDA #TYPE_STRING
+                STA ARGTYPE1
+
+                CALL STRCPY         ; And preserve a copy to the heap
+
+                PLP
+                FN_END
+                RETURN
+
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
+;
 ; DEC(value$) -- convert a hexadecimal string to an integer
 ;
 FN_DEC          .proc
@@ -48,8 +124,6 @@ FN_DEC          .proc
                 setal
                 STZ SCRATCH
                 STZ SCRATCH+2
-
-                ; TODO: convert FLOAT to INTEGER
 
                 setaxs              ; Throw an error if it's not an integer
                 LDA ARGTYPE1

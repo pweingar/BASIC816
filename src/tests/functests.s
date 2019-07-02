@@ -281,6 +281,54 @@ TST_DEC         .proc
                 UT_END
                 .pend
 
+; Check that we can convert an integer to a string
+TST_STR         .proc
+                UT_BEGIN "TST_STR"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE '10 S$ = STR$(123)'
+
+                CALL CMD_RUN
+
+                setal
+                LDA #0
+                STA LINENUM
+
+                UT_VAR_EQ_STR "S$"," 123"
+
+                UT_END
+                .pend
+
+; Check that we can convert a string to an integer
+TST_VAL         .proc
+                UT_BEGIN "TST_VAL"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE '10 A% = VAL("123")'
+
+                CALL CMD_RUN
+
+                setal
+                LDA #0
+                STA LINENUM
+
+                UT_VAR_EQ_W "A%",TYPE_INTEGER,123
+
+                UT_END
+                .pend
+
 TST_FUNCS       .proc
                 CALL TST_LEN
                 CALL TST_CHR
@@ -291,6 +339,8 @@ TST_FUNCS       .proc
                 CALL TST_SGN
                 CALL TST_HEX
                 CALL TST_DEC
+                CALL TST_STR
+                CALL TST_VAL
 
                 UT_LOG "TST_FUNCS: PASSED"
                 RETURN

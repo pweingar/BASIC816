@@ -85,7 +85,7 @@ ITOS        .proc
             PHP
             TRACE "ITOS"
 
-            setal
+            setaxl
             STZ SCRATCH         ; Use scratch to store if negative
 
             LDA ARGUMENT1+2     ; Check to see if the number is negative

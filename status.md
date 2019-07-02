@@ -80,10 +80,10 @@
     1. [ ] MID$
     1. [ ] RIGHT$
     1. [X] SPC
-    1. [ ] STR$
+    1. [X] STR$
     1. [X] TAB
     1. [ ] TIME$
-    1. [ ] VAL
+    1. [X] VAL
 1. [ ] Other Functions
     1. [X] ABS
     1. [X] DEC
