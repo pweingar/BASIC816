@@ -92,7 +92,7 @@ is_alpha    TRACE "is alpha"
 ;
 ISNUMERAL   .proc
             PHP
-            TRACE "ISNUMERAL"
+            TRACE_A "ISNUMERAL"
 
             setas
 

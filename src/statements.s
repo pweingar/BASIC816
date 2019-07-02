@@ -2,6 +2,175 @@
 ;;; Core BASIC Statements
 ;;;
 
+; Read data from data statements
+; READ variable, variable, ...
+S_READ          .proc
+                PHP
+                TRACE "S_READ"
+
+varloop         CALL SKIPWS
+
+                setas
+                LDA [BIP]
+                BEQ done            ; If EOL, we're done
+                CMP #':'
+                BEQ done            ; If colon, we're done
+
+                CALL ISALPHA        ; Check to see if it's the start of a variable
+                BCC syntax_err      ; No: it's a syntax error
+
+                CALL VAR_FINDNAME   ; Try to find the variable name
+                BCC syntax_err      ; If we didn't get a variable, throw a syntax error
+
+                CALL NEXTDATA       ; Try to get the next data item into ARGUMENT1
+                CALL VAR_SET        ; Attempt to set the value to the variable
+
+                CALL SKIPWS
+                LDA [BIP]           ; Get the next non-space
+                BEQ done            ; EOL? We're done
+                CMP #':'            ; Colon? We're done
+                BEQ done
+                CMP #','            ; Comma?
+                BNE syntax_err      ; Nope: syntax error
+
+                CALL INCBIP         ; Yes... check for another variable
+                BRA varloop
+                
+done            PLP
+                RETURN
+syntax_err      THROW ERR_SYNTAX
+                .pend
+
+; Helper subroutine... try to find and parse the next literal in a DATA statement
+; Throw error if we're out
+NEXTDATA        .proc
+                PHP
+                TRACE "NEXTDATA"
+
+                LDA BIP+2           ; Save BIP
+                STA SAVEBIP+2
+                LDA BIP
+                STA SAVEBIP
+
+                LDA CURLINE+2       ; Save CURLINE
+                STA SAVELINE+2
+                LDA CURLINE
+                STA SAVELINE  
+
+                ; Check if DATABIP is set
+                setal
+                LDA DATABIP+2
+                BNE data_set
+                LDA DATABIP
+                BEQ scan_start      ; No: scan for a DATA statement
+
+data_set        LDA DATABIP         ; Move BIP to the DATA statement
+                STA BIP
+                LDA DATABIP+2
+                STA BIP+2
+
+                LDA DATALINE        ; Set CURLINE from DATALINE
+                STA CURLINE
+                LDA DATALINE+2
+                STA CURLINE+2
+
+                setas
+                LDA [BIP]           ; Check character at BIP
+                BEQ scan_DATA       ; EOL? scan for a DATA statement
+                CMP #':'            ; Colon?
+                BEQ scan_DATA       ; ... scan for a DATA statement
+                CMP #','            ; Comma?
+                BNE skip_parse      ; No: skip leading WS and try to parse
+                CALL INCBIP         ; Yes: move to the next char
+
+skip_parse      CALL SKIPWS         ; Skip white space
+
+                LDA [BIP]
+                CMP #CHAR_DQUOTE    ; Is it a quote?
+                BEQ read_string     ; Yes: process the string
+                CALL ISNUMERAL      ; Is it a numeral?
+                BCS read_number     ; Yes: process the number
+
+syntax_err      THROW ERR_SYNTAX    ; Otherwise: throw syntax error
+
+scan_start      TRACE "scan_start"
+                setal
+                LDA #<>BASIC_BOT    ; Point CURLINE to the first line
+                STA CURLINE
+                LDA #`BASIC_BOT
+                STA CURLINE+2
+
+                CLC
+                LDA CURLINE         ; Point BIP to the first possible token
+                ADC #LINE_TOKENS
+                STA BIP
+                LDA CURLINE+2
+                ADC #0
+                STA BIP+2
+
+                ; Scan for a DATA statement
+scan_data       TRACE "scan_data"
+                setas
+                LDA #$80            ; We don't want to process nesting
+                STA SKIPNEST
+
+                LDA #TOK_DATA       ; We're looking for a DATA token
+                STA TARGETTOK
+
+                CALL SKIPTOTOK      ; Try to find the DATA token
+                BRA skip_parse
+
+                ; Read a string literal
+read_string     CALL EVALSTRING     ; Try to read a string
+                BRA done
+
+                ; Read an integer literal
+read_number     CALL EVALNUMBER     ; Try to read a number
+
+                TRACE "got number"
+
+done            setal
+                LDA BIP             ; Save BIP to DATABIP
+                STA DATABIP
+                LDA BIP+2
+                STA DATABIP+2
+
+                LDA CURLINE         ; Save CURLINE to DATALINE
+                STA DATALINE
+                LDA CURLINE+2
+                STA DATALINE+2
+
+                LDA SAVELINE        ; Restore CURLINE
+                STA CURLINE
+                LDA SAVELINE+2
+                STA CURLINE+2
+
+                LDA SAVEBIP         ; Restore BIP
+                STA BIP
+                LDA SAVEBIP+2
+                STA BIP+2
+
+                PLP
+                RETURN
+                .pend
+
+; Store date for later reads. When executed, just goes to the end of the statement
+S_DATA          .proc
+                TRACE "S_DATA"
+                CALL SKIPSTMT
+                RETURN
+                .pend
+
+; Reset the DATA pointer to the beginning
+S_RESTORE       .proc
+                TRACE "S_RESTORE"
+                STZ DATABIP         ; Just set DATABIP to 0
+                STZ DATABIP+2       ; The next READ will move it to the first DATA
+                STZ DATALINE        ; Set DATALINE to 0
+                STZ DATALINE+2
+                RETURN
+                .pend
+
 ; Clear the screen and move the cursor to the home position
 S_CLS           .proc
                 CALL CLSCREEN

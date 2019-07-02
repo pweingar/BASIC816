@@ -74,5 +74,5 @@ INITBASIC   .proc
 .send
 
 .section data
-GREET       .null "Welcome to BASIC816 v0.0 (2019-06-25) for the C256 Foenix",13
+GREET       .null "Welcome to BASIC816 v0.0 (2019-07-01) for the C256 Foenix",13
 .send

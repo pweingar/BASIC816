@@ -57,6 +57,13 @@ LINES_VISIBLE    = $000013 ;2 Bytes The number of rows visible on the screen. De
 LINES_MAX        = $000015 ;2 Bytes The number of rows in memory for the screen. Default=64
 CURCOLOR         = $00001E ;2 Bytes Color of next character to be printed to the screen.
 
+SDCARD_FILE_PTR  = $000038  ; Pointer to a character in the file
+SDOS_FILE_SIZE   = $000328  ; 
+SDOS_FILE_NAME   = $000380  ; Buffer for the file name (128 characters max)
+
+SDOS_LOAD        = $192014  ; Kernel call to load a flie
+ISDOS_DIR        = $19200c  ; Kernel call to list a directory
+
 ;;;
 ;;; Math co-processor
 ;;;

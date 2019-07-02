@@ -24,7 +24,7 @@
 1. [ ] BEGIN / BEND
 1. [X] CLR
 1. [X] CLS
-1. [ ] DATA
+1. [X] DATA
 1. [ ] DEF FN
 1. [ ] DIM
 1. [ ] DO loops
@@ -32,9 +32,9 @@
 1. [ ] ON … GOTO
 1. [X] POKE
     1. [X] POKEW
-1. [ ] READ
+1. [X] READ
 1. [X] REM
-1. [ ] RESTORE
+1. [X] RESTORE
 1. [X] STOP
 1. [ ] SYS
 1. [ ] I/O

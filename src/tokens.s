@@ -686,8 +686,13 @@ TOK_PRINT = $8F
 TOK_LET = $90
 TOK_END = $92
 TOK_THEN = $94
+TOK_FOR = $98
 TOK_TO = $99
 TOK_STEP = $9A
+TOK_NEXT = $9B
+TOK_DO = $9C
+TOK_LOOP = $9D
+TOK_DATA = $A7
 
 TOK_TY_OP = $00         ; The token is an operator
 TOK_TY_CMD = $10        ; The token is a command (e.g. RUN, LIST, etc.)
@@ -736,6 +741,9 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "POKE", TOK_TY_STMNT, 0, S_POKE, 0
             DEFTOK "POKEW", TOK_TY_STMNT, 0, S_POKEW, 0
             DEFTOK "CLS", TOK_TY_STMNT, 0, S_CLS, 0
+            DEFTOK "READ", TOK_TY_STMNT, 0, S_READ, 0
+            DEFTOK "DATA", TOK_TY_STMNT, 0, S_DATA, 0
+            DEFTOK "RESTORE", TOK_TY_STMNT, 0, S_RESTORE, 0
 
             ; More operators I forgot
             DEFTOK "<=", TOK_TY_OP, 4, OP_LTE, 0
@@ -758,6 +766,7 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
 
             DEFTOK "RUN", TOK_TY_CMD, 0, CMD_RUN, 0
             DEFTOK "NEW", TOK_TY_CMD, 0, CMD_NEW, 0
+            DEFTOK "LOAD", TOK_TY_CMD, 0, CMD_LOAD, 0
 LISTTOK     DEFTOK "LIST", TOK_TY_CMD, 0, CMD_LIST, 0
             
             .word 0, 0, 0, 0

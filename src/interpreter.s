@@ -250,6 +250,7 @@ done        PLD
 ; Skip to the next colon or end-of-line marker
 SKIPSTMT    .proc
             PHP
+            TRACE "SKIPSTMT"
 
             setas
 loop        LDA [BIP]           ; Check the current character
@@ -279,6 +280,7 @@ done        PLP
 ;
 SKIPTOTOK   .proc
             PHP
+            TRACE "SKIPTOTOK"
 
             setas
             STZ NESTING
@@ -304,26 +306,36 @@ incloop     CALL INCBIP         ; Otherwise: Point to the next character
 end_of_line CALL NEXTLINE       ; Go to the next line
             setal
             LDA LINENUM         ; Check the line number
-            BNE syntax_err      ; If it's zero, we reached the end of the program
+            BEQ syntax_err1     ; If it's zero, we reached the end of the program
                                 ; so we need to signal a syntax error
             setas
             BRA loop            ; And keep scanning
 
-inc_nesting INC NESTING         ; Track that we have entered a lexical scope for a FOR/DO
+inc_nesting TRACE "inc"
+            INC NESTING         ; Track that we have entered a lexical scope for a FOR/DO
             BRA incloop          
 
-dec_nesting DEC NESTING         ; Track that we have left a lexical scope for a FOR/DO
-            BMI syntax_err      ; If the depth goes <0, throw a syntax error
+dec_nesting TRACE "dec"
+            DEC NESTING         ; Track that we have left a lexical scope for a FOR/DO
+            BMI syntax_err2     ; If the depth goes <0, throw a syntax error
             BRA incloop
 
-check_depth LDA NESTING         ; Get the nesting depth
+check_depth TRACE "check_depth"
+            LDA SKIPNEST        ; Check to see if nesting matters
+            BMI found           ; No: just return that we found the token
+
+            LDA NESTING         ; Get the nesting depth
             BEQ found           ; If it's zero, we found our token
             BRA incloop         ; Otherwise: it's a token for an enclosed FOR/DO, keep scanning
 
-found       CALL INCBIP         ; Point to the character right after the token
+found       TRACE "found"
+            CALL INCBIP         ; Point to the character right after the token
             PLP
             RETURN
-syntax_err  THROW ERR_SYNTAX
+syntax_err1 TRACE "SKIP SYNTAX 1"
+            THROW ERR_SYNTAX
+syntax_err2 TRACE "SKIP SYNTAX 2"
+            THROW ERR_SYNTAX
             .pend
 
 ;
@@ -366,7 +378,7 @@ NEXTLINE    .proc
             STA BIP
             LDA CURLINE+2
             ADC #0
-            STA BIP
+            STA BIP+2
 
             PLP
             RETURN
@@ -466,7 +478,12 @@ EXECSTMT    .proc
 check_break LDA KEYFLAG         ; Check the keyboard flags
             BMI throw_break     ; If MSB: user pressed an interrupt key, stop the program
 
-            CALL SKIPWS
+            LDA [BIP]           ; If we happen to have a colon, just skip over it.
+            CMP #':'            ; This can happen with FOR/NEXT
+            BNE eat_ws
+            CALL INCBIP
+
+eat_ws      CALL SKIPWS
             LDA [BIP]
             BNE else
             JMP done            ; If the current byte is 0, we're at the end of the line, just return

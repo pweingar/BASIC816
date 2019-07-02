@@ -216,6 +216,8 @@ VAR_NAME        .null "BAND$"
 EXPECTED        .null "FOO"
                 .pend
 
+PIXMAP = $AFA000
+
 ; Test that we can POKE an 8-bit value into a memory location
 ; and that we can PEEK it too
 TST_POKE        .proc
@@ -228,39 +230,39 @@ TST_POKE        .proc
 
                 CALL INITBASIC
 
-                LD_L CURLINE,LINE10
-                CALL TOKENIZE
-                LDA LINENUM
-                CALL APPLINE
+; PIXMAP = $B90000
 
-                LD_L CURLINE,LINE20
-                CALL TOKENIZE
-                LDA LINENUM
-                CALL APPLINE
+;                 ; setas
+;                 ; LDA #$AA
+;                 ; STA @lPIXMAP
+;                 ; .rept 12
+;                 ; NOP
+;                 ; .next
+;                 ; LDA @lPIXMAP
+;                 ; CMP #$AA
+;                 ; BEQ continue
+
+;                 ; UT_LOG format("Could not STA [%x]", PIXMAP)
+;                 ; BRK
+;                 ; NOP
+
+
+continue        TSTLINE "10 POKE $020000,$55"
+                TSTLINE "20 A%=PEEK($020000)"
+                TSTLINE "30 POKE $030000,$AA"
+                TSTLINE "40 B%=PEEK($030000)"
 
                 CALL CMD_RUN
 
                 UT_M_EQ_LIT_B $020000,$55, "EXPECTED $55"
 
                 ; Validate that A%=$55
-                setal
-                LDA #<>VAR_A
-                STA TOFIND
-                setas
-                LDA #`VAR_A
-                STA TOFIND+2
+                UT_VAR_EQ_W "A%",TYPE_INTEGER,$55
 
-                LDA #TYPE_INTEGER
-                STA TOFINDTYPE
-
-                CALL VAR_REF
-                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
-                UT_M_EQ_LIT_W ARGUMENT1,$55,"EXPECTED A%=$55"
+                ; Validate that B%=$AA
+                UT_VAR_EQ_W "B%",TYPE_INTEGER,$AA
 
                 UT_END
-LINE10          .null '10 POKE $020000,$55'
-LINE20          .null "20 A%=PEEK($020000)"
-VAR_A           .null "A%"
                 .pend
 
 ; Test that we can POKE an 16-bit value into a memory location
@@ -313,71 +315,60 @@ TST_NESTEDFOR   .proc
 
                 CALL INITBASIC
 
-                LD_L CURLINE,LINE10
-                CALL TOKENIZE
-                LDA LINENUM
-                CALL APPLINE
-
-                LD_L CURLINE,LINE20
-                CALL TOKENIZE
-                LDA LINENUM
-                CALL APPLINE
-
-                LD_L CURLINE,LINE30
-                CALL TOKENIZE
-                LDA LINENUM
-                CALL APPLINE
-
-                LD_L CURLINE,LINE40
-                CALL TOKENIZE
-                LDA LINENUM
-                CALL APPLINE
-
-                LD_L CURLINE,LINE50
-                CALL TOKENIZE
-                LDA LINENUM
-                CALL APPLINE
-
-                LD_L CURLINE,LINE60
-                CALL TOKENIZE
-                LDA LINENUM
-                CALL APPLINE
+                TSTLINE "10 A%=0"
+                TSTLINE "20 FOR I%=1 TO 10:FOR J%=1 TO 20"
+                TSTLINE "40 A%=A%+1"
+                TSTLINE "50 NEXT:NEXT"
 
                 CALL CMD_RUN
 
                 ; Validate that A%=200
-                setal
-                LDA #<>VAR_A
-                STA TOFIND
-                setas
-                LDA #`VAR_A
-                STA TOFIND+2
-
-                LDA #TYPE_INTEGER
-                STA TOFINDTYPE
-
-                CALL VAR_REF
-                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
-                UT_M_EQ_LIT_W ARGUMENT1,200,"EXPECTED A%=200"
+                UT_VAR_EQ_W "A%",TYPE_INTEGER,200
 
                 UT_END
-LINE10          .null "10 A%=0"
-LINE20          .null "20 FOR I%=1 TO 10"
-LINE30          .null "30 FOR J%=1 TO 20"
-LINE40          .null "40 A%=A%+1"
-LINE50          .null "50 NEXT"
-LINE60          .null "60 NEXT"
+
 VAR_A           .null "A%"
                 .pend
 
+; Verify that READ/DATA work
+TST_READ        .proc
+                UT_BEGIN "TST_READ"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE "10 A%=5678"
+                TSTLINE "20 READ B%, C$"
+                TSTLINE "30 RESTORE"
+                TSTLINE "40 READ D%"
+                TSTLINE '50 DATA 1234, "ABC"'
+
+                CALL CMD_RUN
+
+                setal
+                STZ LINENUM
+
+                UT_VAR_EQ_W "A%",TYPE_INTEGER,5678
+                UT_VAR_EQ_W "B%",TYPE_INTEGER,1234
+                UT_VAR_EQ_W "D%",TYPE_INTEGER,1234
+                UT_VAR_EQ_STR "C$","ABC"
+
+                UT_END
+                .pend
+
 TST_STMNTS      .proc
-                ;CALL TST_REM
-                ;CALL TST_CLR
+                CALL TST_REM
+                CALL TST_CLR
                 CALL TST_LET
                 CALL TST_POKE
                 CALL TST_POKEW
                 ; CALL TST_STOP
                 CALL TST_NESTEDFOR
+                CALL TST_READ
 
                 UT_LOG "TST_STMNTS: PASSED"
                 RETURN
