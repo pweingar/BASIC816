@@ -167,6 +167,8 @@ PRHEXN      .proc
             RETURN
             .pend
 
+.section data
 HEXDIGITS   .text "0123456789ABCDEF"
+.send
 
 

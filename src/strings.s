@@ -357,3 +357,62 @@ terminate   setal
             RETURN
             .databank `GLOBAL_VARS
             .pend
+
+;
+; Copy a string
+;
+; Inputs:
+;   ARGUMENT1 = the string to copy (may be [likely to be] temporary)
+;
+; Outputs:
+;   ARGUMENT1 = the copied string (allocated to the heap)
+;
+STRCPY      .proc
+            PHP
+            PHD
+            PHB
+
+            TRACE "STRCPY"
+
+            setdp GLOBAL_VARS
+
+            setaxl
+
+            LDDBR ARGUMENT1+2       ; SCRATCH := LEN(ARGUMENT1)
+            LDX ARGUMENT1
+            CALL STRLEN
+            
+            TYA
+            TAX
+            INX                     ; Put length of string (plus NUL) in X
+
+            setas
+            LDA #TYPE_STRING
+            CALL ALLOC
+            
+            setal
+            LDA CURRBLOCK           ; INDEX := pointer to the string
+            STA INDEX
+            setas
+            LDA CURRBLOCK+2
+            STA INDEX+2
+
+            LDY #0
+
+loop        LDA [ARGUMENT1],Y       ; Copy the data to the allocated string
+            STA [INDEX],Y
+            BEQ ret_copy
+            INY
+            BRA loop
+
+ret_copy    LDA INDEX               ; And return the pointer to the allocated string
+            STA ARGUMENT1
+            LDA INDEX+1
+            STA ARGUMENT1+1
+            LDA INDEX+2
+            STA ARGUMENT1+2
+            LDA #0
+            STA ARGUMENT1+3
+
+            RETURN
+            .pend

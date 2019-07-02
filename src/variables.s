@@ -293,12 +293,11 @@ VAR_CREATE      .proc
                 setas
                 LDA ARGTYPE1        ; Validate that our types match
                 CMP TOFINDTYPE
-                BEQ can_create
+                BEQ alloc_binding
 
                 THROW ERR_TYPE
 
-can_create      setas
-                setxl
+alloc_binding   setxl
                 LDX #size(BINDING)  ; Get space for the binding
                 LDA #TYPE_BINDING   ; And the type
                 CALL ALLOC

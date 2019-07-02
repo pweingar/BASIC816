@@ -61,6 +61,7 @@ INITHEAP    .proc
 ALLOC       .proc
             PHP
             PHD
+            TRACE "ALLOC"
 
             setdp GLOBAL_VARS
 

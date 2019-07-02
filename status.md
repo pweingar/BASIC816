@@ -74,7 +74,7 @@
 1. [ ] String Functions
     1. [X] ASC
     1. [X] CHR$
-    1. [ ] HEX$
+    1. [X] HEX$
     1. [ ] LEFT$
     1. [X] LEN
     1. [ ] MID$
@@ -86,7 +86,7 @@
     1. [ ] VAL
 1. [ ] Other Functions
     1. [X] ABS
-    1. [ ] DEC
+    1. [X] DEC
     1. [ ] FN
     1. [ ] FRE
     1. [X] PEEK()

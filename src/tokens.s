@@ -761,6 +761,8 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "TAB", TOK_TY_FUNC, 0, FN_TAB, 0
             DEFTOK "ABS", TOK_TY_FUNC, 0, FN_ABS, 0
             DEFTOK "SGN", TOK_TY_FUNC, 0, FN_SGN, 0
+            DEFTOK "HEX$", TOK_TY_FUNC, 0, FN_HEX, 0
+            DEFTOK "DEC", TOK_TY_FUNC, 0, FN_DEC, 0
 
             ; Commands
 

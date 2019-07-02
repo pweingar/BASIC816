@@ -233,6 +233,54 @@ TST_SGN         .proc
                 UT_END
                 .pend
 
+; Check that we can get the hexadecimal representation of a number
+TST_HEX         .proc
+                UT_BEGIN "TST_HEX"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE '10 H$ = HEX$(123)'
+
+                CALL CMD_RUN
+
+                setal
+                LDA #0
+                STA LINENUM
+
+                UT_VAR_EQ_STR "H$","7B"
+
+                UT_END
+                .pend
+
+; Check that we can parse a hexadecimal number into an integer
+TST_DEC         .proc
+                UT_BEGIN "TST_DEC"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE '10 D% = DEC("   $12Ab")'
+
+                CALL CMD_RUN
+
+                setal
+                LDA #0
+                STA LINENUM
+
+                UT_VAR_EQ_W "D%",TYPE_INTEGER,$12AB
+
+                UT_END
+                .pend
+
 TST_FUNCS       .proc
                 CALL TST_LEN
                 CALL TST_CHR
@@ -241,6 +289,8 @@ TST_FUNCS       .proc
                 CALL TST_TAB
                 CALL TST_ABS
                 CALL TST_SGN
+                CALL TST_HEX
+                CALL TST_DEC
 
                 UT_LOG "TST_FUNCS: PASSED"
                 RETURN

@@ -38,6 +38,148 @@ FN_END          .macro
                 .endm
 
 ;
+; DEC(value$) -- convert a hexadecimal string to an integer
+;
+FN_DEC          .proc
+                FN_START "FN_DEC"
+
+                CALL EVALEXPR       ; Get the number to convert
+
+                setal
+                STZ SCRATCH
+                STZ SCRATCH+2
+
+                ; TODO: convert FLOAT to INTEGER
+
+                setaxs              ; Throw an error if it's not an integer
+                LDA ARGTYPE1
+                CMP #TYPE_STRING
+                BNE type_mismatch  
+
+                ; Skip leading spaces and dollar signs
+                LDY #0
+skip_loop       LDA [ARGUMENT1],Y
+                CMP #CHAR_SP
+                BEQ skip_char
+                CMP #'$'
+                BNE loop
+
+skip_char       INY
+                BRA skip_loop
+
+loop            LDA [ARGUMENT1],Y   ; Check the character
+                CALL ISHEX          ; Is it a hex digit?
+                BCC ret_result      ; No: return what we have so far
+
+                setal
+                .rept 4
+                ASL SCRATCH         ; Shift the result over one digit
+                ROL SCRATCH+2
+                .next
+
+                setas
+                CALL HEX2BIN        ; Convert it to its value
+                ORA SCRATCH
+                STA SCRATCH         ; And add it to the result
+
+                INY
+                BRA loop            ; And try the next character
+
+ret_result      setal
+                LDA SCRATCH         ; Return the result
+                STA ARGUMENT1
+                LDA SCRATCH+2
+                STA ARGUMENT1+2
+
+                setas
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+
+                FN_END
+                RETURN
+
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
+;
+; HEX$(value) -- compute the hexadecimal form of the integer parameter
+;
+FN_HEX          .proc
+                FN_START "FN_HEX"
+
+                CALL EVALEXPR       ; Get the number to convert
+
+                ; TODO: convert FLOAT to INTEGER
+
+                setaxs              ; Throw an error if it's not an integer
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_mismatch  
+
+                CALL TEMPSTRING     ; Get a temporary string
+
+                LDY #$FF            ; Terminate the string
+                LDA #0
+                STA [STRPTR],Y
+                DEY
+
+loop            LDA ARGUMENT1       ; Write the low digit
+                AND #$0F
+                TAX
+                LDA @lHEXDIGITS,X
+                STA [STRPTR],Y
+                DEY
+
+                LDA ARGUMENT1       ; Write the high digit
+                AND #$F0
+                LSR A
+                LSR A
+                LSR A
+                LSR A
+                TAX
+                LDA @lHEXDIGITS,X
+                STA [STRPTR],Y
+                DEY
+
+                LDA ARGUMENT1+1     ; Shift value by one byte
+                STA ARGUMENT1
+                LDA ARGUMENT1+2
+                STA ARGUMENT1+1
+                LDA ARGUMENT1+3
+                STA ARGUMENT1+2
+                LDA #0
+                STA ARGUMENT1+3
+
+                LDA ARGUMENT1       ; Is the argument 0?
+                BNE loop            ; No: keep converting
+                LDA ARGUMENT1+1
+                BNE loop
+                LDA ARGUMENT1+2
+                BNE loop
+
+                TYA                 ; Get the index of the first free char
+                SEC                 ; Add 1 to get to the first character of the string
+                ADC STRPTR          ; And add the whole thing to the temp string pointer
+                STA ARGUMENT1       ; And return it as the result
+                LDA STRPTR+1
+                STA ARGUMENT1+1
+                LDA STRPTR+2
+                STA ARGUMENT1+2
+                LDA STRPTR+3
+                STA ARGUMENT1+3
+
+                LDA #TYPE_STRING    ; And make the type STRING
+                STA ARGTYPE1
+
+                CALL STRCPY         ; Allocate a copy on the heap
+
+                FN_END
+                RETURN
+
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
+;
 ; LEN(S$) -- Compute the length of a string
 ;
 FN_LEN          .proc
