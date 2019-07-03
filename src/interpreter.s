@@ -194,7 +194,8 @@ CLRINTERP   .proc
 
             setdp <>GLOBAL_VARS
             CATCH ON_ERROR              ; Register the default error handler
-            CALL S_CLR
+            CALL S_CLR                  ; Erase all variables
+            CALL S_RESTORE              ; Reset DATAPTR to the beginning
             STZ GOSUBDEPTH              ; Clear the depth of the GOSUB stack
 
             PLP
@@ -471,6 +472,8 @@ EXECSTMT    .proc
 
             setdp <>GLOBAL_VARS
 
+            CALL INITEVALSP     ; Make sure the evaluatio stacks are empty
+
             setas               ; Set EXECACTION to EXEC_CONT, the default behavior
             LDA #EXEC_CONT      ; This will tell EXECLINE and EXECPROG to procede in a
             STA EXECACTION      ; linear fashion through the program
@@ -620,7 +623,7 @@ exec_loop   CALL EXECSTMT               ; Try to execute a statement
 skip_loop   CALL INCBIP                 ; Skip over the colon
             BRA exec_loop               ; And try to execute another statement
 
-exec_done   TRACE "EXECLINE DONE"
+exec_done   TRACE_L "EXECLINE DONE", BIP
             PLP
             RETURN
 

@@ -38,6 +38,122 @@ FN_END          .macro
                 .endm
 
 ;
+; LEFT$(text$, count) -- return the left COUNT characters of TEXT
+;
+FN_LEFT         .proc
+                FN_START "FN_LEFT"
+                PHP
+
+                setaxl
+
+                CALL EVALEXPR       ; Evaluate the string
+
+                setas
+                LDA ARGTYPE1
+                CMP #TYPE_STRING
+                BEQ save_string
+                JMP type_mismatch   ; Type mismatch if it's not a string
+
+save_string     setal
+                LDA ARGUMENT1+2       ; Save the pointer for later
+                PHA
+                LDA ARGUMENT1
+                PHA
+
+                CALL SKIPWS
+
+                setas
+                LDA [BIP]           ; Expect a comma
+                CMP #','
+                BEQ skip_comma
+                JMP syntax_err
+
+skip_comma      CALL INCBIP
+
+                CALL EVALEXPR       ; Evaluate the count
+
+                ; TODO: Convert FLOAT to INTEGER
+
+                setal
+                PLA                 ; Recover the string pointer
+                STA STRPTR
+                PLA
+                STA STRPTR+2
+
+                setas
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_mismatch   ; Type mismatch if it's not a string 
+
+                STZ SCRATCH         ; SCRATCH will be the size
+                LDY #0
+
+                setas
+count_loop      LDA [STRPTR],Y      ; Count the characters in the string
+                BEQ range_check
+                INY
+                INC SCRATCH
+                BRA count_loop  
+
+range_check     setal
+                LDA ARGUMENT1+2     ; we're only going to support string of at most 64KB here
+                BNE range_err
+
+                LDA SCRATCH         ; Compare the count to the string length
+                CMP ARGUMENT1
+                BLT ret_self        ; if len <= count, return the whole string
+                BEQ ret_self
+
+                LDA ARGUMENT1
+                STA SCRATCH2
+
+                TAX
+                INX                 ; Allocate a string big enough for the copy
+
+                setas
+                LDA #TYPE_STRING
+                CALL ALLOC          ; Allocate the string
+
+                LDY #0
+                LDX SCRATCH2
+                BEQ null_terminate
+
+copy_loop       LDA [STRPTR],Y      ; Copy the characters
+                STA [CURRBLOCK],Y
+                INY
+                CPY SCRATCH2
+                BNE copy_loop       ; Until done
+
+null_terminate  LDA #0
+                STA [CURRBLOCK],Y   ; Null terminate
+
+                setal
+                LDA CURRBLOCK       ; Return the new string
+                STA ARGUMENT1
+                LDA CURRBLOCK+2
+                STA ARGUMENT1+2
+
+                BRA ret_string
+
+ret_self        LDA STRPTR          ; Return the original string
+                STA ARGUMENT1
+                LDA STRPTR+2
+                STA ARGUMENT1+2
+
+ret_string      setas
+                LDA #TYPE_STRING
+                STA ARGTYPE1
+                
+done            FN_END
+                PLP
+                RETURN
+
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+syntax_err      THROW ERR_SYNTAX    ; Throw a syntax error
+range_err       THROW ERR_RANGE     ; Throw a range error
+                .pend
+
+;
 ;VAL(value$) -- convert a string to an integer
 ;
 FN_VAL          .proc

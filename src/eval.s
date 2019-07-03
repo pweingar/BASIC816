@@ -566,6 +566,9 @@ close_func  CALL PLOPERATOR     ; Pop the marker off the stack
 proc_stack  LDX OPERATORSP      ; Is the operator stack empty?
             CPX #<>OPERATOR_TOP
             BGE done            ; Yes: return to the caller
+            LDA #1,B,X
+            CMP #TOK_FUNC_OPEN  ; Is top operator a function open?
+            BEQ done            ; Yes: treat as end of expression
 
             CALL PROCESSOP      ; No: process the operator stack
             BRA proc_stack
@@ -582,6 +585,7 @@ is_alpha    CALL EVALREF        ; Attempt to evaluate the variable reference
             CALL PHARGUMENT     ; And push it to the argument stack
             JMP get_char     
 
-done        PLP
+done        TRACE "EVALEXPR DONE"
+            PLP
             RETURN
             .pend

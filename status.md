@@ -75,7 +75,7 @@
     1. [X] ASC
     1. [X] CHR$
     1. [X] HEX$
-    1. [ ] LEFT$
+    1. [X] LEFT$
     1. [X] LEN
     1. [ ] MID$
     1. [ ] RIGHT$
