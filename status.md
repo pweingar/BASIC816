@@ -32,6 +32,7 @@
 1. [ ] ON … GOTO
 1. [X] POKE
     1. [X] POKEW
+    1. [X] POKEL
 1. [X] READ
 1. [X] REM
 1. [X] RESTORE
@@ -91,6 +92,7 @@
     1. [ ] FRE
     1. [X] PEEK()
         1. [X] PEEKW()
+        1. [X] PEEKL()
     1. [X] SGN
     1. [ ] STATUS
     1. [ ] TIME

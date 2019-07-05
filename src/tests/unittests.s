@@ -286,7 +286,8 @@ fail            setxl
                 LDX #<>MESSAGE
                 PHB
                 setdbr `DATA_BLOCK
-                LDY \1
+                LDA \1
+                TAY
                 setas
                 LDA \1+2
                 CALL UT_FAIL_AL

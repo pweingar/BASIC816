@@ -303,6 +303,44 @@ TST_POKEW       .proc
 VAR_A           .null "A%"
                 .pend
 
+; Test that we can POKE an 24-bit value into a memory location
+; and that we can PEEK it too
+TST_POKEL       .proc
+                UT_BEGIN "TST_POKEL"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE '10 POKEL $020000,$123456'
+                TSTLINE '20 A%=PEEKL($020000)'
+
+                CALL CMD_RUN
+
+                UT_M_EQ_LIT_L $020000,$123456, "EXPECTED $123456"
+
+                ; Validate that A%=$55
+                setal
+                LDA #<>VAR_A
+                STA TOFIND
+                setas
+                LDA #`VAR_A
+                STA TOFIND+2
+
+                LDA #TYPE_INTEGER
+                STA TOFINDTYPE
+
+                CALL VAR_REF
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
+                UT_M_EQ_LIT_L ARGUMENT1,$123456,"EXPECTED A%=$123456"
+
+                UT_END   
+VAR_A           .null "A%"
+                .pend
+
 
 ; Test that we can nest FOR/NEXT loops
 TST_NESTEDFOR   .proc
@@ -366,6 +404,7 @@ TST_STMNTS      .proc
                 CALL TST_LET
                 CALL TST_POKE
                 CALL TST_POKEW
+                CALL TST_POKEL
                 ; CALL TST_STOP
                 CALL TST_NESTEDFOR
                 CALL TST_READ

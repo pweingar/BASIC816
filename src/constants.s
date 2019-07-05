@@ -35,10 +35,13 @@ VAR_NAME_SIZE = 8       ; Maximum number of characters in a variable name
 ; Type Codes
 ;
 
-TYPE_INTEGER = 0        ; 16-bit integer
+TYPE_INTEGER = 0        ; 32-bit integer
 TYPE_FLOAT = 1          ; Single-precision floating point
 TYPE_STRING = 2         ; ASCII string
-TYPE_BINDING = $80      ; A varaible name binding
+TYPE_ARR_INTEGER = $80  ; Array of 32-bit integers
+TYPE_ARR_FLOAT = $81    ; Array of 32-bit floats
+TYPE_ARR_STRING = $82   ; Array of strings
+TYPE_BINDING = $7F      ; A variable name binding
 TYPE_NAV = $FF          ; Not-A-Value
 
 ;

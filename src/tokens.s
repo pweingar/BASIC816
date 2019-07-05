@@ -692,7 +692,7 @@ TOK_STEP = $9A
 TOK_NEXT = $9B
 TOK_DO = $9C
 TOK_LOOP = $9D
-TOK_DATA = $A7
+TOK_DATA = $A8
 
 TOK_TY_OP = $00         ; The token is an operator
 TOK_TY_CMD = $10        ; The token is a command (e.g. RUN, LIST, etc.)
@@ -740,6 +740,7 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "STOP", TOK_TY_STMNT, 0, S_STOP, 0
             DEFTOK "POKE", TOK_TY_STMNT, 0, S_POKE, 0
             DEFTOK "POKEW", TOK_TY_STMNT, 0, S_POKEW, 0
+            DEFTOK "POKEL", TOK_TY_STMNT, 0, S_POKEL, 0
             DEFTOK "CLS", TOK_TY_STMNT, 0, S_CLS, 0
             DEFTOK "READ", TOK_TY_STMNT, 0, S_READ, 0
             DEFTOK "DATA", TOK_TY_STMNT, 0, S_DATA, 0
@@ -755,6 +756,7 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "LEN", TOK_TY_FUNC, 0, FN_LEN, 0
             DEFTOK "PEEK", TOK_TY_FUNC, 0, FN_PEEK, 0
             DEFTOK "PEEKW", TOK_TY_FUNC, 0, FN_PEEKW, 0
+            DEFTOK "PEEKL", TOK_TY_FUNC, 0, FN_PEEKL, 0
             DEFTOK "CHR$", TOK_TY_FUNC, 0, FN_CHR, 0
             DEFTOK "ASC", TOK_TY_FUNC, 0, FN_ASC, 0
             DEFTOK "SPC", TOK_TY_FUNC, 0, FN_SPC, 0

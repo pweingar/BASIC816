@@ -59,6 +59,7 @@ INITHEAP    .proc
 ;   CURRHEAD = pointer to the header for the allocated block of memory
 ;
 ALLOC       .proc
+            PHY
             PHP
             PHD
             TRACE "ALLOC"
@@ -128,6 +129,7 @@ ALLOC       .proc
 
             PLD
             PLP
+            PLY
             RETURN
             .pend
 

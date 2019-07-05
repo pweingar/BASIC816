@@ -177,6 +177,49 @@ S_CLS           .proc
                 RETURN
                 .pend
 
+; Write an 24-bit value to an address in memory
+; POKEL <address>,<value>
+S_POKEL         .proc
+
+                CALL EVALEXPR       ; Get the address
+
+                setal
+                LDA ARGUMENT1+2     ; And save it to the stack
+                PHA
+                LDA ARGUMENT1
+                PHA
+
+                setas
+                LDA [BIP]
+                CMP #','
+                BNE syntax_err
+                CALL INCBIP
+
+                CALL EVALEXPR       ; Get the value
+
+                setal
+                LDA ARGUMENT1+3
+                BNE range_err
+
+                PLA                 ; Pull the target address from the stack
+                STA INDEX           ; and into INDEX
+                PLA
+                STA INDEX+2
+
+                setal
+                LDA ARGUMENT1
+                STA [INDEX]         ; And write it to the address
+
+                setas
+                LDY #2
+                LDA ARGUMENT1+2
+                STA [INDEX],Y
+
+                RETURN
+syntax_err      THROW ERR_SYNTAX
+range_err       THROW ERR_RANGE
+                .pend
+
 ; Write an 16-bit value to an address in memory
 ; POKEW <address>,<value>
 S_POKEW         .proc

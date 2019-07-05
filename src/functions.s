@@ -436,6 +436,41 @@ type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
 
 ;
+; PEEKL(ADDR) -- Read the 24-bit value at ADDR
+;
+FN_PEEKL        .proc
+                FN_START "FN_PEEKL"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+
+                ; TODO: convert float to integer
+
+                setas               ; Throw an error if it's not an integer
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_mismatch
+
+                setal
+                LDA [ARGUMENT1]
+                STA SCRATCH
+
+                setas
+                LDY #2
+                LDA [ARGUMENT1],Y
+                STA ARGUMENT1+2
+                STZ ARGUMENT1+3
+
+                setal
+                LDA SCRATCH
+                STA ARGUMENT1
+
+                FN_END
+                RETURN
+
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
+;
 ; PEEKW(ADDR) -- Read the 16-bit value at ADDR
 ;
 FN_PEEKW        .proc
