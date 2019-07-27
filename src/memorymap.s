@@ -12,6 +12,8 @@
 .include "C256/mmap_c256.s"
 .endif
 
+VBRK = $00FFE6          ; Vector for the native-mode BRK vector 
+
 ;
 ; Set up global memory labels and variables
 ;
@@ -49,6 +51,34 @@ DATABIP     .dword ?    ; Pointer to the next data element for READ statements
 DATALINE    .dword ?    ; Pointer to the current line for a DATA statement
 SAVEBIP     .dword ?    ; Spot to save BIP temporarily
 SAVELINE    .dword ?    ; Spot to save CURLINE temporarily
+
+MONITOR_VARS = *
+MCMDADDR    .long ?     ;3 Bytes Address of the current line of text being processed by the command parser. Can be in display memory or a variable in memory. MONITOR will parse up to MTEXTLEN characters or to a null character.
+MCMP_TEXT   .long ?     ;3 Bytes Address of symbol being evaluated for COMPARE routine
+MCMP_LEN    .word ?     ;2 Bytes Length of symbol being evaluated for COMPARE routine
+MCMD        .long ?     ;3 Bytes Address of the current command/function string
+MCMD_LEN    .word ?     ;2 Bytes Length of the current command/function string
+MARG1       .dword ?    ;4 Bytes First command argument. May be data or address, depending on command
+MARG2       .dword ?    ;4 Bytes First command argument. May be data or address, depending on command. Data is 32-bit number. Address is 24-bit address and 8-bit length.
+MARG3       .dword ?    ;4 Bytes First command argument. May be data or address, depending on command. Data is 32-bit number. Address is 24-bit address and 8-bit length.
+MARG4       .dword ?    ;4 Bytes First command argument. May be data or address, depending on command. Data is 32-bit number. Address is 24-bit address and 8-bit length.
+MARG5       .dword ?    ;4 Bytes First command argument. May be data or address, depending on command. Data is 32-bit number. Address is 24-bit address and 8-bit length.
+MARG6       .dword ?    ;4 Bytes First command argument. May be data or address, depending on command. Data is 32-bit number. Address is 24-bit address and 8-bit length.
+MARG7       .dword ?    ;4 Bytes First command argument. May be data or address, depending on command. Data is 32-bit number. Address is 24-bit address and 8-bit length.
+MARG8       .dword ?    ;4 Bytes First command argument. May be data or address, depending on command. Data is 32-bit number. Address is 24-bit address and 8-bit length.
+MARG9       .dword ?    ;4 Bytes First command argument.
+MARG_LEN    .byte ?     ;1 Byte count of the number of arguments passed
+MCURSOR     .dword ?    ;4 Bytes Pointer to the current memory location for disassembly, memory dump, etc.
+MLINEBUF    .fill 17    ;17 Byte buffer for dumping memory (TODO: could be moved to a general string scratch area)
+MCOUNT      .long ?     ;2 Byte counter
+MTEMP       .dword ?    ;4 Bytes of temporary space
+MCPUSTAT    .byte ?     ;1 Byte to represent what the disassembler thinks the processor MX bits are
+MADDR_MODE  .byte ?     ;1 Byte address mode found by the assembler
+MPARSEDNUM  .dword ?    ;4 Bytes to store a parsed number
+MMNEMONIC   .word ?     ;2 Byte address of mnemonic found by the assembler
+MTEMPPTR    .dword ?    ;4 Byte temporary pointer
+MJUMPINST   .byte ?     ;1 Byte JSL opcode
+MJUMPADDR   .long ?     ;3 Byte address for JSL 
 .send
 
 MANTISSA1 = ARGUMENT1

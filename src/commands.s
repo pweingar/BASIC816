@@ -3,6 +3,13 @@
 ;;;
 
 ;
+; Enter the monitor
+;
+CMD_MONITOR     BRK
+                NOP
+                RETURN
+
+;
 ; Clear the program area and all variables
 ;
 CMD_NEW         .proc

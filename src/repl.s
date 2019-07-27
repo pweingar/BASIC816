@@ -9,8 +9,8 @@ PRREADY         .proc
                 PHB
                 PHP
 
-                setdbr `MREADY
-                LDX #<>MREADY
+                setdbr `MPROMPT
+                LDX #<>MPROMPT
                 CALL PRINTS
 
                 PLP
@@ -96,5 +96,5 @@ no_ready_loop   CALL READLINE       ; Read characters until the user presses RET
                 .pend
 
 .section data
-MREADY          .null 13,"READY",13
+MPROMPT         .null 13,"READY",13
 .send

@@ -11,7 +11,7 @@ set SYSTEM=2
 
 REM 0 = No UART-specific code, 1 = UART-specific support code included
 REM Should be set to 1 if UNITTEST is set to 1
-set UART=1
+set UART=0
 
 REM 0 = Interactive, 1 = Generate Unit Tests
 set UNITTEST=0

@@ -29,6 +29,8 @@
 .include "variables.s"
 .include "floats.s"
 
+.include "monitor.s"
+
 .if UNITTEST
 .include "tests/basictests.s"
 .endif
@@ -58,6 +60,8 @@ START       CLC                 ; Go to native mode
 .if UNITTEST
             CALL TST_BASIC      ; Run the BASIC816 unit tests
 .else
+            ; BRK
+            ; NOP
             JMP INTERACT        ; Start accepting input from the user
 .endif
 
@@ -65,6 +69,11 @@ WAIT        JMP WAIT
 
 INITBASIC   .proc
             PHP
+
+            setal
+            LDA #<>HBREAK        ; Register the monitor's BRK handler
+            STA VBRK
+
             CALL INITIO         ; Initialize I/O system
             CALL CMD_NEW        ; Clear the program
 

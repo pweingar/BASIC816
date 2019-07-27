@@ -52,6 +52,72 @@ done        RETURN
             .pend
 
 ;
+; Sets ARGUMENT1 to the current time in BCD in the format 00HHMMSS
+;
+GETTIME     .proc
+            PHP
+
+            setas
+            LDA @lRTC_CTRL          ; Pause updates to the clock registers
+            ORA #%00001000
+            STA @lRTC_CTRL
+
+            LDA @lRTC_SEC           ; Copy the seconds in BCD
+            STA ARGUMENT1
+
+            LDA @lRTC_MIN           ; Copy the minutes in BCD
+            STA ARGUMENT1+1
+
+            LDA @lRTC_HRS           ; Copy the hour in BCD
+            STA ARGUMENT1+2
+
+            STZ @ARGUMENT1+3
+
+            LDA @lRTC_CTRL          ; Re-enable updates to the clock registers
+            AND #%11110111
+            STA @lRTC_CTRL
+
+            LDA #TYPE_INTEGER       ; Set the return type to integer because why not?
+            STA ARGTYPE1
+
+            PLP
+            RETURN
+            .pend
+
+;
+; Sets ARGUMENT1 to the current date in BCD in the format 00DDMMYY
+;
+GETDATE     .proc
+            PHP
+
+            setas
+            LDA @lRTC_CTRL          ; Pause updates to the clock registers
+            ORA #%00001000
+            STA @lRTC_CTRL
+
+            LDA @lRTC_YEAR          ; Copy the seconds in BCD
+            STA ARGUMENT1
+
+            LDA @lRTC_MONTH         ; Copy the minutes in BCD
+            STA ARGUMENT1+1
+
+            LDA @lRTC_DAY           ; Copy the hour in BCD
+            STA ARGUMENT1+2
+
+            STZ @ARGUMENT1+3
+
+            LDA @lRTC_CTRL          ; Re-enable updates to the clock registers
+            AND #%11110111
+            STA @lRTC_CTRL
+
+            LDA #TYPE_INTEGER       ; Set the return type to integer because why not?
+            STA ARGTYPE1
+
+            PLP
+            RETURN
+            .pend
+
+;
 ; Send the character in A to the screen
 ;
 ; Inputs:
@@ -101,6 +167,14 @@ PRINTCR     .proc
 
             setal
             PLA
+            PLP
+            RETURN
+            .pend
+
+; Stub to print a hex number... this is a long jump because I'm lazy
+PRINTH      .proc
+            PHP
+            JSL FK_IPRINTH
             PLP
             RETURN
             .pend

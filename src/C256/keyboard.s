@@ -5,16 +5,16 @@
 .include "interrupts.s"
 .include "keyboard_def.s"
 
-KEY_BUFFER       = $000F00 ;64 Bytes keyboard buffer
-KEY_BUFFER_SIZE  = $0080   ;128 Bytes (constant) keyboard buffer length
-KEY_BUFFER_END   = $000F7F ;1 Byte  Last byte of keyboard buffer
-KEY_BUFFER_CMD   = $000F83 ;1 Byte  Indicates the Command Process Status
-COMMAND_SIZE_STR = $000F84 ; 1 Byte
-COMMAND_COMP_TMP = $000F86 ; 2 Bytes
-KEYBOARD_SC_FLG  = $000F87 ;1 Bytes that indicate the Status of Left Shift, Left CTRL, Left ALT, Right Shift
-KEYBOARD_SC_TMP  = $000F88 ;1 Byte, Interrupt Save Scan Code while Processing
-KEY_BUFFER_RPOS  = $000050  ;2 byte: index of the first key to read
-KEY_BUFFER_WPOS  = $000052  ;2 byte: index of the first key to write
+;KEY_BUFFER       = $000F00 ;64 Bytes keyboard buffer
+;KEY_BUFFER_SIZE  = $0080   ;128 Bytes (constant) keyboard buffer length
+;KEY_BUFFER_END   = $000F7F ;1 Byte  Last byte of keyboard buffer
+;KEY_BUFFER_CMD   = $000F83 ;1 Byte  Indicates the Command Process Status
+;COMMAND_SIZE_STR = $000F84 ; 1 Byte
+;COMMAND_COMP_TMP = $000F86 ; 2 Bytes
+;KEYBOARD_SC_FLG  = $000F87 ;1 Bytes that indicate the Status of Left Shift, Left CTRL, Left ALT, Right Shift
+;KEYBOARD_SC_TMP  = $000F88 ;1 Byte, Interrupt Save Scan Code while Processing
+;KEY_BUFFER_RPOS  = $000050  ;2 byte: index of the first key to read
+;KEY_BUFFER_WPOS  = $000052  ;2 byte: index of the first key to write
 
 ;
 ; Get a character from the keyboard input buffer

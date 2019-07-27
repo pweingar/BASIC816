@@ -775,5 +775,6 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "NEW", TOK_TY_CMD, 0, CMD_NEW, 0
             DEFTOK "LOAD", TOK_TY_CMD, 0, CMD_LOAD, 0
 LISTTOK     DEFTOK "LIST", TOK_TY_CMD, 0, CMD_LIST, 0
+            DEFTOK "MONITOR", TOK_TY_CMD, 0, CMD_MONITOR, 0
             
             .word 0, 0, 0, 0
