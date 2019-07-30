@@ -37,6 +37,10 @@ FN_END          .macro
                 CALL INCBIP
                 .endm
 
+.if SYSTEM == SYSTEM_C256
+.include "C256/functions_c256.s"
+.endif
+
 ;
 ; LEFT$(text$, count) -- return the left COUNT characters of TEXT
 ;

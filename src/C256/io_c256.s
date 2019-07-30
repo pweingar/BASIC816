@@ -7,6 +7,7 @@
 ;;;
 
 .include "kernel_c256.s"
+.include "RTC_inc.s"
 .if UARTSUPPORT = 1
 .include "uart.s"
 .endif

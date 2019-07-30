@@ -356,3 +356,34 @@ return_false    PLP
                 REP #$02        ; Clear Z
                 RETURN
                 .pend
+
+;
+; Assert that ARGUMENT1 contains a byte. Throw a type mismatch error if it is not an
+; integer and a range error if it is not between 0 and 255.
+;
+; TODO: if ARGUMENT1 is a float, convert it to an integer
+;
+; Inputs:
+;   ARGUMENT1
+;
+ASS_ARG1_BYTE   .proc
+                PHP
+
+                setas
+                LDA ARGTYPE1            ; Verify that the type is INTEGER
+                CMP #TYPE_INTEGER
+                BNE TYPE_ERR
+
+                LDA ARGUMENT1+3         ; Validate that the value is in byte range
+                BNE RANGE_ERR           ; If not... throw a range error
+                LDA ARGUMENT1+2
+                BNE RANGE_ERR
+                LDA ARGUMENT1+1
+                BNE RANGE_ERR
+
+                PLP
+                RETURN
+
+TYPE_ERR        THROW ERR_TYPE
+RANGE_ERR       THROW ERR_RANGE
+                .pend

@@ -169,7 +169,12 @@ save_opcode     STA [MCURSOR]           ; Write the opcode to the address
                 CMP #ADDR_XYC           ; MVP/MVN addressing mode?
                 BEQ emit_2
 
-                setal
+                AND #%00111111          ; Filter out the mode bits
+                CMP #ADDR_IMM           ; Is it immediate?
+                BNE fixed_length        ; Yes: emit it as an immediate (variable length)
+                JMP emit_imm
+
+fixed_length    setal
                 AND #$00FF
                 TAX
                 setas
@@ -200,7 +205,7 @@ check_for_pcrel setal
                 BEQ is_pcrel
                 CMP #<>MN_BPL
                 BEQ is_pcrel
-                BRA get_opcode
+                JMP get_opcode
 
 is_pcrel        setas
                 LDA #ADDR_PC_REL
@@ -268,6 +273,11 @@ bad_offset      CALL PRINTCR            ; Print the "bad offset" error message
                 LDX #<>MERRBADOFFSET
                 CALL PRINTS
                 BRA done
+
+emit_imm        LDA MADDR_MODE          ; Check to see if long immediate was used
+                AND #%11000000
+                BNE emit_2              ; Yes: emit two bytes
+                JMP emit_1              ; No: emit one byte
 
 done            PLD
                 PLB
@@ -439,6 +449,11 @@ AS_FIND_OPCODE  .proc
                 setdp <>MONITOR_VARS
                 setdbr `MNEMONIC_TAB
 
+                setas
+                LDA MADDR_MODE
+                AND #%00111111
+                STA MTEMP
+
                 setaxl
                 LDX #0
                 LDY #0
@@ -451,7 +466,7 @@ mnemonic_loop   LDA MNEMONIC_TAB,X      ; Get the mnemonic from the opcode table
 check_mode      setas                   ; Yes: check to see if the address mode matches
                 LDA ADDRESS_TAB,Y       ; Get the corresponding address mode
                 AND #%00111111          ; Filter out effect bits
-                CMP MADDR_MODE
+                CMP MTEMP
                 BEQ found               ; Yes: we found the opcode
                 setal
 

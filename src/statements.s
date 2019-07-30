@@ -2,6 +2,10 @@
 ;;; Core BASIC Statements
 ;;;
 
+.if SYSTEM == SYSTEM_C256
+.include "C256/statements_c256.s"
+.endif
+
 ; Read data from data statements
 ; READ variable, variable, ...
 S_READ          .proc
