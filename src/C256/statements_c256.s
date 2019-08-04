@@ -8,6 +8,78 @@
 ; SAVE path
 
 ; SETLUTCOLOR lut,index,red,green,blue,alpha
+;       Set the RGBA value for the given index of a given color LUT. LUT values are:
+;           0 = graphics LUT 0
+;           1 = graphics LUT 1
+;           2 = graphics LUT 2
+;           3 = graphics LUT 3
+;           4 = graphics LUT 4
+;           5 = graphics LUT 5
+;           6 = graphics LUT 6
+;           7 = graphics LUT 7
+;           8 = text foreground LUT
+;           9 = text background LUT
+;           10 = gamma correction LUT
+
+; GRAPHICS show_text,show_sprites,show_tiles,show_pixmap,gamma
+;       Control which graphics blocks are enabled:
+;           show_text = text system is showing (overlay if any other block is enabled)
+;           show_sprites = sprite system is enabled
+;           show_tiles = tile map system is enabled
+;           show_pixmap = bitmap / pixelmap graphics enabled
+;           gamma = enable gamma correction
+
+; VCOPY dest_addr,src_addr,length
+;           Copy length bytes of video memory from src_addr to dest_addr
+;           NOTE: VCOPY will pause execution if a Vicky is already busy with a VDMA operation.
+;               Otherwise, it will return immediately while the copy happens in the background.
+
+; VCOPY dest_addr,dest_stride,src_addr,src_stride,width,height
+;           Copy a block of video memory from src_addr to dest_addr
+;               dest_addr = the address of the first byte to write (must be within video RAM)
+;               src_addr = the address of the first byte to read (must be within video RAM)
+;               width = the number of pixels horizontally to copy
+;               height = the number of pixels vertically to copy
+;               dest_stride = the number of bytes to skip between rows in the destination block
+;               src_stride = the number of bytes to skip between rows in the source block
+;           NOTE: VCOPY will pause execution if a Vicky is already busy with a VDMA operation.
+;               Otherwise, it will return immediately while the copy happens in the background.
+
+;; Pixmap
+; PLOT x,y,color
+;       Set the color of the pixel at (x, y)
+; LINE x0,y0,x1,y1,color
+;       Draw a line from (x0, y0) to (x1, y1) in the specified color
+; BOX x0,y0,x1,y1,color,filled
+;       Draw a box with corners (x0, y0) and (x1, y1) in the specified color. Optionally fill it.
+; CIRCLE x0,y0,x1,y1,color,filled
+;       Draw an ellipse inscribing a box with corners (x0, y0) and (x1, y1) in the specified color. Optionally fill it.
+; STENCIL x,y,vblock
+;       Draw the image data stored in vblock to the screen, with its upper-left pixel at (x, y)
+; TEXT x, y, message, color [, font_addr]
+;       Print the message on the pixmap with the upper left corner of the message at (x,y).
+;       Optional: take the characters from the font at font_addr in video memory
+
+;; Sprite
+; SPRITE number,lut,layer,vblock
+;       Set up a sprite, specifying it's color LUT, rendering layer, and the video block containing its pixel data
+; SPRITELOC sprite,x,y
+;       Move the sprite so it's upper-left corner is at (x, y)
+; SPRITESHOW number,boolean
+;       Control whether or not the sprite is visible
+; COLLISION%(number)
+;       Check to see if the sprite is colliding with another object
+
+;; Tile
+; TILESET number,lut,address,striding
+;       Set up a tileset, specifying its color LUT, and the video block containing its pixel data
+;       striding = 
+; SETTILE number,column,row,tile
+;       Set which tile to display at position (column, row) in the tileset
+; TILESCROLL number,x,y
+;       Set the horizontal and vertical scrolling of the tileset
+; TILESHOW number,visible
+;       Set whether or not the given tileset is visible
 
 ;
 ; Set the time on the real time clock
