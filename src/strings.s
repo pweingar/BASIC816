@@ -19,14 +19,14 @@ TEMPSTRING  .proc
             PHP
 
             setxl
-            setas               ; Set STRPTR to the next available page
+            setas               ; Set INDEX next free byte after the string
             STZ STRPTR
-            LDA NEXTVAR+1
+            LDA LASTLINE+1
             INC A
             INC A
             STA STRPTR+1
             setas
-            LDA NEXTVAR+2
+            LDA LASTLINE+2
             STA STRPTR+2
 
             CMP HEAP+2          ; Check the bank see if the there is a heap collision
