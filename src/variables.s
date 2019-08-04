@@ -3,6 +3,7 @@
 ;;;
 
 .section globals
+NEXTVAR         .long ?         ; Pointer to the the next available byte for variable bindings
 VARIABLES       .long ?         ; Pointer to the most recently allocated variable
 TOFIND          .long ?         ; Pointer to the variable name to find
 TOFINDTYPE      .byte ?         ; The type to find
@@ -23,12 +24,22 @@ INITVARS        .proc
 
                 setdp <>GLOBAL_VARS
                 setal
-                STZ VARIABLES
+                STZ VARIABLES           ; Clear the pointer to the variables
                 STZ TOFIND
                 setas
                 STZ VARIABLES+2
                 STZ TOFIND+2
                 STZ TOFINDTYPE
+
+                setal
+                CLC                     ; Compute the position of the first variable
+                LDA LASTLINE
+                ADC #LINE_TOKENS
+                STA NEXTVAR
+                setas
+                LDA LASTLINE+2
+                ADC #0
+                STA NEXTVAR+2
 
                 PLP
                 RETURN
@@ -276,6 +287,64 @@ done            PLP
                 .pend
 
 ;
+; Allocate a variable binding
+;
+; Inputs:
+;   HEAP = pointer to the next available byte on the heap
+;   NEXTVAR = pointer to next possible spot for a variable binding
+;
+; Outputs:
+;   NEXTVAR = pointer to next possible spot for a variable binding
+;   CURRBLOCK = pointer to the newly allocated variable
+;
+; Affects:
+;   INDEX
+;
+VAR_ALLOC       .proc
+                PHP
+                TRACE "VAR_ALLOC"
+
+                setal
+                CLC                     ; Compute extent of the binding
+                LDA NEXTVAR
+                ADC #size(BINDING)
+                STA INDEX
+                setas
+                LDA NEXTVAR+2
+                ADC #0
+                STA INDEX+2
+
+                ; Verify there is room
+
+                CMP HEAP+2              ; Check to see if HEAP > INDEX
+                BLT has_room
+
+                setal
+                LDA INDEX
+                CMP HEAP
+                BLT has_room
+
+                THROW ERR_RANGE         ; No... heap and variables have collided.
+
+has_room        setal
+                LDA NEXTVAR             ; Yes: we can allocate the variable
+                STA CURRBLOCK           ; Point CURRBLOCK to it
+                setas
+                LDA NEXTVAR+2
+                STA CURRBLOCK+2
+
+                setal
+                LDA INDEX               ; And point NEXTVAR to the next possible spot
+                STA NEXTVAR
+                setas
+                LDA INDEX+2
+                STA NEXTVAR+2
+
+                PLP
+                RETURN
+                .pend
+
+;
 ; Create a new variable and bind a value to it
 ; This can shadow a previous binding.
 ;
@@ -298,9 +367,7 @@ VAR_CREATE      .proc
                 THROW ERR_TYPE
 
 alloc_binding   setxl
-                LDX #size(BINDING)  ; Get space for the binding
-                LDA #TYPE_BINDING   ; And the type
-                CALL ALLOC
+                CALL VAR_ALLOC      ; Allocate the binding for the variable
 
                 setaxl              ; Point INDEX to the NAME field of the variable
                 CLC
