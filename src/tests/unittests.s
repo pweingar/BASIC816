@@ -182,6 +182,7 @@ continue        PLX
 ;
 UT_BEGIN        .macro  ; name
                 PHP
+                setdp GLOBAL_VARS
                 setxl
                 LDX #<>TESTNAME
                 PHB

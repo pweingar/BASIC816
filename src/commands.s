@@ -21,8 +21,6 @@ CMD_NEW         .proc
 
                 setaxl
 
-                CALL CLRINTERP              ; Set the interpreter state to the default
-
                 LD_L LASTLINE,BASIC_BOT     ; Delete all lines
 
                 setaxl
@@ -33,6 +31,8 @@ CMD_NEW         .proc
                 STA [LASTLINE],Y
                 LDY #LINE_TOKENS
                 STA [LASTLINE],Y
+
+                CALL CLRINTERP              ; Set the interpreter state to the default
 
                 PLD
                 PLP

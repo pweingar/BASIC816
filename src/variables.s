@@ -32,7 +32,7 @@ INITVARS        .proc
                 STZ TOFINDTYPE
 
                 setal
-                CLC                     ; Compute the position of the first variable
+                SEC                     ; Compute the position of the first variable
                 LDA LASTLINE
                 ADC #LINE_TOKENS
                 STA NEXTVAR

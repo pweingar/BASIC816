@@ -862,7 +862,9 @@ DELLINE     .proc
 
             CALL MVPROGDN           ; Move the block of memory down
 
-done        PLP
+done        CALL S_CLR              ; Deleting a line resets variables
+
+            PLP
             RETURN
             .pend
 
@@ -932,6 +934,8 @@ blank_loop  STA [LASTLINE],Y    ; Set the "line" after the last line to nulls
             INY
             CPY #LINE_TOKENS+1
             BNE blank_loop
+
+            CALL S_CLR          ; Adding a line resets variables
 
             PLP
             RETURN
@@ -1089,7 +1093,9 @@ copy_loop   LDA [CURLINE],Y     ; Get the byte of the tokenized line
             INY
             BRA copy_loop       ; Otherwise, continue with the next
 
-done        PLP
+done        CALL S_CLR          ; Inserting a line resets variables
+
+            PLP
             RETURN
             .pend
 

@@ -759,6 +759,8 @@ VAR_I           .null "I%"
 TST_FINDLINE    .proc
                 UT_BEGIN "TST_FINDLINE"
 
+                setdp GLOBAL_VARS
+
                 CALL INITBASIC
 
                 LD_L CURLINE,LINE10
