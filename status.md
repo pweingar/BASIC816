@@ -10,7 +10,7 @@
     1. [ ] PUTC
     1. [ ] LOCATE
 1. [ ] Flesh out division for other systems
-1. [ ] Implement the garbage collector
+1. [X] Implement the garbage collector
 1. [ ] Implement floating points
 1. [ ] Update screen.s scrolling once DMA is available
 1. [ ] Update screen.s scrolling to work with multiple text screen sizes

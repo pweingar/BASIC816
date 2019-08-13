@@ -370,7 +370,6 @@ terminate   setal
 STRCPY      .proc
             PHP
             PHD
-            PHB
 
             TRACE "STRCPY"
 
@@ -405,7 +404,9 @@ loop        LDA [ARGUMENT1],Y       ; Copy the data to the allocated string
             INY
             BRA loop
 
-ret_copy    LDA INDEX               ; And return the pointer to the allocated string
+ret_copy    TRACE "/STRCPY"
+
+            LDA INDEX               ; And return the pointer to the allocated string
             STA ARGUMENT1
             LDA INDEX+1
             STA ARGUMENT1+1
@@ -414,5 +415,7 @@ ret_copy    LDA INDEX               ; And return the pointer to the allocated st
             LDA #0
             STA ARGUMENT1+3
 
+            PLD
+            PLP
             RETURN
             .pend

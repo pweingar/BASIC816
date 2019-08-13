@@ -1,0 +1,167 @@
+I'm trying to sort out what statements/commands will be useful for BASIC to have to support the C256 well.
+Here is a quick proposal on some possbilities. Please let me know what you think.
+
+One big open I've got... I was thinking it would be nice to have some sort of data type to represent a block
+of video memory. The idea would be that you could load an image into a variable and use that variable when
+you wanted to draw or set up a tile map or a sprite, etc. I've not been able to come up with a suitable
+abstraction though. So, here I'm just referring to VBLOCKs which are just <UINT_24> pointers into video memory.
+The programmer would be responsible for managing how video memory is used and for finding the correct address
+for doing VCOPY operations or setting the pixmap for tilesets or sprites.
+
+NOTES:
+
+1. Unless specified otherwise, all color values are the index number into the appropriate LUT.
+2. All addresses are given from the perspective of the CPU's address space. Where Vicky (or any other component)
+   requires a different reference point, BASIC will take care of transforming the address automatically.
+
+## Graphics Statements
+
+SETFGCOLOR <UINT_8> index
+      Set the foreground color for text mode operations
+
+SETBGCOLOR <UINT_8> index
+      Set the background color for text mode operations
+
+SETBRDCOLOR <UINT_8>red, <UINT_8> green, <UINT_8> blue
+      Set the border color given the red, green, and blue component values (0 - 255)
+
+SETLUTCOLOR <UINT_8> lut, <UINT_8> index, <UINT_8> red, <UINT_8> green, <UINT_8> blue, <UINT_8> alpha
+      Set the RGBA value for the given index of a given color LUT. LUT values are:
+          0 = graphics LUT 0
+          1 = graphics LUT 1
+          2 = graphics LUT 2
+          3 = graphics LUT 3
+          4 = graphics LUT 4
+          5 = graphics LUT 5
+          6 = graphics LUT 6
+          7 = graphics LUT 7
+          8 = text foreground LUT
+          9 = text background LUT
+          10 = gamma correction LUT
+
+GRAPHICS show_text,show_sprites,show_tiles,show_pixmap,gamma
+      Control which graphics blocks are enabled:
+          show_text = text system is showing (overlay if any other block is enabled)
+          show_sprites = sprite system is enabled
+          show_tiles = tile map system is enabled
+          show_pixmap = bitmap / pixelmap graphics enabled
+          gamma = enable gamma correction
+
+VCOPY <UINT_24> dest_addr, <UINT_24> src_addr, <UINT_24> length
+          Copy length <UINT_8>s of video memory from src_addr to dest_addr
+          NOTE: VCOPY will pause execution if a Vicky is already busy with a VDMA operation.
+              Otherwise, it will return immediately while the copy happens in the background.
+
+VCOPY <UINT_24> dest_addr, <UINT_8> dest_stride, <UINT_24> src_addr, <UINT_8> src_stride, <UINT_16> width, <UINT_16> height
+          Copy a block of video memory from src_addr to dest_addr
+              dest_addr = the address of the first <UINT_8> to write (must be within video RAM)
+              src_addr = the address of the first <UINT_8> to read (must be within video RAM)
+              width = the number of pixels horizontally to copy
+              height = the number of pixels vertically to copy
+              dest_stride = the number of <UINT_8>s to skip between rows in the destination block
+              src_stride = the number of <UINT_8>s to skip between rows in the source block
+          NOTE: VCOPY will pause execution if a Vicky is already busy with a VDMA operation.
+              Otherwise, it will return immediately while the copy happens in the background.
+
+PLOT <UINT_16> x, <UINT_16> y, <UINT_8> color
+      Set the color of the pixel at (x, y)
+
+LINE <UINT_16> x0, <UINT_16> y0, <UINT_16> x1, <UINT_16> y1, <UINT_8> color
+      Draw a line from (x0, y0) to (x1, y1) in the specified color
+
+BOX <UINT_16> x0, <UINT_16> y0, <UINT_16> x1, <UINT_16> y1, <UINT_8> color, <BOOLEAN> filled
+      Draw a box with corners (x0, y0) and (x1, y1) in the specified color. Optionally fill it.
+
+CIRCLE <UINT_16> x0, <UINT_16> y0, <UINT_16> x1, <UINT_16> y1, <UINT_8> color, <BOOLEAN> filled
+      Draw an ellipse inscribing a box with corners (x0, y0) and (x1, y1) in the specified color. Optionally fill it.
+
+STENCIL <UINT_16> x, <UINT_16> y, <UINT_24> vblock, <UINT_16> width, <UINT_16> height
+      Draw the image data stored in vblock to the screen, with its upper-left pixel at (x, y) and the given
+      width and height.
+
+TEXT <UINT_16> x, <UINT_16> y, <STRING> message, <UINT_8> color [, <UINT_24> font_addr]
+      Print the message on the pixmap with the upper left corner of the message at (x,y).
+      Optional: take the characters from the font at font_addr in video memory
+
+SPRITE <UINT_8> sprite, <UINT_8> lut, <UINT_8> layer, <UINT_24> vblock
+      Set up a sprite, specifying it's color LUT, rendering layer, and the video block containing its pixel data
+
+SPRITELOC <UINT_8> sprite, <UINT_16> x, <UINT_16> y
+      Move the sprite so it's upper-left corner is at (x, y)
+
+SPRITESHOW <UINT_8> sprite, <BOOLEAN> visible
+      Control whether or not the sprite is visible
+
+COLLISION%(<UINT_8> sprite) --> <UINT_16>
+      Check to see if the sprite is colliding with another object
+      NOTE: I'm not sure exactly what this would return... <BOOLEAN> is probably not enough, but
+      will it be able to return flags to indicate what in particular it's colliding with?
+
+TILESET <UINT_8> tileset, <UINT_8> lut, <UINT_24> address, <UINT_8> striding
+      Set up a tileset, specifying its color LUT, and the video block containing its pixel data.
+      NOTE: I'm not exactly sure what striding will really mean here.
+ 
+SETTILE <UINT_8> tileset, <UINT_16> column, <UINT_16> row, <UINT_8> tile
+      Set which tile to display at position (column, row) in the tileset
+
+TILESCROLL <UINT_8> tileset, <UINT_16> x, <UINT_16> y
+      Set the horizontal and vertical scrolling of the tileset
+
+TILESHOW <UINT_8> tileset, <BOOLEAN> visible
+      Set whether or not the given tileset is visible
+
+## Date/Time
+
+NOTE: these statements and functions are already implemented.
+
+SETDATE <UINT_8> day, <UINT_8> month, <UINT_8> year
+      Sets the date on the RTC.
+
+SETTIME <UINT_8> hour, <UINT_8> minute, <UINT_8> second
+      Sets the time on the RTC (in 24-hour format).
+
+GETDATE$(x) --> <STRING>
+      Gets the date from the RTC in "DD/MM/YY" format.
+      The input parameter is ignored and may be anything.
+
+GETTIME$(x)
+      Gets the time from the RTC in "HH:MM:SS", 24-hour format.
+      The input parameter is ignored and may be anything.
+
+## Extensions
+
+NOTE: this portion is very speculative. I want to have a mechanism where the user can
+add to the BASIC commands easily to add on features they may need for their program without
+having to hack the interpreter. The idea I'm currently playing with is to have an "extension"
+token which would flag the next byte as a user defined token. The mechanism I'm currently
+considering is something where a binary file would be generated by an assembler or compiler
+containing an extension token table, mapping extension tokens to the routines to interpet them
+as well as the actual text of the token. Although, to allow for multiple extensions to be loaded,
+the actual token code would be assigned by the interpreter. The binary would also contain a pointer
+to a routine to do any sort of initialization house-keeping the extensions require.
+
+USE <STRING> path
+      Loads a binary file as an extension to the BASIC language.
+      Code in the binary file should be relocatable, since BASIC will attempt to load it
+      into convenient memory area. The entire exension should also fit within 64KB of memory,
+      since pointers in the header will be 16-bit relative offsets.
+
+      The binary file format would be along the lines of:
+
+      STARTUP           .word ?     ; Offset to the initialization code for these extensions. $0000 if none present
+
+      ; Token table...
+
+      TOKEN_TYPE_1      .byte ?     ; The type of the token: statement, operator, command, function, punctuation
+      TOKEN_PREC_1      .byte ?     ; For operators, the precedence of the operator. Lower number means higher precedence.
+      TOKEN_NAME_1      .word ?     ; Offset to an ASCII-Z <STRING> for the text of the first token
+      TOKEN_EVAL_1      .word ?     ; Offset to the sub-routine used to evaluate the token
+
+      ; ... Repeats for as many tokens as the extension needs... 
+
+      END_OF_TOKENS     .byte 0     ; Nulls to signify the end of the token table
+                        .byte 0
+                        .word 0
+                        .word 0
+
+      ; Hereafter, the binary contains the code for the extensions, laid out however the coder wants it.

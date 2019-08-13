@@ -311,12 +311,12 @@ count_loop  LDA [BIP],Y         ; Get the character
             INY
             BRA count_loop
 
-found_end   INY
-            STY SCRATCH         ; Save the length to SCRATCH
+found_end   STY SCRATCH         ; Save the length to SCRATCH
 
             setas
             LDA #TYPE_STRING    ; Set the type to allocate to STRING
             LDX SCRATCH         ; And the length to the length of the string literal
+            INX
             CALL ALLOC          ; And allocate the string
 
             LDY #0
@@ -575,6 +575,7 @@ proc_stack  LDX OPERATORSP      ; Is the operator stack empty?
 
             ; We found a string... read it
 is_string   CALL EVALSTRING     ; Get the pointer to the evaluated string
+            TRACE "/EVALSTRING"
             LDX #<>ARGUMENT1
             CALL PHARGUMENT     ; And push it to the argument stack
             JMP get_char

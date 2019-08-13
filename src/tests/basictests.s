@@ -15,9 +15,15 @@
 .include "functests.s"
 .include "optests.s"
 
+.section globals
+TST_TEMP1       .dword ?
+TST_TEMP2       .dword ?
+TST_TEMP3       .dword ?
+.send
+
 TST_BASIC       .proc
-                CALL TST_EVAL
                 CALL TST_HEAP
+                CALL TST_EVAL
                 CALL TST_STRINGS
                 ;CALL TST_FLOATS
                 CALL TST_VARIABLES

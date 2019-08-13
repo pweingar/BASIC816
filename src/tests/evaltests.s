@@ -459,6 +459,8 @@ TST_EVAL_STR    .proc
 
                 CALL EVALEXPR
 
+                TRACE "/EVALEXPR"
+
                 UT_M_EQ_LIT_B ARGTYPE1,TYPE_STRING,"EXPECTED STRING"
                 LDARG_EA ARGUMENT2,EXPECTED,TYPE_STRING
                 CALL STRCMP

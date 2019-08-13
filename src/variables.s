@@ -237,11 +237,13 @@ set_index       setal                   ; Otherwise, set INDEX := SCRATCH
                 STA INDEX+2
                 BRA check_binding       ; And check this next variable for a match
 
-not_found       PLP
+not_found       TRACE "Not Found"
+                PLP
                 CLC
                 RETURN
 
-found           PLP
+found           TRACE_L "Found",INDEX
+                PLP
                 SEC
                 RETURN
                 .pend
@@ -360,16 +362,16 @@ VAR_CREATE      .proc
                 TRACE "VAR_CREATE"
 
                 setas
-                LDA ARGTYPE1        ; Validate that our types match
+                LDA ARGTYPE1            ; Validate that our types match
                 CMP TOFINDTYPE
                 BEQ alloc_binding
 
                 THROW ERR_TYPE
 
 alloc_binding   setxl
-                CALL VAR_ALLOC      ; Allocate the binding for the variable
+                CALL VAR_ALLOC          ; Allocate the binding for the variable
 
-                setaxl              ; Point INDEX to the NAME field of the variable
+                setaxl                  ; Point INDEX to the NAME field of the variable
                 CLC
                 LDA CURRBLOCK
                 ADC #BINDING.NAME
@@ -379,7 +381,7 @@ alloc_binding   setxl
                 ADC #0
                 STA INDEX+2
 
-                LDY #0              ; Ensure that the name field is blank
+                LDY #0                  ; Ensure that the name field is blank
                 LDA #0
 blank_loop      STA [INDEX],Y
                 INY
@@ -387,7 +389,7 @@ blank_loop      STA [INDEX],Y
                 BNE blank_loop
 
                 LDY #0
-name_loop       LDA [TOFIND],Y      ; Copy TOFIND to the NAME field
+name_loop       LDA [TOFIND],Y          ; Copy TOFIND to the NAME field
                 BEQ set_type
                 CALL TOUPPERA
                 CALL ISVARCHAR
@@ -398,12 +400,8 @@ name_loop       LDA [TOFIND],Y      ; Copy TOFIND to the NAME field
                 CPY #VAR_NAME_SIZE
                 BNE name_loop
 
-set_type        LDY #BINDING.TYPE   ; Set the type of the variable
-                LDA ARGTYPE1
-                STA [CURRBLOCK],Y
-
-                setal
-                LDY #BINDING.VALUE  ; Copy the value to the variable
+set_type        setal
+                LDY #BINDING.VALUE      ; Copy the value to the variable
                 LDA ARGUMENT1
                 STA [CURRBLOCK],Y
                 LDA ARGUMENT1+2
@@ -411,7 +409,7 @@ set_type        LDY #BINDING.TYPE   ; Set the type of the variable
                 INY
                 STA [CURRBLOCK],Y
 
-                LDA VARIABLES       ; Point NEXT to the current top of variables
+                LDA VARIABLES           ; Point NEXT to the current top of variables
                 LDY #BINDING.NEXT
                 STA [CURRBLOCK],Y
                 INY
@@ -420,15 +418,36 @@ set_type        LDY #BINDING.TYPE   ; Set the type of the variable
                 LDA VARIABLES+2
                 STA [CURRBLOCK],Y
 
-                setal               ; Point VARIABLES to the new variable
+                setal                   ; Point VARIABLES to the new variable
                 LDA CURRBLOCK
                 STA VARIABLES
                 setas
                 LDA CURRBLOCK+2
                 STA VARIABLES+2
 
-                PLP
+                setas
+                LDY #BINDING.TYPE       ; Set the type of the variable
+                LDA ARGTYPE1
+                STA [CURRBLOCK],Y
+                CMP #TYPE_STRING        ; Is it a string?
+                BEQ set_ref             ; Yes: add a reference count to it
+
+done            PLP
                 RETURN
+
+                ; This type of data is heap allocated...
+                ; Increase its reference count
+set_ref         setal
+                LDA ARGUMENT1           ; Flag that we have a new reference to the a heap allocated value
+                STA CURRBLOCK
+                setas
+                LDA ARGUMENT1+2
+                STA CURRBLOCK+2
+
+                CALL HEAP_GETHED
+                CALL HEAP_ADDREF
+
+                BRA done
                 .pend
 
 ;
@@ -459,7 +478,12 @@ use_find        CALL VAR_FIND
 use_create      CALL VAR_CREATE
                 BRA done
 
-found           setaxl
+found           setas
+                LDA ARGTYPE1
+                CMP #TYPE_STRING
+                BEQ set_ref
+
+set_val         setaxl
                 LDY #BINDING.VALUE
                 LDA ARGUMENT1
                 STA [INDEX],Y
@@ -468,8 +492,42 @@ found           setaxl
                 LDA ARGUMENT1+2
                 STA [INDEX],Y
 
-done            PLP
+done            TRACE "/VARSET" 
+
+                PLP
                 RETURN
+
+                ; This variable is of a heap allocated type
+                ; Dereference the old value and (maybe) add a reference to the ne
+set_ref         LDY #BINDING.VALUE      ; Set CURRBLOCK to the current string value
+                LDA [INDEX],Y
+                STA CURRBLOCK
+                INY
+                INY
+                setas
+                LDA [INDEX],Y
+                STA CURRBLOCK+2
+
+                CALL HEAP_GETHED
+                CALL HEAP_REMREF        ; And dereference it
+
+                setas
+                LDA ARGTYPE1            
+                CMP #TYPE_STRING        ; Is the new value a string?
+                BEQ add_ref             ; Yes: add a reference to it
+                BRA set_val             ; No: go back to set the value... this probably shouldn't happen
+
+add_ref         setal
+                LDA ARGUMENT1           ; Flag that we have a new reference to the new string value
+                STA CURRBLOCK
+                setas
+                LDA ARGUMENT1+2
+                STA CURRBLOCK+2
+
+                CALL HEAP_GETHED
+                CALL HEAP_ADDREF
+
+                BRA set_val
                 .pend
 
 ;
@@ -525,7 +583,7 @@ is_integer      CALL INCBIP         ; Skip over the type symbol
 
 is_string       CALL INCBIP         ; Skip over the type symbol
                 LDA #TYPE_STRING
-set_type        STA TOFINDTYPE              
+set_type        STA TOFINDTYPE
                 PLP
                 SEC
                 RETURN

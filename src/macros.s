@@ -247,6 +247,15 @@ MOVE_L      .macro dest,src
             STA \1+2
             .endm
 
+; Move a quadword (32 bit) value from address src to address dest
+MOVE_Q      .macro dest,src
+            setal
+            LDA \2
+            STA \1
+            LDA \2+2
+            STA \1+2
+            .endm
+
 LD_L        .macro dest,value
             setal
             LDA #<>\2
@@ -254,4 +263,46 @@ LD_L        .macro dest,value
             setas
             LDA #`\2
             STA \1+2
+            .endm
+
+; Load indirect long: dest := [[src] + offset]
+LD_ind_L    .macro dest,src,offset
+            setal
+            LDY #\offset
+            LDA [\src],Y
+            STA \dest
+            setas
+            INY
+            INY
+            LDA [\src],Y
+            STA \dest+2
+            .endm
+
+; Add two long variables
+ADD_L       .macro ; dest,src1,src2
+            setal
+            CLC
+            LDA \2
+            ADC \3
+            STA \1
+            setas
+            LDA \2+2
+            ADC \3+2
+            STA \1+2
+            .endm
+
+; Branch to dest if src1 < src2 (24-bit comparison)
+BLT_L       .macro dest,src1,src2
+            setas
+            LDA \src1+2
+            CMP \src2+2
+            BLT do_branch
+
+            setal
+            LDA \src2
+            CMP \src1
+            BGE continue
+
+do_branch   JMP \dest
+continue
             .endm

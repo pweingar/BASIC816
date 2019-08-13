@@ -270,6 +270,76 @@ VAR_A           .null "abc%"
 VAR_B           .null "B%"
                 .pend
 
+; Test that we can assign the same variable twice
+TST_VAR_REPEAT  .proc
+                UT_BEGIN "TST_VAR_REPEAT"
+
+                ; Create the variable
+                setdp <>GLOBAL_VARS
+
+                CALL INITBASIC
+
+                setal
+                LDA #<>VAR_A
+                STA TOFIND
+                setas
+                LDA #`VAR_A
+                STA TOFIND+2
+
+                LDA #TYPE_STRING
+                STA TOFINDTYPE
+                STA ARGTYPE1
+
+                LDARG_EA ARGUMENT1,MESSAGE,TYPE_STRING
+                CALL STRCPY
+
+                CALL VAR_SET
+
+                TRACE "SET A$"
+
+                ; Try to set the new value
+ 
+                setal
+                LDA #<>VAR_A
+                STA TOFIND
+                setas
+                LDA #`VAR_A
+                STA TOFIND+2
+
+                LDA #TYPE_STRING
+                STA TOFINDTYPE
+                STA ARGTYPE1
+
+                LDARG_EA ARGUMENT1,MESSAGE2,TYPE_STRING
+                CALL STRCPY
+
+                CALL VAR_SET
+
+                TRACE "SET A$ AGAIN" 
+
+                setal
+                LDA #<>VAR_A
+                STA TOFIND
+                setas
+                LDA #`VAR_A
+                STA TOFIND+2
+
+                LDA #TYPE_STRING
+                STA TOFINDTYPE
+                STA ARGTYPE1    
+
+                CALL VAR_REF            ; Try to get the result
+
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_STRING,"EXPECTED STRING"
+                MOVE_Q TST_TEMP1,ARGUMENT1
+                UT_STRIND_EQ TST_TEMP1,MESSAGE2,"EXPECTED 'Goodbye'"
+
+                UT_END
+VAR_A           .null "A$"
+MESSAGE         .null "Hello"
+MESSAGE2        .null "Goodbye"
+                .pend
+
 ;
 ; Run all the evaluator tests
 ;
@@ -278,6 +348,7 @@ TST_VARIABLES   .proc
                 CALL TST_VAR_LOOKUP
                 CALL TST_VAR_SET
                 CALL TST_VAR_MULTI
+                CALL TST_VAR_REPEAT
 
                 UT_LOG "TST_VARIABLES: PASSED"
                 RETURN
