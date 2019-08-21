@@ -14,6 +14,7 @@
 .include "variabletests.s"
 .include "functests.s"
 .include "optests.s"
+.include "arraytests.s"
 
 .section globals
 TST_TEMP1       .dword ?
@@ -32,6 +33,7 @@ TST_BASIC       .proc
                 CALL TST_OPS
                 CALL TST_STMNTS
                 CALL TST_FUNCS
+                CALL TST_ARRAY
 
                 UT_LOG "TST_BASIC: PASSED"
                 RETURN

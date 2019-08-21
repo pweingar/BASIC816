@@ -111,7 +111,8 @@ ERRORMSG    .word <>MSG_OK
             .word <>MSG_NOLINE
             .word <>MSG_UNDFLOW
             .word <>MSG_OVRFLOW
-            .word <>MSG_MEMORY
+            .word <>MSG_RANGE
+            .word <>MSG_ARG
 
 MSG_AT      .null " at"
 
@@ -124,6 +125,8 @@ MSG_NOTFND  .null "Variable not found"
 MSG_NOLINE  .null "Line number not found"
 MSG_UNDFLOW .null "Stack underflow"
 MSG_OVRFLOW .null "Stack overflow"
+MSG_RANGE   .null "Out of range"
+MSG_ARG     .null "Illegal argument"
             .pend
 
 ;

@@ -28,6 +28,7 @@
 .include "commands.s"
 .include "variables.s"
 .include "floats.s"
+.include "arrays.s"
 
 .include "monitor.s"
 
@@ -83,5 +84,5 @@ INITBASIC   .proc
 .send
 
 .section data
-GREET       .null "Welcome to BASIC816 v0.0 (2019-08-13) for the C256 Foenix",13
+GREET       .null "Welcome to BASIC816 v0.0 (2019-08-20) for the C256 Foenix",13
 .send

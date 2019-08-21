@@ -79,8 +79,36 @@ RETURN      .macro
             RTS
             .endm
 
-;;
-;; Calling convention #2
+;
+; Allocate SIZE bytes of storage on the stack for local variables
+; and link the DP register to point to the locals
+;
+LOCALS      .macro size
+            PHP
+            setal
+            CLC
+            TSC
+            ADC #\size
+            TCS
+            PHD
+            INC A
+            TCD
+            .endm
+
+;
+; Restore the DP register to the value saved to the stack
+; and deallocate the local storage
+;
+CLEANUP     .macro size
+            setal
+            PLD
+            TSC
+            SEC
+            SBC #\size
+            TCS
+            PLP
+            .endm
+
 ;;
 ;; This style saves the stack pointer prior to pushing arguments and
 ;; prior to setting up the stack frame onto the stack. This is more
@@ -124,7 +152,7 @@ LINK        .macro ; size   (28 clocks, 15 bytes)
             TCD             ; 2
             .endm
 
-UNLINK      .macro          ; 18 clocks, 8 bytes
+UNLINK2     .macro          ; 18 clocks, 8 bytes
             setal           ; 3
             LDA #2,D        ; 4 - Restore old SP
             TCS             ; 2
@@ -133,7 +161,7 @@ UNLINK      .macro          ; 18 clocks, 8 bytes
             PLP
             .endm
 
-CLEAN       .macro          ; 7 clocks, 2 bytes
+CLEAN2      .macro          ; 7 clocks, 2 bytes
             PLA             ; 5
             TCS             ; 2
             .endm
