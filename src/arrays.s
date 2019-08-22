@@ -31,6 +31,8 @@ PARAM_D0 = 5    ; Offset to the first dimensions's size on the stack
                 PHP
                 TRACE "ARR_ALLOC"
 
+                CALL HEAP_GETHED
+
                 ; Compute the size of the block needed
                 setal
                 LDA #1                      ; ARGUMENT1 := 1
@@ -116,11 +118,54 @@ copy_loop       setas
                 LDA @l0,X                   ; ARGUMENT2 := Ith dimension
                 STA [CURRBLOCK],Y           ; And write the dimension to the array's preamble
                 CPY MCOUNT                  ; Have we written the last byte?
-                BEQ done                    ; Yes: return to caller
+                BEQ null_array              ; Yes: clear the array
 
                 INX                         ; No: move to the next byte
                 INY
                 BRA copy_loop
+
+null_array      setas
+                SEC                         ; INDEX := pointer to first value
+                LDA CURRBLOCK
+                ADC [CURRBLOCK]
+                STA INDEX
+                LDA CURRBLOCK+1
+                ADC #0
+                STA INDEX+1
+                LDA CURRBLOCK+2
+                ADC #0
+                STA INDEX+2
+                STZ INDEX+3
+
+                setal
+                LDY #HEAPOBJ.END            ; SCRATCH := pointer the the first byte after the array
+                LDA [CURRHEADER],Y
+                STA SCRATCH
+                setas
+                INY
+                INY
+                LDA [CURRHEADER],Y
+                STA SCRATCH+2
+                STZ SCRATCH+3
+
+clr_loop        setas
+                LDA #0
+                STA [INDEX]                 ; Clear the byte
+
+                setal
+                CLC                         ; Increment INDEX
+                LDA INDEX
+                ADC #1
+                STA INDEX
+                LDA INDEX+2
+                ADC #0
+                STA INDEX+2
+
+                CMP SCRATCH+2               ; INDEX == SCRATCH?
+                BNE clr_loop                ; No: write to this next byte
+                LDA INDEX
+                CMP SCRATCH
+                BNE clr_loop
 
 done            TRACE "/ARR_ALLOC"
                 PLP
@@ -177,17 +222,18 @@ dims_match      CMP #1                  ; Check to see if this array is one dime
 
                 LDY #1                  
 index_loop      setas
+
                 LDA @l0,X               ; ARGUMENT1 := I_j
                 STA ARGUMENT1
+                STZ ARGUMENT1+1
                 STZ ARGUMENT1+2
                 STZ ARGUMENT1+3
-                STZ ARGUMENT1+4
 
                 LDA [CURRBLOCK],Y       ; ARGUMENT2 := D_j
                 STA ARGUMENT2
+                STZ ARGUMENT2+1
                 STZ ARGUMENT2+2
                 STZ ARGUMENT2+3
-                STZ ARGUMENT2+4
 
                 ; Check that the index is within bounds
                 LDA ARGUMENT1
