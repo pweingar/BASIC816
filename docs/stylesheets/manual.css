@@ -1,0 +1,29 @@
+BODY {
+    font-family: Arial, Helvetica, sans-serif;
+    margin-left: 5em;
+    margin-right: 5em;
+}
+
+.command {
+    font-family: Consolas, Courier;
+}
+
+.statement {
+    font-family: Consolas, Courier;
+}
+
+.keyword {
+    font-family: Consolas, Courier;
+}
+
+.arg {
+    font-style: italic;
+}
+
+code {
+    font-family: Consolas, Courier;    
+}
+
+pre {
+    font-family: Consolas, Courier;
+}

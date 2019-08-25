@@ -6,6 +6,112 @@
 .include "C256/statements_c256.s"
 .endif
 
+; Call a machine language subroutine. Return from subroutines must be long (RTL)
+; CALL address [,a_value [,x_value [,y_value]]]
+S_CALL          .proc
+                PHP
+                TRACE "S_CALL"
+
+                CALL EVALEXPR       ; Get the address
+
+                ; TODO: Convert float to integer
+                setas
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_err
+
+                LDA #$5C            ; Set the opcode for JML
+                STA MJUMPINST
+                setal               ; Set the JML address to the argument
+                LDA ARGUMENT1
+                STA MJUMPADDR
+                setas
+                LDA ARGUMENT1+2
+                STA MJUMPADDR+2
+
+                ; TODO: add support for setting registers
+
+                JSL MJUMPINST       ; Call the subroutine indicated
+
+                PLP
+                RETURN
+type_err        THROW ERR_TYPE
+                .pend
+
+; Dimmension an array DIM A(i_0, i_1, ... i_n)
+S_DIM           .proc
+                PHP
+                TRACE "S_DIM"
+
+                setas
+
+                CALL SKIPWS
+
+                CALL VAR_FINDNAME   ; Try to find the variable name
+                BCC syntax_err      ; If we didn't get a variable, throw a syntax error
+
+                LDA #TOK_LPAREN     ; Verify we have a left parenthesis
+                CALL EXPECT_TOK
+
+                LDA #TOK_FUNC_OPEN  ; Push the "operator" marker for the start of the function
+                CALL PHOPERATOR
+
+                LDX #1
+
+                LDA #0
+                STA @lTEMPBUF       ; Set the dimension count to 0
+
+dim_loop        CALL EVALEXPR       ; Evaluate the count
+                CALL ASS_ARG1_INT16 ; Make sure it is an integer
+
+                setal
+                LDA ARGUMENT1
+                STA @lTEMPBUF,X     ; And store it in the buffer
+
+                setas
+                LDA @lTEMPBUF       ; Add to the dimension count
+                INC A
+                STA @lTEMPBUF
+                BMI overflow        ; If > 127 throw an error
+
+                INX
+                INX
+
+                CALL SKIPWS         ; Skip any whitespace
+                LDA [BIP]           ; Check the character
+                CMP #','            ; Is it a comma?
+                BEQ skip_comma      ; Yes: get the next dimension
+                CMP #TOK_RPAREN     ; No: is it a ")"?
+                BNE syntax_err      ; No: throw a syntax error
+
+                CALL INCBIP         ; Yes: we're done... skip the parenthesis
+
+                CALL ARR_ALLOC      ; Allocate the array
+
+                setal
+                LDA CURRBLOCK       ; Set up the pointer to the array
+                STA ARGUMENT1
+                setas
+                LDA CURRBLOCK+2
+                STA ARGUMENT1+2
+                STZ ARGUMENT1+3
+
+                LDA TOFINDTYPE      ; Get the type of the values
+                ORA #$80            ; Make sure we change the type to array
+                STA TOFINDTYPE      ; And save it back for searching
+                STA ARGTYPE1        ; And for the value to set
+
+                CALL VAR_SET        ; And set the variable
+
+                PLP
+                RETURN
+skip_comma      CALL INCBIP
+                JMP dim_loop
+
+syntax_err      THROW ERR_SYNTAX
+overflow        THROW ERR_ARGUMENT
+                .pend
+
 ; Read data from data statements
 ; READ variable, variable, ...
 S_READ          .proc

@@ -358,6 +358,35 @@ return_false    PLP
                 .pend
 
 ;
+; Assert that ARGUMENT1 contains an integer. Throw a type mismatch error.
+;
+; TODO: if ARGUMENT1 is a float, convert it to an integer
+;
+; Inputs:
+;   ARGUMENT1
+;
+ASS_ARG1_INT16  .proc
+                PHP
+                TRACE "ASS_ARG1_INT16"
+
+                setas
+                LDA ARGTYPE1            ; Verify that the type is INTEGER
+                CMP #TYPE_INTEGER
+                BNE TYPE_ERR
+
+                setal
+                LDA ARGUMENT1+2         ; Validate it is 16-bit
+                BNE range_err
+
+                TRACE "/ASS_ARG1_INT16"
+                PLP
+                RETURN
+
+TYPE_ERR        THROW ERR_TYPE
+RANGE_ERR       THROW ERR_RANGE
+                .pend
+
+;
 ; Assert that ARGUMENT1 contains a byte. Throw a type mismatch error if it is not an
 ; integer and a range error if it is not between 0 and 255.
 ;

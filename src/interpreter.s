@@ -455,6 +455,39 @@ ret_false   PLP
             .pend
 
 ;
+; Set A to the next available non-whitespace
+;
+; NOTE: the BIP will not be changed by this call
+;
+; Inputs:
+;   BIP = pointer to the byte to start scanning from
+;
+; Outputs:
+;   A = the token found (0 for EOL or end-of-statement)
+;
+PEEK_TOK    .proc
+            PHY
+
+            setas
+            LDY #0
+            
+loop        LDA [BIP],Y
+            BEQ done
+            CMP #':'
+            BEQ ret_null
+            CMP #CHAR_SP
+            BNE done
+
+            INY
+            BRA loop
+
+ret_null    LDA #0
+
+done        PLY
+            RETURN
+            .pend
+
+;
 ; Execute a statement or command
 ;
 ; Inputs:

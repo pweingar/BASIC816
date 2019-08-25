@@ -16,20 +16,16 @@
 ;
 ; Allocate an array
 ;
-; NOTE: the caller is expected to clean its parameters from the stack
-;
 ; Inputs:
 ;   TOFINDTYPE = the type of the array contents
-;   Stack = points to list of dimension sizes with n at the top, d_n below it and so on
+;   TEMPBUF = list of dimension sizes with n at TEMPBUF+0, d_0 at TEMPBUF + 1, d_1 at at TEMPBUF + 3, and so on
 ;
 ; Outputs:
 ;   CURRBLOCK = the array allocated
 ;
 ARR_ALLOC       .proc
-PARAM_N = 4     ; Offset in the stack to the number of dimensions
-PARAM_D0 = 5    ; Offset to the first dimensions's size on the stack
                 PHP
-                TRACE "ARR_ALLOC"
+                TRACE "ARR_ALLOC"               
 
                 CALL HEAP_GETHED
 
@@ -41,26 +37,22 @@ PARAM_D0 = 5    ; Offset to the first dimensions's size on the stack
                 STA ARGUMENT1+2
 
                 setas
-                LDA PARAM_N,S
+                LDA @lTEMPBUF
                 setal
                 AND #$00FF
+                STA MCOUNT                  ; Save it to MCOUNT for later
                 TAY                         ; Y := number of dimensions
 
-                CLC
-                TSC
-                ADC #PARAM_D0
-                TAX                         ; X := 16-bit pointer to size 0
-
-size_loop       setas
-                LDA @l0,X                   ; ARGUMENT2 := Ith dimension
+                LDX #1                      ; X := index to size 0                    
+size_loop       setal
+                LDA @lTEMPBUF,X             ; ARGUMENT2 := Ith dimension
                 STA ARGUMENT2
                 LDA #0
-                STA ARGUMENT2+1
                 STA ARGUMENT2+2
-                STA ARGUMENT2+3
 
                 CALL OP_MULTIPLY            ; ARGUMENT1 := ARGUMENT1 * Ith dimension
 
+                INX
                 INX
                 DEY
                 BNE size_loop               ; If there are more dimensions, take the next one
@@ -74,16 +66,20 @@ size_loop       setas
                 CALL OP_MULTIPLY            ; ARGUMENT1 := size of the data area of the array
 
                 setas
+                LDA @lTEMPBUF               ; SCRATCH := N * 2
+                STA SCRATCH
+                LDA #0
+                STA SCRATCH+1
+                setal
+                ASL SCRATCH
+
                 SEC                         ; ARGUMENT1 := size of the complete block
                 LDA ARGUMENT1
-                ADC PARAM_N,S               ; Size of data area + N + 1 (in carry)
+                ADC SCRATCH                 ; Size of data area + N*2 + 1 (in carry)
                 STA ARGUMENT1
-                LDA ARGUMENT1+1
-                ADC #0
-                STA ARGUMENT1+1
-                setal
                 LDA ARGUMENT1+2
                 ADC #0
+                STA ARGUMENT1+2
                 BNE too_big                 ; size > 16-bit? Yes: throw an error        
 
                 ; Allocate the block
@@ -98,31 +94,22 @@ size_loop       setas
                 ; Copy the dimensions to the block
 
                 setas
-                LDA PARAM_N,S
+                LDA @lTEMPBUF
                 STA [CURRBLOCK]             ; Write the number of dimensions to the array's preamble
 
-                STA MCOUNT                  ; And write it as 16-bit to COUNT
-                LDA #0
-                STA MCOUNT+1
-
-                setal
-                TSC                         ; X := offset to N on the stack
-                CLC
-                ADC #PARAM_D0
-                TAX
-
-                TRACE "2"
-
                 LDY #1
+                LDX #0
 copy_loop       setas
-                LDA @l0,X                   ; ARGUMENT2 := Ith dimension
+                LDA @lTEMPBUF+1,X           ; ARGUMENT2 := Ith dimension
                 STA [CURRBLOCK],Y           ; And write the dimension to the array's preamble
-                CPY MCOUNT                  ; Have we written the last byte?
+                CPX MCOUNT                  ; Have we written the last byte?
                 BEQ null_array              ; Yes: clear the array
 
                 INX                         ; No: move to the next byte
                 INY
                 BRA copy_loop
+
+too_big         THROW ERR_RANGE             ; Size is too big
 
 null_array      setas
                 SEC                         ; INDEX := pointer to first value
@@ -170,8 +157,6 @@ clr_loop        setas
 done            TRACE "/ARR_ALLOC"
                 PLP
                 RETURN
-
-too_big         THROW ERR_RANGE             ; Size is too big
                 .pend
 
 ;
@@ -179,14 +164,12 @@ too_big         THROW ERR_RANGE             ; Size is too big
 ;
 ; Inputs:
 ;   CURRBLOCK = pointer to the array to access
-;   Stack = points to list of indexes with n at the top, d_n below it and so on   
+;   TEMPBUF = list of dimension sizes with n at TEMPBUF+0, d_0 at TEMPBUF + 1, d_1 at at TEMPBUF + 3, and so on
 ;
 ; Outputs:
 ;   INDEX = pointer to the value in the array
 ;
 ARR_CELL        .proc
-PARAM_N = 12    ; Offset in the stack to the number of dimensions
-PARAM_D0 = 13   ; Offset to the first dimensions's size on the stack
                 PHP
                 TRACE "ARR_CELL"
 
@@ -197,16 +180,11 @@ PARAM_D0 = 13   ; Offset to the first dimensions's size on the stack
                 STZ INDEX+2
 
                 setas
-                LDA PARAM_N,S           ; MCOUNT := N (number of dimensions)
-                setal
-                AND #$00FF
+                LDA @lTEMPBUF           ; MCOUNT := N (number of dimensions)
                 STA MCOUNT
                 STZ MCOUNT+1
 
-                CLC
-                TSC
-                ADC #PARAM_D0
-                TAX                     ; X := 16-bit pointer to size 0
+                LDX #1                  ; X := index to dimension 0
 
                 setas
                 LDA [CURRBLOCK]         ; Make sure the dimensions of the array
@@ -223,7 +201,7 @@ dims_match      CMP #1                  ; Check to see if this array is one dime
                 LDY #1                  
 index_loop      setas
 
-                LDA @l0,X               ; ARGUMENT1 := I_j
+                LDA @lTEMPBUF,X         ; ARGUMENT1 := I_j
                 STA ARGUMENT1
                 STZ ARGUMENT1+1
                 STZ ARGUMENT1+2
@@ -252,6 +230,7 @@ index_loop      setas
                 STA INDEX+2
 
                 INX
+                INX
                 INY
 
                 CPY MCOUNT              ; Are we on the last index?
@@ -260,7 +239,7 @@ index_loop      setas
 add_last        setas                   ; Yes: just add its index to the total
 
                 CLC
-                LDA @l0,X               ; INDEX := INDEX + I_(n-1)
+                LDA @lTEMPBUF,X         ; INDEX := INDEX + I_(n-1)
                 STA MCOUNT+1
                 ADC INDEX
                 STA INDEX
@@ -315,7 +294,7 @@ range_err       THROW ERR_RANGE         ; Throw an exception for index out-of-ra
 ; Inputs:
 ;   ARGUMENT1 = value to assign
 ;   CURRBLOCK = pointer to the array to access
-;   Stack = points to list of indexes with n at the top, i_n below it and so on   
+;   TEMPBUF = list of dimension sizes with n at TEMPBUF+0, d_0 at TEMPBUF + 1, d_1 at at TEMPBUF + 3, and so on
 ;
 ARR_SET         .proc
                 PHP
@@ -369,7 +348,7 @@ type_mismatch   THROW ERR_TYPE      ; Throw a type mismatch error
 ;
 ; Inputs:
 ;   CURRBLOCK = pointer to the array to access
-;   Stack = points to list of indexes with n at the top, i_n below it and so on  
+;   TEMPBUF = list of dimension sizes with n at TEMPBUF+0, d_0 at TEMPBUF + 1, d_1 at at TEMPBUF + 3, and so on 
 ;
 ; Outputs:
 ;   ARGUMENT1 = the value of array(i_0, i_1, ... i_n)

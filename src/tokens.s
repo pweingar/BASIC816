@@ -745,6 +745,8 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "READ", TOK_TY_STMNT, 0, S_READ, 0
             DEFTOK "DATA", TOK_TY_STMNT, 0, S_DATA, 0
             DEFTOK "RESTORE", TOK_TY_STMNT, 0, S_RESTORE, 0
+            DEFTOK "DIM", TOK_TY_STMNT, 0, S_DIM, 0
+            DEFTOK "CALL", TOK_TY_STMNT, 0, S_CALL, 0
 
             ; More operators I forgot
             DEFTOK "<=", TOK_TY_OP, 4, OP_LTE, 0

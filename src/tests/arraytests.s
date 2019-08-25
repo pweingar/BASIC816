@@ -12,17 +12,13 @@ TST_ARRALLOC    .proc
                 LDA #TYPE_INTEGER
                 STA TOFINDTYPE
 
-                LDA #10
-                PHA
                 LDA #1
-                PHA
+                STA TEMPBUF
+                setal
+                LDA #10
+                STA TEMPBUF+1
 
                 CALL ARR_ALLOC
-
-                PLA
-                UT_A_EQ_LIT_B 1,"Expected POP 1 = 1"
-                PLA
-                UT_A_EQ_LIT_B 10,"Expected POP 2 = 10"
 
                 ; Validate the type
                 setxl
@@ -40,10 +36,10 @@ TST_ARRALLOC    .proc
                 UT_A_EQ_LIT_B 10,"Expected D_0 = 10"
 
                 setal
-                SEC                         ; SCRATCH := CURRHEADER->END - 42
+                SEC                         ; SCRATCH := CURRHEADER->END - 43 (4 bytes per value, 1 for N, 2 for D_0)
                 LDY #HEAPOBJ.END            ; This _should_ be the same as CURRBLOCK
                 LDA [CURRHEADER],Y          ; Since each of the 10 values is 4 bytes, plus 2 bytes for the dimension preamble
-                SBC #42
+                SBC #43
                 STA TST_TEMP1
                 setas
                 INY
@@ -68,76 +64,50 @@ TST_ARRSETREF1  .proc
                 LDA #TYPE_INTEGER
                 STA TOFINDTYPE
 
+                LDA #1
+                STA @lTEMPBUF
+                setal
                 LDA #2
-                PHA
-                LDA #1
-                PHA
+                STA @lTEMPBUF+1
 
-                CALL ARR_ALLOC      ; Allocate the array
+                CALL ARR_ALLOC      ; Allocate the array DIM x(2)
 
-                setas
-                PLA                 ; Clean the stack
-                PLA
 
+                setal
                 LDA #0              ; Index will be 0
-                PHA
-                LDA #1
-                PHA
+                STA @lTEMPBUF+1
 
                 LDARG_EA ARGUMENT1,$1234,TYPE_INTEGER   ; Value will be $1234
 
                 CALL ARR_SET        ; x(0) := $1234
 
-                setas
-                PLA                 ; Validate we haven't screwed up the stack
-                UT_A_EQ_LIT_B 1,"Expected POP 1 = 1"
-                PLA
-                UT_A_EQ_LIT_B 0,"Expected POP 2 = 0"
-
+                setal
                 LDA #1              ; Index will be 1
-                PHA
-                LDA #1
-                PHA
+                STA @lTEMPBUF+1
 
                 LDARG_EA ARGUMENT1,$5678,TYPE_INTEGER   ; Value will be $5678
 
                 CALL ARR_SET        ; x(1) := $5678
 
-                setas
-                PLA
-                PLA
-
                 ; Verify reads
 
+                setal
                 LDA #0              ; Index will be 0
-                PHA
-                LDA #1
-                PHA
+                STA @lTEMPBUF+1
 
                 CALL ARR_REF        ; ARGUMENT1 := x(0)
 
                 UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
                 UT_M_EQ_LIT_W ARGUMENT1,$1234,"EXPECTED $1234"
 
-                setas
-                PLA                 ; Validate we haven't screwed up the stack
-                UT_A_EQ_LIT_B 1,"Expected POP 3 = 1"
-                PLA
-                UT_A_EQ_LIT_B 0,"Expected POP 4 = 0"
-
+                setal
                 LDA #1              ; Index will be 1
-                PHA
-                LDA #1
-                PHA
+                STA @lTEMPBUF+1
 
                 CALL ARR_REF        ; ARGUMENT1 := x(1)
 
                 UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
                 UT_M_EQ_LIT_W ARGUMENT1,$5678,"EXPECTED $5678"
-
-                setas
-                PLA
-                PLA
 
                 UT_END
                 RETURN
@@ -153,98 +123,115 @@ TST_ARR2D       .proc
                 LDA #TYPE_INTEGER
                 STA TOFINDTYPE
 
-                LDA #3
-                PHA
-                LDA #3
-                PHA
+                setas
                 LDA #2
-                PHA
+                STA TEMPBUF
+                setal
+                LDA #3
+                STA TEMPBUF+1
+                STA TEMPBUF+3
 
                 CALL ARR_ALLOC      ; Allocate the array
 
                 setas
-                PLA                 ; Clean the stack
-                PLA
-                PLA
-
-                LDA #0              ; Index will be (0, 0)
-                PHA
-                PHA
                 LDA #2
-                PHA
+                STA TEMPBUF
+                setal
+                LDA #0              ; Index will be 0, 0
+                STA TEMPBUF+1
+                STA TEMPBUF+3
 
                 LDARG_EA ARGUMENT1,$1234,TYPE_INTEGER   ; Value will be $1234
 
                 CALL ARR_SET        ; x(0,0) := $1234
 
                 setas
-                PLA                 ; Validate we haven't screwed up the stack
-                UT_A_EQ_LIT_B 2,"Expected POP 1 = 2"
-                PLA
-                UT_A_EQ_LIT_B 0,"Expected POP 2 = 0"
-                PLA
-                UT_A_EQ_LIT_B 0,"Expected POP 3 = 0"
-
-                LDA #1              ; Index will be (1, 1)
-                PHA
-                PHA
                 LDA #2
-                PHA
+                STA TEMPBUF
+                setal
+                LDA #1              ; Index will be 0, 0
+                STA TEMPBUF+1
+                STA TEMPBUF+3
 
                 LDARG_EA ARGUMENT1,$5678,TYPE_INTEGER   ; Value will be $5678
 
                 CALL ARR_SET        ; x(1,1) := $5678
 
-                setas
-                PLA
-                PLA
-                PLA
-
                 ; Verify reads
 
-                LDA #0              ; Index will be (0, 0)
-                PHA
-                PHA
+                setas
                 LDA #2
-                PHA
+                STA TEMPBUF
+                setal
+                LDA #0              ; Index will be 0, 0
+                STA TEMPBUF+1
+                STA TEMPBUF+3
 
                 CALL ARR_REF        ; ARGUMENT1 := x(0,0)
 
                 UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
                 UT_M_EQ_LIT_W ARGUMENT1,$1234,"EXPECTED $1234"
 
-                setas
-                PLA                 ; Validate we haven't screwed up the stack
-                UT_A_EQ_LIT_B 2,"Expected POP 4 = 2"
-                PLA
-                UT_A_EQ_LIT_B 0,"Expected POP 5 = 0"
-                PLA
-                UT_A_EQ_LIT_B 0,"Expected POP 6 = 0"
 
-                LDA #1              ; Index will be (1, 1)
-                PHA
-                PHA
+                setas
                 LDA #2
-                PHA
+                STA TEMPBUF
+                setal
+                LDA #1              ; Index will be 0, 0
+                STA TEMPBUF+1
+                STA TEMPBUF+3
 
                 CALL ARR_REF        ; ARGUMENT1 := x(1,1)
 
                 UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
                 UT_M_EQ_LIT_W ARGUMENT1,$5678,"EXPECTED $5678"
 
+                UT_END
+                RETURN
+                .pend
+
+; Validate the DIM statement works
+TST_ARRDIM      .proc
+                UT_BEGIN "TST_ARRDIM"
+
+                CALL INITBASIC
+
+                TSTLINE "10 DIM A%(2)"
+
+                CALL CMD_RUN
+
+                setal
+                LDA #<>ARR_A
+                STA TOFIND
+                LDA #`ARR_A
+                STA TOFIND+2
+
                 setas
-                PLA
-                PLA
-                PLA
+                LDA #TYPE_ARR_INTEGER
+                STA TOFINDTYPE
+                CALL VAR_REF            ; Try to get the result
+
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_ARR_INTEGER,"EXPECTED TYPE INTEGER ARRAY"
+
+                setas
+                LDA [ARGUMENT1]
+                UT_A_EQ_LIT_B 1,"EXPECTED DIMENSION = 1"
+
+                setaxl
+                LDY #1
+                LDA [ARGUMENT1],Y
+                UT_A_EQ_LIT_W 2,"EXPECTED SIZE_0 = 2"
 
                 UT_END
                 RETURN
+ARR_A           .null "A%"
                 .pend
 
 TST_ARRAY       .proc
                 CALL TST_ARRALLOC
                 CALL TST_ARRSETREF1
                 CALL TST_ARR2D
+                CALL TST_ARRDIM
 
                 UT_LOG "TST_ARRAY PASSED"
                 RETURN

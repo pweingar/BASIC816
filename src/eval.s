@@ -449,6 +449,7 @@ EVALEXPR    .proc
             setdbr `GLOBAL_VARS
 
             setxl
+            PHX
 
 get_char    setas
             LDA [BIP]           ; Get the character
@@ -587,6 +588,7 @@ is_alpha    CALL EVALREF        ; Attempt to evaluate the variable reference
             JMP get_char     
 
 done        TRACE "EVALEXPR DONE"
+            PLX
             PLP
             RETURN
             .pend

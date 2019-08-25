@@ -1,0 +1,367 @@
+<html>
+    <head>
+        <title>BASIC816 Manual</title>
+        <link rel="stylesheet" type="text/css" href="stylesheets/manual.css">
+    </head>
+    <body>
+        <div class="title">BASIC816 Manual</div>
+
+        <h1>Introduction</h1>
+
+        <p>
+            BASIC816 is an implementation of the BASIC programming language written custom
+            for the 65C816 processor from Western Design Center. It is a passion project attempting
+            to provide a nostalgic programming interface for computers using this processor. It was
+            originally written to support the C256 Foenix, a new retro-style computer built around
+            the 65C816, and it is designed to provide a simple interface to users of that computer.
+        </p>
+
+        <p>
+            The main goals of this implementation were:
+        </p>
+        <ul>
+            <li>Provide a version of BASIC that can run in the 65C816's native mode.</li>
+            <li>Allow users to write simple programs.</li>
+            <li>Allow users to access the main features of the C256.</li>
+            <li>Provide a nostalgic experience in keeping with home computers of the 70s and 80s.</li>
+            <li>Fit the whole thing into flash memory!</li>
+        </ul>
+
+        <p>
+            The following are anti-goals, in that these are things I specifically had no intention
+            of providing with BASIC816.
+        </p>
+        <ul>
+            <li>Be a high performance programming environment.</li>
+            <li>Reflect all the advances in computer science and programming languages since the 80s.</li>
+            <li>Be the only tool anyone would ever need on the C256.</li>
+        </ul>
+
+        <p>
+            As such, BASIC816 is a simple implementation of BASIC similar in scope and feel to the BASIC 
+            implementations used on the Commodore 64, the Apple II, or the Atari 8-bit computers.
+            I have added some structuring statements not found on the earlier versions of BASIC, but the
+            interpreter is still based on line numbers.
+        </p>
+
+        <h1>Basics of Using BASIC816</h1>
+
+        <p>
+            A BASIC program consists of one or more lines of text.
+            Each line must start with a line number and must have at least one statement.
+            A line may have more than one statement, but they must be separated by a colon (":").
+        </p>
+
+        <p>
+            A statement is a keyword or a key phrase which tells the interpreter to do something.
+            For example, the <a class="keyword" href="#print">PRINT</a> statement displays data on the
+            screen, and the <a class="keyword" href="#if">IF</a> statement checks a condition for a
+            true or false value and switches the flow of execution accordingly.
+        </p>
+
+        <p>
+            Many statements require one or more values to work. For example, the <a class="keyword" href="#if">IF</a>
+            statement requires a condition to check that is either true or false. These values are provided by
+            <i>expressions</i>. An expression is some phrase in BASIC that evaluates to some value. They can be as simple
+            as numbers like <code>123</code> or <code>3.14159</code>, or they can be more elaborate involving mathematical
+            operators or and functions. Expressions can have numerical values, but they can also have string values.
+        </p>
+
+        <h2>On Screen Editor</h2>
+
+        <p>
+            BASIC816 provides a simple screen editor for entering or changing your BASIC program.
+            If there is a line on the screen that you want to re-run or re-enter, maybe with adjustments, you can simply
+            move to the line using the arrow keys, make whatever changes you want to make, and press RETURN to have the
+            interpreter process that line.
+        </p>
+
+        <h1>Language</h1>
+
+        <h2>Commands</h2>
+
+        <p>
+            BASIC816 provides several commands. Commands are keywords that trigger some sort of function that is only
+            appropriate to be used interactively and not as part of a program. It is an error to try to use a command
+            as part of a program's code.
+        </p>
+
+        <h3 class="command"><a id="run">RUN</a></h3>
+
+        <p>
+            Start execution of a program.
+            Any variable definitions that were present before the program starts are cleared and all
+            data stored in memory is erased.
+        </p>
+
+        <h3 class="command"><a id="list">LIST [<span class="arg">start</span>] [- <span class="arg">end</span>]</a></h3>
+
+        <p>
+            Print a listing of the current program.
+            If <span class="arg">start</span> is provided, begin listing from the line with that number.
+            If <span class="arg">end</span> is provided, stop listing at the line with that number.
+            Otherwise, the listing will cover the entire program.
+        </p>
+
+        <h3 class="command"><a id="cont">CONT</a></h3>
+
+        <p>
+            Restart execution of a program if it has executed the <a class="keyword" href="#stop">STOP</a> statement.
+            Execution will continue with the very next statement after the STOP statement.
+        </p>
+
+        <h3 class="command"><a id="new">NEW</a></h3>
+
+        <p>
+            Erase any program currently in memory and clear out all defined variables.
+        </p>
+
+        <h2>Statements</h2>
+
+        <h3 class="statement"><a id="clr">CLR</a></h3>
+
+        <p>
+            Erase all variables that the program has previously defined.
+            All memory reserved for variables (<i>e.g.</i> arrays and strings) will return to the
+            interpreter and can later be reused by something else.
+        </p>
+
+        <h3 class="statement"><a id="cls">CLS</a></h3>
+
+        <p>
+            Clear the screen and move the text cursor to the home position on the screen.
+        </p>
+
+        <h3 class="statement"><a id="data">DATA <span class="arg">value</span> [<span class="arg">, value</span>] ...</a></h3>
+
+        <p>
+            Embed data into the program. The data is written as a comma-separated list of literal values.
+            Either numbers or strings may be used.
+        </p>
+
+        <h4>Example</h4>
+        <code>
+300 DATA 123, 34.6, "Hello"
+        </code>
+
+        <h3 class="statement"><a id="for">FOR <span class="arg">variable</span>
+            = <span class="arg">start</span>
+            TO <span class="arg">end</span>
+            [STEP <span class="arg">increment</span>]</a></h3>       
+            
+        <p>
+            Mark the beginning of a loop. Set <span class="arg">variable</span> to
+            <span class="arg">initial</span> and start executing the statements that follow.
+            When a <a class="keyword" href="#next">NEXT</a> statement is found, execution returns
+            to the <span class="keyword">FOR</span> statement, which will add 1 to the <span class="arg">variable</span>
+            or <span class="arg">increment</span>, if provided before executing the statements that
+            follow. When <span class="arg">variable</span> reaches <span class="arg">end</span>,
+            execution will move to the statement immediately after the <a class="keyword" href="#next">NEXT</a>.
+        </p>
+
+        <p>
+            The <span class="arg">variable</span> may be an integer or floating point variable.
+            The values <span class="arg">start</span> and <span class="arg">end</span> must be
+            compatible with the variable.
+        </p>
+
+        <h3 class="statement"><a id="goto">GOTO <span class="arg">linenum</span></a></h3> 
+        
+        <p>
+            Transfer execution from the current statement to the first statement of the line labeled
+            <span class="arg">linenum</span>. It is an error to try to <span class="keyword">GOTO</span>
+            to a line number that is not in the program.
+        </p>
+
+        <h3 class="statement"><a id="gosub">GOSUB <span class="arg">linenum</span></a></h3> 
+        
+        <p>
+            Call a subroutine in the BASIC program by transfering execution from the current statement to the first statement
+            of the line labeled <span class="arg">linenum</span>. It is an error to try to <span class="keyword">GOSUB</span>
+            to a line number that is not in the program. Execution can return to the statement right after the
+            <span class="keyword">GOSUB</span> by the <a href="#return" class="keyword">RETURN</a> statement.
+        </p>
+
+        <h3 class="statement"><a id="if">IF <span class="arg">test</span> THEN <span class="arg">linenum</span></a></h3> 
+
+        <p>
+            Evaluate the expression <span class="arg">test</span>, if result is true transfer execution to the first statement
+            on line <span class="arg">linenum</span>. If the result is false, execution of the program continues with the
+            statement immediately after the <span class="keyword">IF</span> statement.
+        </p>
+
+        <p>An expression is considered to be "false" if it is 0. Otherwise, it is considered to be "true".</p>
+
+        <h3 class="statement"><a id="let">[LET] <span class="arg">variable</span> = <span class="arg">value</span></a></h3>   
+        
+        <p>
+            Assign a <span class="arg">value</span> to a <span class="arg">variable</span>. The <span class="arg">variable</span>
+            may be a single value variable like a string, integer, or floating point variable, or it may be a reference to an
+            array element.
+        </p>
+
+        <h4>Examples</h4>
+
+        <pre>
+100 LET pi = 3.14159
+110 y%(1, 2)=3
+120 Name$ = "PJW"
+        </pre>
+
+        <h3 class="statement"><a id="next">NEXT</a></h3>
+
+        <p>
+            Close a <a class="statement" href="#for">FOR</a> loop.
+            Execution will return to the beginning of the loop, and the loop's variable will be updated.
+            If the variable reaches the specified end value, execution will instead continue to the statement
+            immediately after the <span class="keyword">NEXT</span> statement.
+        </p>
+
+        <h3 class="statement"><a id="poke">POKE <span class="arg">address</span>, <span class="arg">value</span></a></h3>
+
+        <p>
+            Store <span class="arg">value</span> to the memory location at <span class="arg">address</span>.
+            The expression <span class="arg">value</span> must evaluate to an integer from 0 - 256, inclusive.
+        </p>
+
+        <h3 class="statement"><a id="pokel">POKEL <span class="arg">address</span>, <span class="arg">value</span></a></h3>
+
+        <p>
+                Store <span class="arg">value</span> to the memory location at <span class="arg">address</span>.
+                The expression <span class="arg">value</span> must evaluate to an integer from 0 - 16,777,216, inclusive.
+                This is similar to <a href="#poke" class="keyword">POKE</a>, except that it supports a 24-bit or "long" value.
+        </p>
+
+        <h3 class="statement"><a id="pokew">POKEW <span class="arg">address</span>, <span class="arg">value</span></a></h3>
+
+        <p>
+                Store <span class="arg">value</span> to the memory location at <span class="arg">address</span>.
+                The expression <span class="arg">value</span> must evaluate to an integer from 0 - 65,536, inclusive.
+                This is similar to <a href="#poke" class="keyword">POKE</a>, except that it supports a 16-bit or "wide" value.        
+        </p>
+
+        <h3 class="statement"><a id="print">PRINT [<span class="arg">expression</span>][ , | ; ] ...</a></h3>
+
+        <p>
+            Displays information on the screen. There may be one or more <span class="arg">expressions</span> provided.
+            If there are more than one <span class="arg">expressions</span>, they must be separated by either a comma (",")
+            or a semi-colon (";"). If separated by a semicolon, they will be printed one immediately after the other. If
+            separated by a comma, they will be printed with a small amount of space (actually a TAB) between them.
+            The <span class="keyword">PRINT</span> statement may end with a semi-colon. Ordinarily, it will print a carriage
+            return after printing all the expressions, but if it ends with a semi-colon, it will not print the carriage return.
+        </p>
+
+        <p>
+            A <span class="keyword">PRINT</span> statement with no expressions will just print a carriage return.
+        </p>
+
+        <h3 class="statement"><a id="read">READ <span class="arg">variable</span> [, <span class="arg">variable</span>] ...</a></h3>
+
+        <p>
+            Get the next value out of the <a class="keyword" href="#data">DATA</a> statements and assign that value
+            to the variable. There is a sort of "cursor" that indicates which value will be read. When the program
+            starts, that cursor starts at the first value of the first <a class="keyword" href="#data">DATA</a> statement
+            in the program. The cursor advances one value for each variable read.
+        </p>
+
+        <p>
+            It is an error to try to read a value if the variable it would go in is not the correct type.
+            Reading a number into a string or a string into an integer or floating point variable.
+            Likewise, trying to read a floating point number that is not an integer into an integer variable
+            is an error.
+        </p>
+
+        <p>It is also an error to attempt to read if there are no more values left.</p>
+
+        <h3 class="statement"><a id="rem">REM <span class="arg">comment</span></a></h3>
+
+        <p>
+            Inserts a comment or remark into the program. All characters on the line after the <span class="keyword">REM</span>
+            statement are ignored by the interpreter.
+        </p>
+
+        <h3 class="statement"><a id="restore">RESTORE</a></h3>
+
+        <p>
+            Reset the <a class="keyword" href="#data">DATA</a> cursor to the first value of the first
+            <a class="keyword" href="#data">DATA</a> statement in the program.
+        </p>
+
+        <h3 class="statement"><a id="return">RETURN</a></h3>   
+
+        <p>
+            Return from a subroutine. Execution will transfer to the statement immediately after the
+            <a href="#gosub">GOSUB</a> most recently executed.
+        </p>
+
+
+        <h3 class="statement"><a id="stop">STOP</a></h3>
+
+        <p>
+            Stops execution of the program in such a way that the user can restart it with the
+            <a class="keyword" href="#cont">CONT</a> statement.
+        </p>
+
+        <h2>Functions</h2>
+
+        <h1>Monitor</h1>
+
+        <h1>C256 Additions</h1>
+
+        <h2>Statements</h2>
+
+        <h3 class="statement"><a id="setbrdcolor">SETBRDCOLOR <span class="arg">red</span>,
+            <span class="arg">green</span>,
+            <span class="arg">blue</span></a></h3>
+
+        <p>
+            Set the color of the border, given <span class="arg">red</span>, <span class="arg">green</span>, <span class="arg">blue</span>
+            components. Each component must be an integer from 0 - 255, inclusive.
+        </p>    
+        
+        <h3 class="statement"><a id="setbgcolor">SETBGCOLOR <span class="arg">index</span></a></h3>
+
+        <p>
+            Set the background color to use for text to be printed.
+            The color is specified as an <span class="arg">index</span> from 0 - 15 inclusive into the text background color LUT.
+            This statement will not change the color of text already printed. It just changes the color to be used
+            for future <a class="keyword" href="#print">PRINT</a> statements.
+        </p>   
+
+        <h3 class="statement"><a id="setfgcolor">SETFGCOLOR <span class="arg">index</span></a></h3>
+
+        <p>
+            Set the foreground color to use for text to be printed.
+            The color is specified as an <span class="arg">index</span> from 0 - 15 inclusive into the text foreground color LUT.
+            This statement will not change the color of text already printed. It just changes the color to be used
+            for future <a class="keyword" href="#print">PRINT</a> statements.
+        </p>   
+
+        <h3 class="statement"><a id="setdate">SETDATE <span class="arg">day</span>,
+            <span class="arg">month</span>,
+            <span class="arg">year</span>
+        </a></h3>
+
+        <p>
+            Set the date on the built-in real time clock.
+            <span class="arg">day</span> must be an integer from 1 - 31 inclusive.
+            <span class="arg">month</span> must be an integer from 1 - 12 inclusive.
+            <span class="arg">year</span> must be an integer from 0 - 99 inclusive.
+        </p>   
+
+        <h3 class="statement"><a id="settime">SETTIME <span class="arg">hour</span>,
+            <span class="arg">minute</span>,
+            <span class="arg">second</span>
+        </a></h3>
+
+        <p>
+            Set the time on the built-in real time clock.
+            <span class="arg">hour</span> must be an integer from 0 - 23 inclusive.
+            <span class="arg">minute</span> must be an integer from 0 - 59 inclusive.
+            <span class="arg">second</span> must be an integer from 0 - 59 inclusive.
+        </p>  
+
+        <h1>Extending BASIC816</h1>
+
+    </body>
+</html>
