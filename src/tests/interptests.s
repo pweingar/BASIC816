@@ -1036,9 +1036,9 @@ EXPECTED        .text "10 A%=1",13
 ; Run all the evaluator tests
 ;
 TST_INTERP      .proc
-                CALL TST_PRINT
-                CALL TST_PRINTEGER
-                CALL TST_TOK_LET
+                ; CALL TST_PRINT
+                ; CALL TST_PRINTEGER
+                ; CALL TST_TOK_LET
                 CALL TST_LET_IMPLIED
                 CALL TST_APPLINE
                 CALL TST_DELLINE

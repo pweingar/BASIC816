@@ -36,6 +36,7 @@
 BASIC_BANK = $00            ; Memory bank for default purposes
 CODE_BANK = $17             ; Memory bank for the BASIC816 code
 
+ARRIDXBUF = $004D00         ; The array index buffer used for array references
 TEMPBUF = $004E00           ; Temporary buffer for string processing, etc.
 INPUTBUF = $004F00          ; Starting address of the line input buffer (one page)
 RETURN_BOT = $005000        ; Starting address of the return stack

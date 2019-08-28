@@ -59,19 +59,19 @@ S_DIM           .proc
                 LDX #1
 
                 LDA #0
-                STA @lTEMPBUF       ; Set the dimension count to 0
+                STA @lARRIDXBUF     ; Set the dimension count to 0
 
 dim_loop        CALL EVALEXPR       ; Evaluate the count
                 CALL ASS_ARG1_INT16 ; Make sure it is an integer
 
                 setal
                 LDA ARGUMENT1
-                STA @lTEMPBUF,X     ; And store it in the buffer
+                STA @lARRIDXBUF,X   ; And store it in the buffer
 
                 setas
-                LDA @lTEMPBUF       ; Add to the dimension count
+                LDA @lARRIDXBUF     ; Add to the dimension count
                 INC A
-                STA @lTEMPBUF
+                STA @lARRIDXBUF
                 BMI overflow        ; If > 127 throw an error
 
                 INX
@@ -974,16 +974,32 @@ S_LET           .proc
                 CALL INCBIP         ; Skip over the token
 
 get_name        CALL VAR_FINDNAME   ; Try to find the variable name
-                BCS else            ; If we didn't find a name, thrown an error
+                BCS check_array     ; If we didn't find a name, thrown an error
                 JMP syntax_err
 
-else            CALL SKIPWS         ; Scan for an "="
+check_array     TRACE "check_array"
+                setas
+                CALL PEEK_TOK       ; Look ahead to the next token
+                CMP #TOK_LPAREN     ; Is it a "("
+                BNE get_value       ; No: it's a scalar assignment, look for the "="
+
+                LDA #TOK_LPAREN
+                CALL EXPECT_TOK     ; Skip any whitespace before the open parenthesis
+
+                LDA #0
+                STA @lARRIDXBUF     ; Blank out the array index buffer
+                CALL ARR_GETIDX     ; Yes: get the array indexes
+
+get_value       CALL SKIPWS         ; Scan for an "="
+                TRACE "get_value"
+
                 setas
                 LDA [BIP]
                 CMP #TOK_EQ
-                BNE syntax_err      ; If not found: signal an syntax error
+                BEQ found_eq        ; If not found: signal an syntax error
+                JMP syntax_err
 
-                CALL INCBIP         ; Otherwise, skip over it
+found_eq        CALL INCBIP         ; Otherwise, skip over it
 
                 LDA TOFINDTYPE      ; Save the variable name for later
                 PHA                 ; (it will get over-written by variable references)
@@ -1005,15 +1021,36 @@ else            CALL SKIPWS         ; Scan for an "="
                 PLA
                 STA TOFINDTYPE
 
+                AND #$80            ; Is it an array we're setting?
+                BEQ set_scalar      ; No: do a scalar variable set
 
+                TRACE "set_array"
+                CALL VAR_FIND       ; Try to find the array
+                BCC notfound_err
+
+                setal
+                LDY #BINDING.VALUE
+                LDA [INDEX],Y       ; Save the pointer to the array to CURRBLOCK
+                STA CURRBLOCK
+                setas
+                INY
+                INY
+                LDA [INDEX],Y
+                STA CURRBLOCK+2
+
+                CALL ARR_SET        ; Yes: Set the value of the array cell
+                BRA done            ; and we're finished!
+
+set_scalar      TRACE "set_scalar"
                 CALL VAR_SET        ; Attempt to set the value of the variable
 
-                TRACE_L "S_LET DONE", BIP
+done            TRACE_L "S_LET DONE", BIP
 
                 PLP
                 RETURN
 
 syntax_err      THROW ERR_SYNTAX    ; Throw a syntax error
+notfound_err    THROW ERR_NOTFOUND  ; Throw variable name not found
                 .pend
 
 ; Print expressions to the screen

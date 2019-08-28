@@ -584,6 +584,18 @@ is_integer      CALL INCBIP         ; Skip over the type symbol
 is_string       CALL INCBIP         ; Skip over the type symbol
                 LDA #TYPE_STRING
 set_type        STA TOFINDTYPE
+
+                CALL PEEK_TOK       ; Check what the next non-space token is
+                CMP #TOK_LPAREN     ; Is it "("?
+                BNE done            ; No: we're done... it's just a scalar variable
+
+                TRACE "make array"
+
+                LDA TOFINDTYPE      ; Yes: this is an array reference
+                ORA #$80            ; ... turn on the "Array of..." bit
+                STA TOFINDTYPE
+
+done            TRACE "done"
                 PLP
                 SEC
                 RETURN

@@ -273,6 +273,60 @@ EVALNUMBER  .proc
             .pend
 
 ;
+; Build the array index buffer for array references and sets
+;
+; Inputs:
+;   BIP
+;   ARRIDXBUF
+;
+ARR_GETIDX  .proc
+            PHP
+            TRACE "ARR_GETIDX"
+
+            ; Build the array index buffer
+            setas
+            LDA #0
+            STA @lARRIDXBUF     ; Set the dimension to 0
+
+            LDX #1
+eval_index  CALL EVALEXPR       ; Evaluate the index
+            CALL ASS_ARG1_INT16 ; Make sure it works out to be an integer
+
+            setal
+            LDA ARGUMENT1       ; Save the index to the array index buffer
+            STA @lARRIDXBUF,X
+
+            setas
+            LDA @lARRIDXBUF     ; Increment the index count
+            INC A
+            BMI arg_err         ; If more than 127 dimensions, throw a range error
+            STA @lARRIDXBUF
+            INX
+            INX
+
+            CALL SKIPWS         ; Skip any whitespace
+
+            setas
+            LDA [BIP]           ; Check the next character
+            CMP #TOK_RPAREN     ; Is it ")"
+            BEQ clean_op        ; Yes: cleanup the argument stack
+            CMP #','            ; Is it a comma?
+            BNE syntax_err      ; No: throw a syntax error
+
+skip_comma  CALL INCBIP         ; Skip the comma
+            BRA eval_index      ; And grab the next index
+
+clean_op    CALL PLOPERATOR     ; Remove the open function marker
+            CALL INCBIP         ; Skip the trailing ")"
+            TRACE "/ARR_GETIDX"
+
+            PLP
+            RETURN
+syntax_err  THROW ERR_SYNTAX
+arg_err     THROW ERR_ARGUMENT
+            .pend
+
+;
 ; Attempt to evaluate a variable reference
 ;
 EVALREF     .proc
@@ -282,9 +336,28 @@ EVALREF     .proc
 get_name    CALL VAR_FINDNAME   ; Try to find the variable name
             BCC syntax_err      ; If we didn't find a name, thrown an error
 
-            CALL VAR_REF        ; Get the value of the variable
+            setas
+            LDA TOFINDTYPE      ; Check the type of the variable
+            AND #$80            ; Is it an array?
+            BNE is_array        ; Yes: look for the indexes
 
-            PLP
+            CALL VAR_REF        ; No: Get the value of the variable (scalar)
+            JMP done
+
+is_array    setas
+            LDA #TOK_LPAREN
+            CALL EXPECT_TOK     ; Skip any whitespace before the open parenthesis
+
+            LDA #TOK_FUNC_OPEN  ; Push the "operator" marker for the start of the function
+            CALL PHOPERATOR
+
+            ; Build the array index buffer
+            PHARRIDX            ; Save the previous array index buffer
+            CALL ARR_GETIDX
+            CALL ARR_REF        ; And grab the value from the array
+            PLARRIDX            ; Restore the old array index buffer
+
+done        PLP
             RETURN
 syntax_err  THROW ERR_SYNTAX
             .pend

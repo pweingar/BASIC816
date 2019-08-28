@@ -13,10 +13,10 @@ TST_ARRALLOC    .proc
                 STA TOFINDTYPE
 
                 LDA #1
-                STA TEMPBUF
+                STA ARRIDXBUF
                 setal
                 LDA #10
-                STA TEMPBUF+1
+                STA ARRIDXBUF+1
 
                 CALL ARR_ALLOC
 
@@ -65,17 +65,17 @@ TST_ARRSETREF1  .proc
                 STA TOFINDTYPE
 
                 LDA #1
-                STA @lTEMPBUF
+                STA @lARRIDXBUF
                 setal
                 LDA #2
-                STA @lTEMPBUF+1
+                STA @lARRIDXBUF+1
 
                 CALL ARR_ALLOC      ; Allocate the array DIM x(2)
 
 
                 setal
                 LDA #0              ; Index will be 0
-                STA @lTEMPBUF+1
+                STA @lARRIDXBUF+1
 
                 LDARG_EA ARGUMENT1,$1234,TYPE_INTEGER   ; Value will be $1234
 
@@ -83,7 +83,7 @@ TST_ARRSETREF1  .proc
 
                 setal
                 LDA #1              ; Index will be 1
-                STA @lTEMPBUF+1
+                STA @lARRIDXBUF+1
 
                 LDARG_EA ARGUMENT1,$5678,TYPE_INTEGER   ; Value will be $5678
 
@@ -93,7 +93,7 @@ TST_ARRSETREF1  .proc
 
                 setal
                 LDA #0              ; Index will be 0
-                STA @lTEMPBUF+1
+                STA @lARRIDXBUF+1
 
                 CALL ARR_REF        ; ARGUMENT1 := x(0)
 
@@ -102,7 +102,7 @@ TST_ARRSETREF1  .proc
 
                 setal
                 LDA #1              ; Index will be 1
-                STA @lTEMPBUF+1
+                STA @lARRIDXBUF+1
 
                 CALL ARR_REF        ; ARGUMENT1 := x(1)
 
@@ -125,21 +125,21 @@ TST_ARR2D       .proc
 
                 setas
                 LDA #2
-                STA TEMPBUF
+                STA ARRIDXBUF
                 setal
                 LDA #3
-                STA TEMPBUF+1
-                STA TEMPBUF+3
+                STA ARRIDXBUF+1
+                STA ARRIDXBUF+3
 
                 CALL ARR_ALLOC      ; Allocate the array
 
                 setas
                 LDA #2
-                STA TEMPBUF
+                STA ARRIDXBUF
                 setal
                 LDA #0              ; Index will be 0, 0
-                STA TEMPBUF+1
-                STA TEMPBUF+3
+                STA ARRIDXBUF+1
+                STA ARRIDXBUF+3
 
                 LDARG_EA ARGUMENT1,$1234,TYPE_INTEGER   ; Value will be $1234
 
@@ -147,11 +147,11 @@ TST_ARR2D       .proc
 
                 setas
                 LDA #2
-                STA TEMPBUF
+                STA ARRIDXBUF
                 setal
                 LDA #1              ; Index will be 0, 0
-                STA TEMPBUF+1
-                STA TEMPBUF+3
+                STA ARRIDXBUF+1
+                STA ARRIDXBUF+3
 
                 LDARG_EA ARGUMENT1,$5678,TYPE_INTEGER   ; Value will be $5678
 
@@ -161,11 +161,11 @@ TST_ARR2D       .proc
 
                 setas
                 LDA #2
-                STA TEMPBUF
+                STA ARRIDXBUF
                 setal
                 LDA #0              ; Index will be 0, 0
-                STA TEMPBUF+1
-                STA TEMPBUF+3
+                STA ARRIDXBUF+1
+                STA ARRIDXBUF+3
 
                 CALL ARR_REF        ; ARGUMENT1 := x(0,0)
 
@@ -175,11 +175,11 @@ TST_ARR2D       .proc
 
                 setas
                 LDA #2
-                STA TEMPBUF
+                STA ARRIDXBUF
                 setal
                 LDA #1              ; Index will be 0, 0
-                STA TEMPBUF+1
-                STA TEMPBUF+3
+                STA ARRIDXBUF+1
+                STA ARRIDXBUF+3
 
                 CALL ARR_REF        ; ARGUMENT1 := x(1,1)
 
@@ -227,11 +227,48 @@ TST_ARRDIM      .proc
 ARR_A           .null "A%"
                 .pend
 
+; Validate we can set and reference an array value
+TST_ARRSETREF   .proc
+                UT_BEGIN "TST_ARRSETREF"
+
+                CALL INITBASIC
+
+                TSTLINE "10 DIM A%(2)"
+                TSTLINE "20 A%(0) = 123"
+                TSTLINE "30 B% = A%(0)"
+
+                CALL CMD_RUN
+
+                TRACE "SET ARRAYS"
+
+                ; Validate B% = 123
+                setal
+                LDA #<>VAR_B
+                STA TOFIND
+                setas
+                LDA #`VAR_B
+                STA TOFIND+2
+
+                LDA #TYPE_INTEGER
+                STA TOFINDTYPE
+                STA ARGTYPE1    
+
+                CALL VAR_REF            ; Try to get the result
+
+                UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
+                UT_M_EQ_LIT_L ARGUMENT1,123,"EXPECTED 123"
+
+                UT_END
+                RETURN
+VAR_B           .null "B%"
+                .pend
+
 TST_ARRAY       .proc
                 CALL TST_ARRALLOC
                 CALL TST_ARRSETREF1
                 CALL TST_ARR2D
                 CALL TST_ARRDIM
+                CALL TST_ARRSETREF
 
                 UT_LOG "TST_ARRAY PASSED"
                 RETURN

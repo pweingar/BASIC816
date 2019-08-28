@@ -26,7 +26,7 @@
 1. [X] CLS
 1. [X] DATA
 1. [ ] DEF FN
-1. [ ] DIM
+1. [X] DIM
 1. [ ] DO loops
 1. [X] FOR / NEXT
 1. [ ] ON … GOTO

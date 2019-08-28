@@ -14,11 +14,68 @@
 ;;;
 
 ;
+; Macro to push the array index buffer to the stack
+;
+; After this operation, the byte at the top of the stack will be the
+; number of indexes pushed. The words on the stack after that will be
+; the indexes themselves.
+;
+; Affects:
+;   A, X, width of registers
+;
+PHARRIDX        .macro
+                setas
+                LDA @lARRIDXBUF
+                setaxl
+                AND #$00FF
+                ASL A
+                TAX                 ; And put the highest index in X
+
+loop            LDA @lARRIDXBUF+1,X ; The the Xth index
+                PHA                 ; Save it to the stack
+                DEX                 ; Go to the previous index
+                DEX
+                BPL loop            ; Keep looping until we roll over
+
+                setas
+                LDA @lARRIDXBUF     ; Get the size
+                PHA                 ; And save it to the stack               
+                .endm
+
+;
+; Macro to pull the array index buffer from the stack.
+;
+; The byte at the top of the stack should contain the number of indexes to pull
+; The words on the stack after that will be the indexes to pull.
+;
+; Affects:
+;   A, X, Y, width of registers
+;   Contents of ARRIDXBUF
+;
+PLARRIDX        .macro
+                setas
+                PLA                 ; Pull the size from the stack
+                STA @lARRIDXBUF     ; And restore it to the array index buffer
+
+                setaxl
+                AND #$00FF
+                TAY                 ; Put the count in Y
+                LDX #0              ; We'll start with the zero index
+
+loop            PLA                 ; Get the next index
+                STA @lARRIDXBUF+1,X ; Save it to the array index buffer
+                INX                 ; Move to the next index
+                INX
+                DEY
+                BNE loop            ; And keep looping until we are done
+                .endm
+
+;
 ; Allocate an array
 ;
 ; Inputs:
 ;   TOFINDTYPE = the type of the array contents
-;   TEMPBUF = list of dimension sizes with n at TEMPBUF+0, d_0 at TEMPBUF + 1, d_1 at at TEMPBUF + 3, and so on
+;   ARRIDXBUF = list of dimension sizes with n at ARRIDXBUF+0, d_0 at ARRIDXBUF + 1, d_1 at at ARRIDXBUF + 3, and so on
 ;
 ; Outputs:
 ;   CURRBLOCK = the array allocated
@@ -37,7 +94,7 @@ ARR_ALLOC       .proc
                 STA ARGUMENT1+2
 
                 setas
-                LDA @lTEMPBUF
+                LDA @lARRIDXBUF
                 setal
                 AND #$00FF
                 STA MCOUNT                  ; Save it to MCOUNT for later
@@ -45,7 +102,7 @@ ARR_ALLOC       .proc
 
                 LDX #1                      ; X := index to size 0                    
 size_loop       setal
-                LDA @lTEMPBUF,X             ; ARGUMENT2 := Ith dimension
+                LDA @lARRIDXBUF,X           ; ARGUMENT2 := Ith dimension
                 STA ARGUMENT2
                 LDA #0
                 STA ARGUMENT2+2
@@ -66,7 +123,7 @@ size_loop       setal
                 CALL OP_MULTIPLY            ; ARGUMENT1 := size of the data area of the array
 
                 setas
-                LDA @lTEMPBUF               ; SCRATCH := N * 2
+                LDA @lARRIDXBUF             ; SCRATCH := N * 2
                 STA SCRATCH
                 LDA #0
                 STA SCRATCH+1
@@ -94,13 +151,13 @@ size_loop       setal
                 ; Copy the dimensions to the block
 
                 setas
-                LDA @lTEMPBUF
+                LDA @lARRIDXBUF
                 STA [CURRBLOCK]             ; Write the number of dimensions to the array's preamble
 
                 LDY #1
                 LDX #0
 copy_loop       setas
-                LDA @lTEMPBUF+1,X           ; ARGUMENT2 := Ith dimension
+                LDA @lARRIDXBUF+1,X         ; ARGUMENT2 := Ith dimension
                 STA [CURRBLOCK],Y           ; And write the dimension to the array's preamble
                 CPX MCOUNT                  ; Have we written the last byte?
                 BEQ null_array              ; Yes: clear the array
@@ -164,7 +221,7 @@ done            TRACE "/ARR_ALLOC"
 ;
 ; Inputs:
 ;   CURRBLOCK = pointer to the array to access
-;   TEMPBUF = list of dimension sizes with n at TEMPBUF+0, d_0 at TEMPBUF + 1, d_1 at at TEMPBUF + 3, and so on
+;   ARRIDXBUF = list of dimension sizes with n at ARRIDXBUF+0, d_0 at ARRIDXBUF + 1, d_1 at at ARRIDXBUF + 3, and so on
 ;
 ; Outputs:
 ;   INDEX = pointer to the value in the array
@@ -180,7 +237,7 @@ ARR_CELL        .proc
                 STZ INDEX+2
 
                 setas
-                LDA @lTEMPBUF           ; MCOUNT := N (number of dimensions)
+                LDA @lARRIDXBUF         ; MCOUNT := N (number of dimensions)
                 STA MCOUNT
                 STZ MCOUNT+1
 
@@ -201,7 +258,7 @@ dims_match      CMP #1                  ; Check to see if this array is one dime
                 LDY #1                  
 index_loop      setas
 
-                LDA @lTEMPBUF,X         ; ARGUMENT1 := I_j
+                LDA @lARRIDXBUF,X       ; ARGUMENT1 := I_j
                 STA ARGUMENT1
                 STZ ARGUMENT1+1
                 STZ ARGUMENT1+2
@@ -239,7 +296,7 @@ index_loop      setas
 add_last        setas                   ; Yes: just add its index to the total
 
                 CLC
-                LDA @lTEMPBUF,X         ; INDEX := INDEX + I_(n-1)
+                LDA @lARRIDXBUF,X       ; INDEX := INDEX + I_(n-1)
                 STA MCOUNT+1
                 ADC INDEX
                 STA INDEX
@@ -294,7 +351,7 @@ range_err       THROW ERR_RANGE         ; Throw an exception for index out-of-ra
 ; Inputs:
 ;   ARGUMENT1 = value to assign
 ;   CURRBLOCK = pointer to the array to access
-;   TEMPBUF = list of dimension sizes with n at TEMPBUF+0, d_0 at TEMPBUF + 1, d_1 at at TEMPBUF + 3, and so on
+;   ARRIDXBUF = list of dimension sizes with n at ARRIDXBUF+0, d_0 at ARRIDXBUF + 1, d_1 at at ARRIDXBUF + 3, and so on
 ;
 ARR_SET         .proc
                 PHP
@@ -348,7 +405,7 @@ type_mismatch   THROW ERR_TYPE      ; Throw a type mismatch error
 ;
 ; Inputs:
 ;   CURRBLOCK = pointer to the array to access
-;   TEMPBUF = list of dimension sizes with n at TEMPBUF+0, d_0 at TEMPBUF + 1, d_1 at at TEMPBUF + 3, and so on 
+;   ARRIDXBUF = list of dimension sizes with n at ARRIDXBUF+0, d_0 at ARRIDXBUF + 1, d_1 at at ARRIDXBUF + 3, and so on 
 ;
 ; Outputs:
 ;   ARGUMENT1 = the value of array(i_0, i_1, ... i_n)
@@ -376,7 +433,7 @@ ARR_REF         .proc
                 LDA [INDEX]         ; Get the value in the cell
                 STA ARGUMENT1
                 LDY #2
-                LDA [INDEX]
+                LDA [INDEX],Y
                 STA ARGUMENT1+2
 
                 setas
