@@ -161,6 +161,88 @@ TST_ITOS        .proc
 EXPECTED1       .null " 123"
 EXPECTED2       .null "-5678"
                 .pend
+
+; Test that we can get various substrings
+TST_SUBSTR      .proc
+                UT_BEGIN "TST_SUBSTR"
+
+                setaxl
+
+                ; "Hello" := STRSUBSTR("Hello",0,5)
+                LD_Q ARGUMENT1,STRING1
+                LD_B ARGTYPE1,TYPE_STRING
+
+                LD_Q ARGUMENT2,0
+                LD_B ARGTYPE2,TYPE_INTEGER
+
+                LD_W MCOUNT,5
+                CALL STRSUBSTR
+
+                MOVE_L STRPTR,ARGUMENT1
+                UT_STRIND_EQ STRPTR,EXPECT1,"Expected Hello"
+
+                ; "Hel" := STRSUBSTR("Hello",0,3)
+                LD_Q ARGUMENT1,STRING1
+                LD_B ARGTYPE1,TYPE_STRING
+
+                LD_Q ARGUMENT2,0
+                LD_B ARGTYPE2,TYPE_INTEGER
+
+                LD_W MCOUNT,3
+                CALL STRSUBSTR
+
+                MOVE_L STRPTR,ARGUMENT1
+                UT_STRIND_EQ STRPTR,EXPECT2,"Expected Hel"
+
+                ; "lo" := STRSUBSTR("Hello",3,10)
+
+                LD_Q ARGUMENT1,STRING1
+                LD_B ARGTYPE1,TYPE_STRING
+
+                LD_Q ARGUMENT2,3
+                LD_B ARGTYPE2,TYPE_INTEGER
+
+                LD_W MCOUNT,10
+
+                CALL STRSUBSTR
+
+                MOVE_L STRPTR,ARGUMENT1
+                UT_STRIND_EQ STRPTR,EXPECT3,"Expected lo"
+
+                ; "el" := STRSUBSTR("Hello",1,2)
+                LD_Q ARGUMENT1,STRING1
+                LD_B ARGTYPE1,TYPE_STRING
+
+                LD_Q ARGUMENT2,1
+                LD_B ARGTYPE2,TYPE_INTEGER
+
+                LD_W MCOUNT,2
+                CALL STRSUBSTR
+
+                MOVE_L STRPTR,ARGUMENT1
+                UT_STRIND_EQ STRPTR,EXPECT4,"Expected el"
+
+                ; "" := STRSUBSTR("Hello",10,2)
+                LD_Q ARGUMENT1,STRING1
+                LD_B ARGTYPE1,TYPE_STRING
+
+                LD_Q ARGUMENT2,10
+                LD_B ARGTYPE2,TYPE_INTEGER
+
+                LD_W MCOUNT,2
+                CALL STRSUBSTR
+
+                MOVE_L STRPTR,ARGUMENT1
+                UT_STRIND_EQ STRPTR,EXPECT5,"Expected empty string"
+
+                UT_END
+STRING1         .null "Hello"
+EXPECT1         .null "Hello"
+EXPECT2         .null "Hel"
+EXPECT3         .null "lo"
+EXPECT4         .null "el"
+EXPECT5         .null ""
+                .pend
 ;
 ; Run all the evaluator tests
 ;
@@ -169,6 +251,7 @@ TST_STRINGS     .proc
                 CALL TST_STRCMP
                 CALL TST_STRCONCAT
                 CALL TST_ITOS
+                CALL TST_SUBSTR
 
                 UT_LOG "TST_STRINGS: PASSED"
                 RETURN

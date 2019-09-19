@@ -29,7 +29,7 @@ BIPPREV     .dword ?    ; Pointer to the previous bytein the current BASIC progr
 INDEX       .dword ?    ; A temporary pointer
 SCRATCH     .dword ?    ; A temporary scratch variable
 SCRATCH2    .dword ?    ; A temporary scratch variable
-STRPTR      .dword ?     ; A temporary pointer for strings
+STRPTR      .dword ?    ; A temporary pointer for strings
 CURLINE     .dword ?    ; Pointer to the current input line needing tokenization
 CURTOKLEN   .byte ?     ; Length of the text of the current token
 ARGUMENTSP  .word ?     ; Pointer to the top of the argument stack

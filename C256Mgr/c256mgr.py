@@ -1,5 +1,6 @@
 import intelhex
 import foenix
+import configparser
 import re
 import sys
 from optparse import OptionParser
@@ -10,6 +11,22 @@ port = ""
 start_address = ""
 count = ""
 label=""
+
+def dereference(port, file, label):
+    """Get the address contained in the pointer with the label in the label file."""
+    c256 = foenix.FoenixDebugPort()
+    try:
+        address = lookup(file, label)
+        c256.open(port)
+        c256.enter_debug()
+        try:
+            data = c256.read_block(int(address, 16), 3)
+            deref = data[2] << 16 | data[1] << 8 | data[0]
+            return "%X" % deref
+        finally:
+            c256.exit_debug()
+    finally:
+        c256.close()
 
 def lookup(file, label):
     """Return the hex address linked to the passed label in the label file."""
@@ -84,13 +101,17 @@ def get(port, address, length):
     finally:
         c256.close()
 
+config = configparser.ConfigParser()
+config.read('c256.ini')
+
 parser = OptionParser()
 parser.add_option("-s", "--send", dest="to_send", help="Intel HEX file to send.")
-parser.add_option("-p", "--port", dest="port", help="communication port for the C256")
+parser.add_option("-p", "--port", dest="port", default=config['DEFAULT'].get('port', 'COM9'), help="communication port for the C256")
 parser.add_option("-a", "--address", dest="start_address", type="string", help="starting address for memory to fetch (in hex)")
 parser.add_option("-v", "--variable", dest="label", type="string", help="label to look up for the starting address")
+parser.add_option("-d", "--reference", dest="pointer", type="string", help="label for a pointer to lookup for the starting address")
 parser.add_option("-c", "--count", dest="count", default="10", type="string", help="number of bytes to read (in hex)")
-parser.add_option("-l", "--label-file", dest="label_file", type="string", help="the name of the file containing the address labels")
+parser.add_option("-l", "--label-file", dest="label_file", default=config['DEFAULT'].get('labels', 'basic816.lbl'), type="string", help="the name of the file containing the address labels")
 
 (options, args) = parser.parse_args()
 
@@ -98,6 +119,9 @@ try:
     if options.port != "":
         if options.to_send:
             send(options.port, options.to_send)
+        elif options.pointer and options.label_file:
+            address = dereference(options.port, options.label_file, options.pointer)
+            get(options.port, address, options.count)
         elif options.label and options.label_file:
             address = lookup(options.label_file, options.label)
             get(options.port, address, options.count)
@@ -107,6 +131,8 @@ try:
             parser.print_help()
     else:
         parser.print_help()
-except Exception as e:
-    sys.stderr.write("\nCaught an exception: {}".format(e))
-    sys.exit(2)
+finally:
+    print
+# except Exception as e:
+#     sys.stderr.write("\nCaught an exception: {}".format(e))
+#     sys.exit(2)

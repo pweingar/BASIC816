@@ -357,6 +357,34 @@ TST_LEFT        .proc
                 UT_END
                 .pend
 
+; Check that we can take the right X characters of a string
+TST_RIGHT       .proc
+                UT_BEGIN "TST_LETST_RIGHTFT"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE '10 A$ = RIGHT$("HELLO", 2)'
+                TSTLINE '20 B$ = RIGHT$("HELLO", 10)'
+                TSTLINE '30 C$ = RIGHT$("HELLO", 0)'
+
+                CALL CMD_RUN
+
+                setal
+                LDA #0
+                STA LINENUM
+
+                UT_VAR_EQ_STR "A$", "LO"
+                UT_VAR_EQ_STR "B$", "HELLO"
+                UT_VAR_EQ_STR "C$", ""
+
+                UT_END
+                .pend
+
 TST_FUNCS       .proc
                 CALL TST_LEN
                 CALL TST_CHR
@@ -370,6 +398,7 @@ TST_FUNCS       .proc
                 CALL TST_STR
                 CALL TST_VAL
                 CALL TST_LEFT
+                CALL TST_RIGHT
 
                 UT_LOG "TST_FUNCS: PASSED"
                 RETURN

@@ -265,6 +265,13 @@ DEC_L       .macro addr
             STA \1+2
             .endm
 
+; Move a word (16 bit) value from address src to address dest
+MOVE_W      .macro dest,src
+            setal
+            LDA \2
+            STA \1
+            .endm
+
 ; Move a long (24 bit) value from address src to address dest
 MOVE_L      .macro dest,src
             setal
@@ -284,11 +291,31 @@ MOVE_Q      .macro dest,src
             STA \1+2
             .endm
 
+LD_B        .macro dest,value
+            setas
+            LDA #<\2
+            STA \1
+            .endm
+
+LD_W        .macro dest,value
+            setal
+            LDA #<>\2
+            STA \1
+            .endm
+
 LD_L        .macro dest,value
             setal
             LDA #<>\2
             STA \1
             setas
+            LDA #`\2
+            STA \1+2
+            .endm
+
+LD_Q        .macro dest,value
+            setal
+            LDA #<>\2
+            STA \1
             LDA #`\2
             STA \1+2
             .endm

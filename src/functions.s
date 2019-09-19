@@ -42,6 +42,91 @@ FN_END          .macro
 .endif
 
 ;
+; RIGHT$(text$, count) -- return the right COUNT characters of TEXT
+;
+FN_RIGHT        .proc
+                FN_START "FN_RIGHT"
+                PHP
+
+                setaxl
+
+                CALL EVALEXPR               ; Evaluate the string
+
+                setas
+                LDA ARGTYPE1
+                CMP #TYPE_STRING
+                BEQ save_string
+                JMP type_mismatch           ; Type mismatch if it's not a string
+
+save_string     setal
+                LDA ARGUMENT1+2             ; Save the pointer for later
+                PHA
+                LDA ARGUMENT1
+                PHA
+
+                CALL SKIPWS
+
+                setas
+                LDA [BIP]                   ; Expect a comma
+                CMP #','
+                BEQ skip_comma
+                JMP syntax_err
+
+skip_comma      CALL INCBIP
+
+                CALL EVALEXPR               ; Evaluate the count
+
+                setas
+                LDA ARGTYPE1
+                CMP #TYPE_INTEGER
+                BNE type_mismatch           ; Type mismatch if it's not an integer
+
+                ; TODO: Convert FLOAT to INTEGER
+
+                MOVE_W MCOUNT,ARGUMENT1     ; Move the argument to the count of character to return
+
+                setal
+                PLA                         ; Recover the string pointer
+                STA ARGUMENT1
+                PLA
+                STA ARGUMENT1+2
+                LD_B ARGTYPE1,TYPE_STRING
+
+                ; Y := length of the string
+                setas
+                LDY #0
+count_loop      LDA [ARGUMENT1],Y
+                BEQ count_done
+                INY
+                BRA count_loop
+
+count_done      setal
+                TYA                         ; ARGUMENT2 := LENGTH - MCOUNT
+                SEC
+                SBC MCOUNT
+                BMI index0                  ; if ARGUMENT2 < 0, set ARGUMENT2 := 0
+                STA ARGUMENT2
+                LDA #0                      ; Set ARGUMENT2[23..16] := 0
+                STA ARGUMENT2+2
+                BRA slice
+
+index0          LDA #0                      ; 0 is the floor for the index
+                STA ARGUMENT2
+                STA ARGUMENT2+2
+
+slice           LD_B ARGTYPE2,TYPE_INTEGER
+                CALL STRSUBSTR              ; And compute the substring
+                
+done            FN_END
+                PLP
+                RETURN
+
+type_mismatch   THROW ERR_TYPE              ; Throw a type-mismatch error
+syntax_err      THROW ERR_SYNTAX            ; Throw a syntax error
+range_err       THROW ERR_RANGE             ; Throw a range error
+                .pend
+
+;
 ; LEFT$(text$, count) -- return the left COUNT characters of TEXT
 ;
 FN_LEFT         .proc
@@ -50,16 +135,16 @@ FN_LEFT         .proc
 
                 setaxl
 
-                CALL EVALEXPR       ; Evaluate the string
+                CALL EVALEXPR               ; Evaluate the string
 
                 setas
                 LDA ARGTYPE1
                 CMP #TYPE_STRING
                 BEQ save_string
-                JMP type_mismatch   ; Type mismatch if it's not a string
+                JMP type_mismatch           ; Type mismatch if it's not a string
 
 save_string     setal
-                LDA ARGUMENT1+2       ; Save the pointer for later
+                LDA ARGUMENT1+2             ; Save the pointer for later
                 PHA
                 LDA ARGUMENT1
                 PHA
@@ -67,94 +152,44 @@ save_string     setal
                 CALL SKIPWS
 
                 setas
-                LDA [BIP]           ; Expect a comma
+                LDA [BIP]                   ; Expect a comma
                 CMP #','
                 BEQ skip_comma
                 JMP syntax_err
 
 skip_comma      CALL INCBIP
 
-                CALL EVALEXPR       ; Evaluate the count
-
-                ; TODO: Convert FLOAT to INTEGER
-
-                setal
-                PLA                 ; Recover the string pointer
-                STA STRPTR
-                PLA
-                STA STRPTR+2
+                CALL EVALEXPR               ; Evaluate the count
 
                 setas
                 LDA ARGTYPE1
                 CMP #TYPE_INTEGER
-                BNE type_mismatch   ; Type mismatch if it's not a string 
+                BNE type_mismatch           ; Type mismatch if it's not an integer
 
-                STZ SCRATCH         ; SCRATCH will be the size
-                LDY #0
+                ; TODO: Convert FLOAT to INTEGER
 
-                setas
-count_loop      LDA [STRPTR],Y      ; Count the characters in the string
-                BEQ range_check
-                INY
-                INC SCRATCH
-                BRA count_loop  
+                MOVE_W MCOUNT,ARGUMENT1     ; Move the argument to the count of character to return
 
-range_check     setal
-                LDA ARGUMENT1+2     ; we're only going to support string of at most 64KB here
-                BNE range_err
-
-                LDA SCRATCH         ; Compare the count to the string length
-                CMP ARGUMENT1
-                BLT ret_self        ; if len <= count, return the whole string
-                BEQ ret_self
-
-                LDA ARGUMENT1
-                STA SCRATCH2
-
-                TAX
-                INX                 ; Allocate a string big enough for the copy
-
-                setas
-                LDA #TYPE_STRING
-                CALL ALLOC          ; Allocate the string
-
-                LDY #0
-                LDX SCRATCH2
-                BEQ null_terminate
-
-copy_loop       LDA [STRPTR],Y      ; Copy the characters
-                STA [CURRBLOCK],Y
-                INY
-                CPY SCRATCH2
-                BNE copy_loop       ; Until done
-
-null_terminate  LDA #0
-                STA [CURRBLOCK],Y   ; Null terminate
+                LD_Q ARGUMENT2,0            ; Set index to 0
+                LD_B ARGTYPE2,TYPE_INTEGER
 
                 setal
-                LDA CURRBLOCK       ; Return the new string
+                PLA                         ; Recover the string pointer
                 STA ARGUMENT1
-                LDA CURRBLOCK+2
+                PLA
                 STA ARGUMENT1+2
 
-                BRA ret_string
+                LD_B ARGTYPE1,TYPE_STRING
 
-ret_self        LDA STRPTR          ; Return the original string
-                STA ARGUMENT1
-                LDA STRPTR+2
-                STA ARGUMENT1+2
-
-ret_string      setas
-                LDA #TYPE_STRING
-                STA ARGTYPE1
+                CALL STRSUBSTR              ; And compute the substring
                 
 done            FN_END
                 PLP
                 RETURN
 
-type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
-syntax_err      THROW ERR_SYNTAX    ; Throw a syntax error
-range_err       THROW ERR_RANGE     ; Throw a range error
+type_mismatch   THROW ERR_TYPE              ; Throw a type-mismatch error
+syntax_err      THROW ERR_SYNTAX            ; Throw a syntax error
+range_err       THROW ERR_RANGE             ; Throw a range error
                 .pend
 
 ;

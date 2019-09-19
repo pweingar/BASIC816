@@ -419,3 +419,108 @@ ret_copy    TRACE "/STRCPY"
             PLP
             RETURN
             .pend
+
+;
+; Return the substring of the source string given a starting character
+; and a number of characters to return.
+;
+; NOTE: If the index <= 0 and the count >= the length of the initial string
+; the return value is simply the original string.
+;
+; Inputs:
+;   ARGUMENT1 = the string to slice
+;   ARGUMENT2 = the index of the first character
+;   MCOUNT = the number of characters to return
+;
+; Outputs:
+;   ARGUMENT1 = the resulting substring   
+;
+STRSUBSTR   .proc
+            PHP
+            TRACE "STRSUBSTR"
+
+            setas
+            setxl
+
+            ; Compute the length of thes string
+            LDY #0
+count_loop  LDA [ARGUMENT1],Y       
+            BEQ counted
+            INY
+            BRA count_loop
+            STY MTEMP               ; MTEMP := length of the source string
+
+counted     setaxl
+            CPY ARGUMENT2           ; length of string <= index?
+            BLT ret_empty           ; Yes: return empty string
+            BEQ ret_empty
+
+            LDA MCOUNT              ; Is the desired count <= 0?
+            BMI ret_empty
+            BEQ ret_empty           ; Yes: return the empty string
+
+            CPY MCOUNT              ; Is the desired length < the length of the source?
+            BGE do_slice            ; Yes: go ahead and get the substring
+
+            LDA ARGUMENT2           ; Is INDEX == 0?
+            BNE do_slice            ; No: do a slice
+            JMP done                ; Yes: just return the source string
+
+ret_empty   CALL TEMPSTRING         ; Allocate and return an empty string
+            setas
+            LDA #0
+            STA [STRPTR]
+            BRA finish_copy
+
+do_slice    TRACE "do_slice"
+            CALL TEMPSTRING         ; Allocate a temporary string
+            
+            setaxl
+            CLC                     ; ARGUMENT1 := ARGUMENT1 + index
+            LDA ARGUMENT1
+            ADC ARGUMENT2
+            STA ARGUMENT1
+            LDA ARGUMENT1+2
+            ADC #0
+            STA ARGUMENT1+2
+
+            LDY #0
+            
+            ; Copy characters from [ARGUMENT1] to [STRPTR],X
+copy_loop   TRACE "copy_loop"
+            setas
+            LDA [ARGUMENT1]         ; Copy a character from the substring to the temporary string
+            STA [STRPTR],Y
+            BEQ finish_copy         ; If it is a NULL, we're done
+
+            setal
+            CLC                     ; Move to the next character
+            LDA ARGUMENT1
+            ADC #1
+            STA ARGUMENT1
+            LDA ARGUMENT1+2
+            ADC #0
+            STA ARGUMENT1+2
+            INY
+
+            CPY MCOUNT              ; Have we reached the limit to copy?
+            BNE copy_loop           ; No: copy the next byte
+
+            LDA #0                  ; Null terminate string
+            STA [STRPTR],Y
+
+finish_copy TRACE "finish_copy"
+            setal
+            LDA STRPTR              ; Return STRPTR
+            STA ARGUMENT1
+            LDA STRPTR+2
+            STA ARGUMENT1+2
+
+            LD_B ARGTYPE1,TYPE_STRING
+
+            CALL STRCPY
+
+done        TRACE "done"
+            PLP
+            RETURN
+            .pend

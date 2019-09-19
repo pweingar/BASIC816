@@ -12,6 +12,11 @@ If you have a 64TASS label file (*.lbl), you can provide that as an option
 and display the contents of a memory location by its label:
 c256mgr -p <port> -l <label file> -v <label> -c <count of bytes in hex>
 
+If you have a 64TASS label file (*.lbl), you can provide that as an option
+and display the contents of a memory location by deferencing the pointer
+at a location in the label file:
+c256mgr -p <port> -l <label file> -d <label> -c <count of bytes in hex>
+
 The count of bytes is optional and defaults to 16.
 
 =====
@@ -27,6 +32,8 @@ Options:
                         starting address for memory to fetch (in hex)
   -v LABEL, --variable=LABEL
                         label to look up for the starting address
+  -d LABEL, --reference=LABEL
+                        label of a pointer to look up and dereference for the starting address
   -c COUNT, --count=COUNT
                         number of bytes to read (in hex)
   -l LABEL_FILE, --label-file=LABEL_FILE
