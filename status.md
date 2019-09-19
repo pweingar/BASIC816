@@ -78,7 +78,7 @@
     1. [X] HEX$
     1. [X] LEFT$
     1. [X] LEN
-    1. [ ] MID$
+    1. [X] MID$
     1. [X] RIGHT$
     1. [X] SPC
     1. [X] STR$

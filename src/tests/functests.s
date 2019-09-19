@@ -359,7 +359,7 @@ TST_LEFT        .proc
 
 ; Check that we can take the right X characters of a string
 TST_RIGHT       .proc
-                UT_BEGIN "TST_LETST_RIGHTFT"
+                UT_BEGIN "TST_RIGHT"
 
                 setdp GLOBAL_VARS
                 setdbr BASIC_BANK
@@ -385,6 +385,40 @@ TST_RIGHT       .proc
                 UT_END
                 .pend
 
+; Check that we can take the MID of a string
+TST_MID         .proc
+                UT_BEGIN "TST_MID"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE '10 A$ = MID$("HELLO", 2, 2)'
+                TSTLINE '20 B$ = MID$("HELLO", 0, 10)'
+                TSTLINE '30 C$ = MID$("HELLO", 2, 3)'
+                TSTLINE '40 D$ = MID$("HELLO", 10, 3)'
+                TSTLINE '50 E$ = MID$("HELLO", 0, 0)'
+                TSTLINE '60 F$ = MID$("HELLO", 0, 2)'
+
+                CALL CMD_RUN
+
+                setal
+                LDA #0
+                STA LINENUM
+
+                UT_VAR_EQ_STR "A$", "LL"
+                UT_VAR_EQ_STR "B$", "HELLO"
+                UT_VAR_EQ_STR "C$", "LLO"
+                UT_VAR_EQ_STR "D$", ""
+                UT_VAR_EQ_STR "E$", ""
+                UT_VAR_EQ_STR "F$", "HE"
+
+                UT_END
+                .pend
+
 TST_FUNCS       .proc
                 CALL TST_LEN
                 CALL TST_CHR
@@ -399,6 +433,7 @@ TST_FUNCS       .proc
                 CALL TST_VAL
                 CALL TST_LEFT
                 CALL TST_RIGHT
+                CALL TST_MID
 
                 UT_LOG "TST_FUNCS: PASSED"
                 RETURN

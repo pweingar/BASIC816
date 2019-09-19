@@ -771,6 +771,7 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "VAL", TOK_TY_FUNC, 0, FN_VAL, 0
             DEFTOK "LEFT$", TOK_TY_FUNC, 0, FN_LEFT, 0
             DEFTOK "RIGHT$", TOK_TY_FUNC, 0, FN_RIGHT, 0
+            DEFTOK "MID$", TOK_TY_FUNC, 0, FN_MID, 0
 
             ; Commands
 

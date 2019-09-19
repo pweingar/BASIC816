@@ -42,6 +42,84 @@ FN_END          .macro
 .endif
 
 ;
+; MID$(text$, index, count) -- return the middle COUNT characters of TEXT starting at index
+;
+FN_MID          .proc
+                FN_START "FN_MID"
+                PHP
+
+                setaxl
+
+                CALL EVALEXPR               ; Evaluate the string
+
+                setas
+                LDA ARGTYPE1
+                CMP #TYPE_STRING
+                BEQ save_string
+                JMP type_mismatch           ; Type mismatch if it's not a string
+
+save_string     setal
+                LDA ARGUMENT1+2             ; Save the pointer for later
+                PHA
+                LDA ARGUMENT1
+                PHA
+
+                CALL SKIPWS
+
+                setas
+                LDA [BIP]                   ; Expect a comma
+                CMP #','
+                BEQ skip_comma1
+                JMP syntax_err
+
+skip_comma1     CALL INCBIP
+
+                CALL EVALEXPR               ; Evaluate the index
+                CALL ASS_ARG1_INT16         ; Make sure it is a 16 bit integer
+
+                setal
+                LDA ARGUMENT1               ; Save the index
+                PHA
+
+                CALL SKIPWS
+
+                setas
+                LDA [BIP]                   ; Expect a comma
+                CMP #','
+                BEQ skip_comma2
+                JMP syntax_err
+
+skip_comma2     CALL INCBIP
+
+                CALL EVALEXPR               ; Evaluate the count
+                CALL ASS_ARG1_INT16         ; Make sure it is a 16 bit integer
+
+                MOVE_L MCOUNT,ARGUMENT1     ; MCOUNT := count of characters to return
+
+                setal
+                PLA                         ; Restore index
+                STA ARGUMENT2               ; ... to ARGUMENT2
+                LDA #0
+                STA ARGUMENT2+2
+
+                PLA                         ; Restore string
+                STA ARGUMENT1               ; ... to ARGUMENT1
+                PLA
+                STA ARGUMENT1+2
+                LD_B ARGTYPE1,TYPE_STRING
+
+                CALL STRSUBSTR              ; And compute the substring
+                
+done            FN_END
+                PLP
+                RETURN
+
+type_mismatch   THROW ERR_TYPE              ; Throw a type-mismatch error
+syntax_err      THROW ERR_SYNTAX            ; Throw a syntax error
+range_err       THROW ERR_RANGE             ; Throw a range error
+                .pend
+
+;
 ; RIGHT$(text$, count) -- return the right COUNT characters of TEXT
 ;
 FN_RIGHT        .proc
