@@ -398,16 +398,90 @@ TST_READ        .proc
                 UT_END
                 .pend
 
+; Verify that CALL works
+TST_CALL        .proc
+                UT_BEGIN "TST_CALL"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                ; CALL xxxx works
+                CALL INITBASIC
+                TSTLINE format("10 CALL $%x", TST_SUBROUTINE1)
+                CALL CMD_RUN
+                setal
+                STZ LINENUM
+                UT_M_EQ_LIT_W MTEMP,$1234,"EXPECTED MTEMP = $1234"
+
+                ; CALL xxxx, 1 works
+                CALL INITBASIC
+                TSTLINE format("10 CALL $%x, 1", TST_SUBROUTINE2)
+                CALL CMD_RUN
+                setal
+                STZ LINENUM
+                UT_M_EQ_LIT_W MTEMP,1,"EXPECTED MTEMP = 1"
+
+                ; CALL xxxx, 1,2 works
+                CALL INITBASIC
+                TSTLINE format("10 CALL $%x, 1,2", TST_SUBROUTINE3)
+                CALL CMD_RUN
+                setal
+                STZ LINENUM
+                UT_M_EQ_LIT_W MTEMP,2,"EXPECTED MTEMP = 2"
+
+                ; CALL xxxx, 1,2,3 works
+                CALL INITBASIC
+                TSTLINE format("10 CALL $%x, 1,2,3", TST_SUBROUTINE4)
+                CALL CMD_RUN
+                setal
+                STZ LINENUM
+                UT_M_EQ_LIT_W MTEMP,3,"EXPECTED MTEMP = 3"
+
+                UT_END
+                .pend
+
+; Set MTEMP to $1234
+TST_SUBROUTINE1 .proc
+                setal
+                LDA #$1234
+                STA MTEMP
+                RTL
+                .pend
+
+; Set MTEMP to A
+TST_SUBROUTINE2 .proc
+                setal
+                STA MTEMP
+                RTL
+                .pend
+
+; Set MTEMP to X
+TST_SUBROUTINE3 .proc
+                setal
+                STX MTEMP
+                RTL
+                .pend
+
+; Set MTEMP to Y
+TST_SUBROUTINE4 .proc
+                setal
+                STY MTEMP
+                RTL
+                .pend
+
 TST_STMNTS      .proc
-                CALL TST_REM
-                CALL TST_CLR
-                CALL TST_LET
-                CALL TST_POKE
-                CALL TST_POKEW
-                CALL TST_POKEL
-                ; CALL TST_STOP
-                CALL TST_NESTEDFOR
-                CALL TST_READ
+                ; CALL TST_REM
+                ; CALL TST_CLR
+                ; CALL TST_LET
+                ; CALL TST_POKE
+                ; CALL TST_POKEW
+                ; CALL TST_POKEL
+                ; ; CALL TST_STOP
+                ; CALL TST_NESTEDFOR
+                ; CALL TST_READ
+                CALL TST_CALL
 
                 UT_LOG "TST_STMNTS: PASSED"
                 RETURN

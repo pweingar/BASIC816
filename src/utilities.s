@@ -365,6 +365,30 @@ return_false    PLP
 ; Inputs:
 ;   ARGUMENT1
 ;
+ASS_ARG1_INT    .proc
+                PHP
+                TRACE "ASS_ARG1_INT"
+
+                setas
+                LDA ARGTYPE1            ; Verify that the type is INTEGER
+                CMP #TYPE_INTEGER
+                BNE TYPE_ERR
+
+                PLP
+                RETURN
+
+TYPE_ERR        THROW ERR_TYPE
+                .pend
+
+;
+; Assert that ARGUMENT1 contains a 16-bit integer. Throw a type mismatch error or
+; a range error if it won't fit in 16 bits.
+;
+; TODO: if ARGUMENT1 is a float, convert it to an integer
+;
+; Inputs:
+;   ARGUMENT1
+;
 ASS_ARG1_INT16  .proc
                 PHP
                 TRACE "ASS_ARG1_INT16"

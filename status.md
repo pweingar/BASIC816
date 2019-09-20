@@ -37,7 +37,7 @@
 1. [X] REM
 1. [X] RESTORE
 1. [X] STOP
-1. [ ] SYS
+1. [X] CALL
 1. [ ] I/O
     1. [ ] CLOSE
     1. [ ] GET

@@ -13,13 +13,9 @@ S_CALL          .proc
                 TRACE "S_CALL"
 
                 CALL EVALEXPR       ; Get the address
+                CALL ASS_ARG1_INT   ; Assure the address is an integer
 
-                ; TODO: Convert float to integer
                 setas
-                LDA ARGTYPE1
-                CMP #TYPE_INTEGER
-                BNE type_err
-
                 LDA #$5C            ; Set the opcode for JML
                 STA MJUMPINST
                 setal               ; Set the JML address to the argument
@@ -29,9 +25,54 @@ S_CALL          .proc
                 LDA ARGUMENT1+2
                 STA MJUMPADDR+2
 
-                ; TODO: add support for setting registers
+                ; Get the optional value for A
 
+                setas
+                LDA #','
+                STA TARGETTOK
+                CALL OPT_TOK        ; Is there a comma?
+                BCC launch          ; Not present... go ahead and launch
+                CALL INCBIP
+
+                CALL EVALEXPR       ; Otherwise, get value for A
+                CALL ASS_ARG1_INT16 ; Make sure it's a 16-bit integer
+                setal
+                LDA ARGUMENT1
+                STA MARG1           ; Save it to MARG1
+
+                ; Get the optional value for X
+
+                setas
+                LDA #','
+                STA TARGETTOK
+                CALL OPT_TOK        ; Is there a comma?
+                BCC launch          ; Not present... go ahead and launch
+                CALL INCBIP
+
+                CALL EVALEXPR       ; Otherwise, get value for X
+                CALL ASS_ARG1_INT16 ; Make sure it's a 16-bit integer
+                setal
+                LDA ARGUMENT1
+                STA MARG2           ; Save it to MARG2
+
+                ; Get the optional value for Y
+
+                setas
+                LDA #','
+                STA TARGETTOK
+                CALL OPT_TOK        ; Is there a comma?
+                BCC launch          ; Not present... go ahead and launch
+                CALL INCBIP
+
+                CALL EVALEXPR       ; Otherwise, get value for Y
+                CALL ASS_ARG1_INT16 ; Make sure it's a 16-bit integer
+                setal
+                LDY ARGUMENT1
+launch          LDX MARG2
+                LDA MARG1
                 JSL MJUMPINST       ; Call the subroutine indicated
+
+                CALL SKIPSTMT       ; Skip to the ending colon or end of line
 
                 PLP
                 RETURN
