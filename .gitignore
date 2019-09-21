@@ -4,3 +4,8 @@ basic816.lst
 TODO.ods
 .~lock.TODO.ods#
 src/heap_gc.s
+docs/tex/basic816.aux
+docs/tex/basic816.fdb_latexmk
+docs/tex/basic816.fls
+docs/tex/basic816.log
+docs/tex/basic816.synctex.gz

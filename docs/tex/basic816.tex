@@ -1,0 +1,390 @@
+\documentclass{article}
+\usepackage{ccfonts}
+\begin{document}
+    \newcommand{\BASIC}[0]{{\sc Basic816}}
+    \newcommand{\keyword}[1]{{\tt {#1}}}
+    \newcommand{\param}[1]{{\tt <{#1}>}}
+    \title{The \BASIC\  Language Manual}
+    \author{PJW}
+    \date{20 September 2019}
+    \maketitle
+
+    \section{About \BASIC}
+
+    \BASIC\ is an implementation of the BASIC programming language for the Western Design Center's 65816 microprocessor.
+    It is focused on providing a simple BASIC interpreter for the C256 Foenix computer designed by Stefany Allaire.
+    \BASIC\ has a few design goals and even a couple of anti-goals:
+
+    \begin{itemize}
+        \item It should provide a retro-computing feel.
+        \item It should be simple to use and easy to learn.
+        \item It should provide essential access to storage and the C256's abilities.
+        \item It should be expandable, allowing advanced users to customize it or extend it.
+        \item It should be a clean-room implementation, unencumbered by copy-right. 
+        \item It need not be the fastest programming language available.
+        \item It need not provide all the advancements in programming languages developed since the 1980s.
+    \end{itemize}
+
+    As such, \BASIC\ is a fairly traditional, tokenized, line-number based implementation of BASIC, similar to those
+    implementation of BASIC on the 8-bit computers of the 1970s and 1980s.
+
+    \section{Data Types}
+
+    \BASIC\ supports three data types:
+
+    \begin{itemize}
+        \item[Integer]  The integers in \BASIC\ are 32-bit signed integers and may have values between −2,147,483,648 and 2,147,483,647.
+                        Examples of integers are 0, 1, 42, -1, -128.
+
+        \item[String]   Text data are stored in strings. A string may be entered into a \BASIC\ program by enclosing it in double quote marks.
+                        Strings are represented internally as null-terminated ASCII strings, that is, there is no length data on the string,
+                        the end of which is marked by a 0 byte.
+                        Strings may be up to 65536 bytes in length.
+                        
+        \item[Array]    Arrays allow multiple data items to be stored under a single name and accessed by an index.
+                        Two types of arrays are supported: arrays of integer and arrays of strings.
+                        Arrays may be just one-dimensional, using a single number as index, or they may be multi-dimensional,
+                        where each element has a unique combination of numbers serving as an index.
+    \end{itemize}
+
+    Note: when \BASIC\ leaves the alpha stage of development, it will include a fourth type: 32-bit floating point numbers as well
+    as arrays of 32-bit floating point numbers.
+
+    \section{Variables}
+
+    A \BASIC\ program can assign data to variables using the \keyword{LET} statement or an implicit \keyword{LET} statement.
+    Variables need not be declared before use, with the exception of array variables, which must be declared through the
+    \keyword{DIM} statement.
+
+    Variable names may be up to eight characters long. The first character must be an alphabetic character from A through Z.
+    Subsequent characters of the name may be A - Z, 0 - 9, or the underscore character (\_). The type of the variable is indicated
+    by a character at the end of the variable name. Integer variables are indicated by the percent sign (\%), and string
+    variables are indicated by the dollar sign (\$). These type designations must be used in all references to the variable and may
+    be considered as part of the name. This means that a program can have six different variables with the same ``name'' but different
+    types (e.g. \verb+A+, \verb+A%+, \verb+A$+, \verb+A()+, \verb+A%()+, and \verb+A$()+).
+
+    \section{Expressions}
+
+    An expression is a sequence of values, operators, and function calls which will have some data value as a {\em result}.
+    An expression may have a numeric (integer) result or a text (string) result.
+
+    Operators are common mathematical symbols which will perform some sort of computation on two values. These are the usual
+    sort of thing: addition, subtraction, multiplication, division, and so on. Operators are typically evaluated left to right,
+    but have an operator precedence which can alter the order of execution. For instance multiplication operators are evaluated
+    before addition. This precendence can be altered by using parentheses to enclose a sub-expression that should be evaluated
+    as a unit.
+
+    \begin{table}
+        \begin{tabular}{|l|l|} \hline
+            Operators & Purpose \\ \hline\hline
+            \verb+^+ & Exponent \\ \hline
+            \verb+*+, \verb+/+, \verb+MOD+ & Multiply, Divide, modulo \\ \hline
+            \verb-+-, \verb+-+ & Addition, Subtraction \\ \hline
+            \verb+<+, \verb+>+, \verb+=+ , \verb+<=+, \verb+>=+, \verb+<>+ & Comparison operators \\ \hline
+            \verb+NOT+ & Bitwise Negation \\ \hline
+            \verb+AND+ & Bitwise AND \\ \hline
+            \verb+OR+ & Bitwise OR \\ \hline
+        \end{tabular}
+        \caption{Operators in order of descending precedence.}
+    \end{table}
+    \section{Commands}
+
+    Commands in \BASIC\ are keywords which triggers some action but which may only be used at the interactive prompt.
+    Commands may not be used within a \BASIC\ program.
+
+    \subsection{\keyword{CONT}}
+
+    Continue execution of the current program from the point immediately after the \keyword{STOP} statement that was executed.
+    It is an error to use this command if the current program was not interrupted by the \keyword{STOP} command or if there
+    is no current program.
+
+    \subsection{\keyword{NEW}}
+
+    \verb+NEW+ clears all of \BASIC's memory. All program and variable data are erased, and a new program may be entered.
+
+    \subsection{\keyword{{LIST [\param{start}] [- \param{end}]}}}
+
+    \verb+LIST+ types a program listing to the console screen. It accepts two optional line-numbers to limit the listing.
+    The first line number specifies the smallest line number to list; if it is not specified, there is no lower limit.
+    The second line number specifies the largest line number to list; if it is not specified, there is no upper limit.
+
+    \subsection{\keyword{RUN}}
+
+    Starts execution of the program from the first line of the code.
+
+
+    \section{Statements}
+
+    Statements are keywords which trigger some action and may be used either at the interactive prompt or within a program.
+    A \BASIC\ program can be seen as a series of lines, each of which must have one or more statements on it.
+    If a line has more than one statement, each statement is separated from the next by a colon (:).
+
+    \subsection{\keyword{CLR}}
+
+    Erases all variable definitions. Any variable that was defined prior to the use of \keyword{CLR} will be undefined.
+    Also all data stored directly or indirectly through variables will be returned to free memory. This is similar to
+    \keyword{NEW}, except that the program may be running and is left intact.
+
+    \subsection{\keyword{CLS}}
+
+    Clears the text screen and moves the cursor to the home position.
+
+    \subsection{\keyword{CALL \param{address}[, \param{a}[, \param{x}[, \param{y}]]]}}
+
+    Call a machine language subroutine at \param{address}. If the subroutine returns at all to the caller, it
+    must return using the \keyword{RTL} instruction. Values may be provided for the \keyword{A}, \keyword{X}, and
+    \keyword{Y} registers and may be 16-bit values.
+
+    \subsection{\keyword{DATA \param{value}[, ...]}}
+
+    Provide numeric or string data in the program which may be retrieved into a variable using the \keyword{READ} statement.
+
+    \subsection{\keyword{DIM \param{variable}(\param{size}[, ...])}}
+
+    Declare an array named \param{variable}.
+    The array can have many dimensions, each with the size provided.
+    An array can have up to 127 dimensions, and the size can be up to 256, but in practice the entire block of memory
+    consumed by the array cannot exceed 65536 bytes (including the ``book keeping'' memory allocated to keep track of the array
+    (which is at most 256 bytes).
+
+    \subsection{\keyword{END}}
+
+    Stops execution of the program. The only way to restart execution after \keyword{END} has been
+    executed is to use the \keyword{RUN} command.
+
+    \subsection{\keyword{FOR} \param{variable} = \param{initial} \keyword{TO} \param{target} [\keyword{STEP} \param{increment}]}
+
+    The \keyword{FOR} statement marks the beginning of a loop that will repeat a specified number of times.
+    It starts by assigning an \param{initial} value to a \param{variable} and executing the following statement until
+    the matching \keyword{NEXT} statement is encountered. It will then either add 1 to \param{variable} or
+    \param{increment}, if provided. So long as \param{variable} is not \param{target}, the statements between the
+    \keyword{FOR} and \keyword{NEXT} will be executed.
+
+    \subsection{\keyword{GOTO} \param{line number}}
+
+    Continue execution with the first statement on the line with the given \param{line number}.
+    It is an error to \keyword{GOTO} a \param{line number} that does not exist in the program.
+
+    \subsection{\keyword{GOSUB} \param{line number}}
+
+    Call a subroutine starting at the line with the given \param{line number}.
+    A subsequent \keyword{RETURN} statement will return the program to the statement
+    following the \keyword{GOSUB}.
+    It is an error to \keyword{GOSUB} a \param{line number} that does not exist in the program.
+
+    \subsection{\keyword{IF} \param{expr} \keyword{THEN} \param{line}}
+
+    Evaluates \param{expr} and examines the result.
+    If the result is not zero, execution continues with the first statement on the line with number \param{line}.
+    Otherwise, execution continues with the next statement after the \keyword{IF}.
+
+    Note: This statement will be receiving considerable improvements in subsequent versions of \BASIC.
+
+    \subsection{\keyword{NEXT}}
+
+    Close the matching \keyword{FOR} loop.
+
+    \subsection{\keyword{POKE} \param{address}, \param{value}}
+
+    Write the 8-bit \param{value} to the memory location at \param{address}.
+    It is an error to try to write a value that requires more than 8-bits.
+
+    \subsection{\keyword{POKEW} \param{address}, \param{value}}
+
+    Write the 16-bit \param{value} to the memory location at \param{address}.
+    The low byte of \param{value} will be written to \param{address}, and
+    the high byte of \param{value} will be written to the following byte in memory.
+    It is an error to try to write a value that requires more than 16-bits.    
+
+    \subsection{\keyword{POKEL} \param{address}, \param{value}}
+
+    Write the 24-bit \param{value} to the memory location at \param{address}.
+    The low byte of \param{value} will be written to \param{address}, and
+    the middle byte of \param{value} will be written to the following byte in memory,
+    and the high byte of \param{value} will be written to the next byte in memory.
+    It is an error to try to write a value that requires more than 24-bits.  
+
+    \subsection{\keyword{PRINT} [\param{value} [,/;]] ...}
+
+    Write the textual representation of \param{value} to the screen.
+    If more than one \param{value} is provided, they must be separated by either a comma (,)
+    or a semicolon (;).
+    If a comma is used, the two items will be separated by a TAB.
+    If a semicolon is used, the two items will be printed one after the other.
+    A \keyword{PRINT} statement will print a carriage return as the last thing, unless the
+    statement is ended with a semicolon.
+
+    \subsection{\keyword{REM} \param{comment}}
+
+    Inserts a comment into the \BASIC\ program. All characters after the \keyword{REM} until
+    end of the line will be ignored.
+
+    \subsection{\keyword{READ} \param{variable}[, ...]}
+
+    Read one of more values out of the \keyword{DATA} statements in the program into
+    \param{variable}.
+    The data read must have a compatible type to the variable.
+    Each variable read will advance a data cursor forward one data element.
+    If a \keyword{READ} is executed when the cursor has reached the end of the data
+    elements, it is an error.
+
+    \subsection{\keyword{RESTORE}}
+
+    Resets the data cursor to the first data element of the first \keyword{DATA} statement.
+
+    \subsection{\keyword{STOP}}
+
+    Stops execution of the program in such a way that the user can restart it with the
+    \keyword{CONT} command.
+
+    \section{Functions}
+
+    \subsection{\keyword{ABS(\param{value})}}
+
+    Returns the absolute value of \param{value}.
+    If the parameter is negative, it is converted to its positive equivalent
+    (for instance, \verb+ABS(-5)+ will evaluate to \verb+5+).
+
+    \subsection{\keyword{ASC(\param{text})}}
+
+    Returns the ASCII code for the first character of \param{text}.
+    Example: \verb+ASC("A")+ returns \verb+65+.
+
+    \subsection{\keyword{CHR\$(\param{value})}}
+
+    Returns the character corresponding to the ASCII code in \param{value}.
+    Example: \verb+CHR$(65)+ returns \verb+"A"+.   
+
+    \subsection{\keyword{DEC(\param{hex})}}
+
+    Returns an integer that is conversion of the hexadecimal number in the string \param{hex}.
+    Example: \verb+DEC("A0") + returns \verb+160+.
+
+    \subsection{\keyword{HEX\$(\param{value})}}
+
+    Returns a string that is the hexadecimal representation of the integer value passed.
+    Example: \verb+HEX$(160) + returns \verb+"A0"+.
+
+    \subsection{\keyword{LEFT\$(\param{text}, \param{count})}}
+
+    Returns the left-most \param{count} characters of the string \param{text}.
+
+    Example: \verb+LEFT$("Hello", 3)+ returns \verb+"Hel"+.   
+
+    \subsection{\keyword{MID\$(\param{text}, \param{first}, \param{count})}}
+
+    Returns a substring of the string \param{text}.
+    The parameter \param{first} specifies the number of the first character to use, where
+    a \verb+0+ is the number of the first character in the source string.
+    The parameter \param{count} indicates how many characters should be returned.
+
+    Example: \verb+MID$("Hello", 2, 3)+ returns \verb+"llo"+.
+
+    \subsection{\keyword{PEEK(\param{address})}}
+
+    Returns the byte stored in memory at location \param{address}.
+
+    \subsection{\keyword{PEEKW(\param{address})}}
+
+    Returns the 16-bit word stored in memory at location \param{address}.
+    The low byte of the returned value is at \param{address}, and the
+    high byte is at \verb-address + 1-.
+
+    \subsection{\keyword{PEEKL(\param{address})}}
+
+    Returns the 24-bit word stored in memory at location \param{address}.
+    The low byte of the returned value is at \param{address},
+    the middle byte is at \verb-address + 1-, 
+    and the high byte is at \verb-address + 2-.
+
+    \subsection{\keyword{RIGHT\$(\param{text}, \param{count})}}
+
+    Returns the right-most \param{count} characters of the string \param{text}.
+
+    Example: \verb+LEFT$("Hello", 3)+ returns \verb+"llo"+.
+    
+    \subsection{\keyword{SGN(\param{value})}}
+
+    Returns the sign of the number \param{value}.
+    If the number is negative, the result is \verb+-1+,
+    if the number is positive, the result is \verb+1+,
+    and if the number is zero, the result is \verb+0+.
+
+    Example: \verb+SGN(-25)+ returns \verb+-1+.
+
+    \subsection{\keyword{SPC(\param{value})}}
+
+    Returns a string containing \param{value} spaces.
+    
+    Example: \verb+SPC(5)+ returns a string of five spaces.
+
+    \subsection{\keyword{STR\$(\param{value})}}
+
+    Returns a string containing the decimal representation of the number \param{value}.
+    
+    Example: \verb+STR$(25)+ returns \verb+"25"+.
+
+    \subsection{\keyword{TAB(\param{value})}}
+
+    Returns a string containing \param{value} TAB characters.
+    
+    Example: \verb+TAB(2)+ returns a string of two TABs.
+
+    \subsection{\keyword{VAL(\param{text})}}
+
+    Returns the numeric value represented by the string of decimal digits in \param{text}.
+    
+    Example: \verb+VAL("42")+ returns \verb+42+.
+
+    \section{C256 Specific Statements}
+
+    \BASIC\ includes a number of statements to support features of the C256 Foenix.
+
+    \subsection{\keyword{MONITOR}}
+
+    Enter the machine language monitor.
+
+    \subsection{\keyword{SETBRDCOLOR} \param{red}, \param{green}, \param{blue}}
+
+    Sets the color of the border of the C256's screen, given
+    \param{red}, \param{green}, and \param{blue} intensity values, which must be
+    between 0 -- 255.
+
+    \subsection{\keyword{SETBGCOLOR} \param{index}}
+
+    Sets the color for the background of text to be printed on the screen given
+    an \param{index} into the color lookup table.
+    The index must be between 0 -- 255.    
+
+    \subsection{\keyword{SETDATE} \param{day}, \param{month}, \param{year}}
+
+    Sets the date on the C256's real time clock, given the date as three numbers:
+    \param{day}, \param{month}, and \param{year}.
+    The day number must be from 1 -- 31.
+    The month number must be from 1 -- 12.
+    The year number must be from 0 -- 99.
+
+    \subsection{\keyword{SETFGCOLOR} \param{index}}
+
+    Sets the color for the foreground of text to be printed on the screen given
+    an \param{index} into the color lookup table.
+    The index must be between 0 -- 255.    
+
+    \subsection{\keyword{SETTIME} \param{hour}, \param{minute}, \param{second}}
+
+    Sets the time on the C256's real time clock, given the time as three numbers:
+    \param{hour}, \param{minute}, and \param{second}.
+
+    \section{C256 Specific Functions}
+
+    \subsection{\keyword{GETDATE$(0)}}
+
+    Returns the current date from the C256's real time clock as a string
+    in \verb+"DD:MM:YY"+ format.
+
+    \subsection{\keyword{GETTIME$(0)}}
+
+    Returns the current time from the C256's real time clock as a string
+    in \verb+"HH:MM:SS"+ format.    
+
+\end{document}
