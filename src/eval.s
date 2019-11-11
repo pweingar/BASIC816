@@ -539,7 +539,7 @@ else2       CMP #'9'+1          ; Check to see if we have digits
             CMP #'0'
             BCS is_digit
 
-else3       CMP #'$'            ; Check for a hexadecimal prefix
+else3       CMP #'&'            ; Check for a hexadecimal prefix
             BEQ is_digit
 
             CMP #'"'            ; Is it a double-quote?

@@ -409,7 +409,7 @@ TST_CALL        .proc
 
                 ; CALL xxxx works
                 CALL INITBASIC
-                TSTLINE format("10 CALL $%x", TST_SUBROUTINE1)
+                TSTLINE format("10 CALL &H%x", TST_SUBROUTINE1)
                 CALL CMD_RUN
                 setal
                 STZ LINENUM
@@ -417,7 +417,7 @@ TST_CALL        .proc
 
                 ; CALL xxxx, 1 works
                 CALL INITBASIC
-                TSTLINE format("10 CALL $%x, 1", TST_SUBROUTINE2)
+                TSTLINE format("10 CALL &H%x, 1", TST_SUBROUTINE2)
                 CALL CMD_RUN
                 setal
                 STZ LINENUM
@@ -425,7 +425,7 @@ TST_CALL        .proc
 
                 ; CALL xxxx, 1,2 works
                 CALL INITBASIC
-                TSTLINE format("10 CALL $%x, 1,2", TST_SUBROUTINE3)
+                TSTLINE format("10 CALL &H%x, 1,2", TST_SUBROUTINE3)
                 CALL CMD_RUN
                 setal
                 STZ LINENUM
@@ -433,7 +433,7 @@ TST_CALL        .proc
 
                 ; CALL xxxx, 1,2,3 works
                 CALL INITBASIC
-                TSTLINE format("10 CALL $%x, 1,2,3", TST_SUBROUTINE4)
+                TSTLINE format("10 CALL &h%x, 1,2,3", TST_SUBROUTINE4)
                 CALL CMD_RUN
                 setal
                 STZ LINENUM

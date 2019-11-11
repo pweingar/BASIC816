@@ -50,6 +50,22 @@
     Note: when \BASIC\ leaves the alpha stage of development, it will include a fourth type: 32-bit floating point numbers as well
     as arrays of 32-bit floating point numbers.
 
+    \subsection{Literal Values}
+
+    Integers and strings may both be entered directly into programs as literal values.
+    Strings are designated with double quote marks, but there is no character escape
+    syntax as in other languages. If you need to enter a character you cannot type,
+    you will have to use the \verb+CHR$+ function. Integers may be entered as a sequence
+    of digits with an optional minus sign at the start. The default base for integers
+    is decimal, but hexadecimal numbers may be entered with the \verb+&H+ prefix.
+
+    \begin{itemize}
+        \item \verb+"Hello, world!"+
+        \item \verb+12345+
+        \item \verb+-562+
+        \item \verb+&HFFD2+
+    \end{itemize}
+
     \section{Variables}
 
     A \BASIC\ program can assign data to variables using the \keyword{LET} statement or an implicit \keyword{LET} statement.

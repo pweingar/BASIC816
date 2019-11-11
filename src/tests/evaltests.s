@@ -281,8 +281,8 @@ TST_EVAL_HEX    .proc
                 UT_M_EQ_LIT_W ARGUMENT1,$ABCD,"EXPECTED $ABCD"
 
                 UT_END
-TEST1           .null "$1234"
-TEST2           .null "$ABcd"
+TEST1           .null "&H1234"
+TEST2           .null "&hABcd"
                 .pend
 
 TST_EVAL_ADD    .proc

@@ -48,8 +48,8 @@ PARSEINT    .proc
             STZ ARGTYPE1
 
             LDA [BIP]           ; Check to see if it starts with '$'
-            CMP #'$'        
-            BEQ parse_hex       ; Yes: parse it as a hexadecimal number
+            CMP #'&'        
+            BEQ check_hex       ; Yes: parse it as a hexadecimal number
 
 loop        setas
             LDA [BIP]           ; Get the next character
@@ -72,6 +72,15 @@ loop        setas
 
             CALL INCBIP         ; And move to the next byte
             BRA loop            ; And try to process it
+
+syntaxerr   THROW ERR_SYNTAX    ; Throw a syntax error
+
+check_hex   CALL INCBIP         ; Skip the '&'
+            LDA [BIP]           ; Check the next character
+            CMP #'H'            ; Is it 'H'?
+            BEQ parse_hex       ; Yes: skip it and parse hex
+            CMP #'h'            ; Is it 'h'?
+            BNE syntaxerr       ; No: throw an error
 
 parse_hex   CALL INCBIP
 
