@@ -12,8 +12,39 @@
 ;;; Finally all are called through JSR, so they must use RTS to return.
 ;;;
 
+; Get the types of the arguments
+; Throw an error if they aren't identical
+BINTYPE     .proc
+            setas
+            LDA ARGTYPE1            ; Get the type of the first argument
+            CMP ARGTYPE2            ; Is it the same as for the second argument?
+            BNE mismatch            ; No: throw a mismatch error
+
+            setal
+            AND #$00FF
+            RETURN
+
+mismatch    setal
+            THROW ERR_TYPE          ; Throw a type mismatch error
+            .pend
+
 ; Perform addition
 OP_PLUS     .proc
+            CALL BINTYPE            ; Get the type of the arguments
+
+            setal
+            CMP #TYPE_INTEGER       ; Is it integer?
+            BEQ OP_PLUS_INT         ; Yes: evaluate integer addition
+
+            CMP #TYPE_STRING        ; Is it string?
+            BNE not_string
+
+            JMP STRCONCAT           ; Yes: evaluate string concatenation
+
+not_string  THROW ERR_TYPE
+            .pend
+
+OP_PLUS_INT .proc
             CLC
             LDA ARGUMENT1
             ADC ARGUMENT2

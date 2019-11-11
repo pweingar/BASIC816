@@ -138,6 +138,26 @@ TST_NE_INT      .proc
                 UT_END
                 .pend
 
+; Test that we can concatenate two string
+TST_EVALSTRCAT  .proc
+                UT_BEGIN "TST_EVALSTRCAT"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE '10 A$ = "Hello, " + "world!"'
+
+                CALL CMD_RUN
+
+                UT_VAR_EQ_STR "A$", "Hello, world!"
+
+                UT_END
+                .pend
+
 TST_OPS         .proc
                 CALL TST_EQ_INT
                 CALL TST_LT_INT
@@ -145,6 +165,7 @@ TST_OPS         .proc
                 CALL TST_GTE_INT
                 CALL TST_LTE_INT
                 CALL TST_NE_INT
+                CALL TST_EVALSTRCAT
 
                 UT_LOG "TST_OP: PASSED"
                 RETURN
