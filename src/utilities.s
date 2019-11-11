@@ -255,28 +255,39 @@ MULINT10        .proc
                 setal
                 PHA
 
-.if SYSTEM = SYSTEM_C256
-                ; The C256 has a 16-bit hardware multiplier, so use it.
-                LDA ARGUMENT1
-                STA @lM1_OPERAND_A
+; .if SYSTEM = SYSTEM_C256
+;                 ; The C256 has a 16-bit hardware multiplier, so use it.
+;                 LDA ARGUMENT1
+;                 STA @lM1_OPERAND_A
 
-                LDA #10
-                STA @lM1_OPERAND_B
+;                 LDA #10
+;                 STA @lM1_OPERAND_B
 
-                LDA @lM1_RESULT
-                STA ARGUMENT1
-                LDA @lM1_RESULT+2
-                STA ARGUMENT1+2
-.else
-                ASL ARGUMENT1   ; Calculate ARGUMENT1 * 2
+;                 LDA @lM1_RESULT
+;                 STA ARGUMENT1
+;                 LDA @lM1_RESULT+2
+;                 STA ARGUMENT1+2
+; .else
+                ASL ARGUMENT1
+                ROL ARGUMENT1+2
                 LDA ARGUMENT1
-                ASL A
-                ASL A           ; Calculate ARGUMENT1 * 8
+                STA SCRATCH
+                LDA ARGUMENT1+2
+                STA SCRATCH+2
+
+                ASL SCRATCH
+                ROL SCRATCH+2
+                ASL SCRATCH
+                ROL SCRATCH+2
 
                 CLC
-                ADC ARGUMENT1
-                STA ARGUMENT1   ; ARGUMENT1 := ARGUMENT1 * 8 + ARGUMENT1 * 2
-.endif
+                LDA ARGUMENT1
+                ADC SCRATCH
+                STA ARGUMENT1
+                LDA ARGUMENT1+2
+                ADC SCRATCH+2
+                STA ARGUMENT1+2
+; .endif
 
                 PLA
                 PLD

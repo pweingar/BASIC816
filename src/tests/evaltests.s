@@ -224,10 +224,11 @@ TST_EVAL_INT    .proc
 
                 CALL EVALNUMBER
 
-                UT_M_EQ_LIT_W ARGUMENT1,1234,"EXPECTED 1234"
+                UT_M_EQ_LIT_L ARGUMENT1,$10000000,"EXPECTED $10000000"
+
 
                 UT_END
-TEST1           .null "1234"
+TEST1           .null "268435456"
                 .pend
 
 ; We can evaluate integers
