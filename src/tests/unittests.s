@@ -534,7 +534,19 @@ UT_STRIND_EQ    .macro ; actual, expected, message
 MESSAGE         .null \3
 .send
 continue             
-                .endm   
+                .endm  
+
+; Macro to immediately execute a line
+RUNCMD          .macro              ; line
+                LD_L CURLINE,LINETEXT
+                CALL TOKENIZE
+                STZ LINENUM
+                CALL EXECCMD
+                BRA continue
+LINETEXT        .null \1
+
+continue
+                .endm 
 
 ; Macro to append a line to the test program
 TSTLINE         .macro              ; line

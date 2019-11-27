@@ -37,7 +37,7 @@ INITIO      .proc
 .endif
             STA @lBCONSOLE
 
-            LDA #$20
+            LDA #$F0
             STA @lCURCOLOR
 
 .if UARTSUPPORT = 1

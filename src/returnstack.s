@@ -16,13 +16,16 @@
 INITRETURN      .proc
                 PHP
                 PHD
+                PHB
 
+                setdbr 0
                 setdp GLOBAL_VARS
 
                 setaxl
                 LDA #RETURN_TOP-2
-                STA @lRETURNSP
+                STA RETURNSP
 
+                PLB
                 PLD
                 PLP
                 RETURN

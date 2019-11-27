@@ -533,6 +533,8 @@ else        CALL ISALPHA        ; Is it alphabetic?
             LDA [BIP]           ; Check to see if it's any other non-token
             BPL error           ; Yes: it's a syntax error
 
+            TRACE "CHECK TOKTYPE"
+
             CALL TOKTYPE        ; Get the token type
             STA SCRATCH         ; Save the type for later
 
@@ -542,6 +544,7 @@ else        CALL ISALPHA        ; Is it alphabetic?
 
 else2       LDA STATE           ; Check to see if we're in interactive mode
             BEQ is_interact
+            TRACE "STATE = RUNNING"
 
             ; Interpreter is running a program. Only statements are allowed. 
 
@@ -559,7 +562,8 @@ is_interact LDA SCRATCH         ; Get the token type
             CMP #TOK_TY_CMD     ; Is it a command?
             BNE error           ; If not, it's an error
 
-ok_to_exec  LDA [BIP]           ; Get the original token again
+ok_to_exec  TRACE "ok_to_exec"
+            LDA [BIP]           ; Get the original token again
             CALL TOKEVAL        ; Get the execution vector for the statement or command
             setal
             STA JMP16PTR        ; Store it in the jump pointer
@@ -589,6 +593,7 @@ EXECCMD     .proc
             CLI
 
             CALL SETINTERACT
+            CALL INITRETURN             ; Reset the RETURN stack
 
             setas
             STZ KEYFLAG                 ; Clear the key flag... interrupt handler will raise MSB
@@ -638,10 +643,15 @@ EXECLINE    PHP
             ADC #0
             STA BIP+2
 
-exec_loop   CALL EXECSTMT               ; Try to execute a statement
+exec_loop   setal
+            CALL EXECSTMT               ; Try to execute a statement
 
             setas                       ; Check EXECACTION (set by statements)
             LDA EXECACTION
+            
+            CMP #EXEC_RETURN
+            BEQ exec_loop
+
             CMP #EXEC_CONT              ; If it's not EXEC_CONT, exit to the caller
             BNE exec_done
 

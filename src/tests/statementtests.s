@@ -247,10 +247,10 @@ TST_POKE        .proc
 ;                 ; NOP
 
 
-continue        TSTLINE "10 POKE $020000,$55"
-                TSTLINE "20 A%=PEEK($020000)"
-                TSTLINE "30 POKE $030000,$AA"
-                TSTLINE "40 B%=PEEK($030000)"
+continue        TSTLINE "10 POKE &h020000,&h55"
+                TSTLINE "20 A%=PEEK(&h020000)"
+                TSTLINE "30 POKE &h030000,&hAA"
+                TSTLINE "40 B%=PEEK(&h030000)"
 
                 CALL CMD_RUN
 
@@ -277,8 +277,8 @@ TST_POKEW       .proc
 
                 CALL INITBASIC
 
-                TSTLINE '10 POKEW $020000,$1234'
-                TSTLINE '20 A%=PEEKW($020000)'
+                TSTLINE '10 POKEW &h020000,&h1234'
+                TSTLINE '20 A%=PEEKW(&h020000)'
 
                 CALL CMD_RUN
 
@@ -315,8 +315,8 @@ TST_POKEL       .proc
 
                 CALL INITBASIC
 
-                TSTLINE '10 POKEL $020000,$123456'
-                TSTLINE '20 A%=PEEKL($020000)'
+                TSTLINE '10 POKEL &h020000,&h123456'
+                TSTLINE '20 A%=PEEKL(&h020000)'
 
                 CALL CMD_RUN
 
@@ -341,6 +341,24 @@ TST_POKEL       .proc
 VAR_A           .null "A%"
                 .pend
 
+; Test that we can nest FOR/NEXT loops
+TST_IMMFOR      .proc
+                UT_BEGIN "TST_IMMFOR"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                RUNCMD "FOR I=1 TO 10:X=I:NEXT"
+
+                ; Validate that X=10
+                UT_VAR_EQ_W "X",TYPE_INTEGER,10
+
+                UT_END
+                .pend
 
 ; Test that we can nest FOR/NEXT loops
 TST_NESTEDFOR   .proc
@@ -472,15 +490,16 @@ TST_SUBROUTINE4 .proc
                 .pend
 
 TST_STMNTS      .proc
-                ; CALL TST_REM
-                ; CALL TST_CLR
-                ; CALL TST_LET
-                ; CALL TST_POKE
-                ; CALL TST_POKEW
-                ; CALL TST_POKEL
-                ; ; CALL TST_STOP
-                ; CALL TST_NESTEDFOR
-                ; CALL TST_READ
+                CALL TST_REM
+                CALL TST_CLR
+                CALL TST_LET
+                CALL TST_POKE
+                CALL TST_POKEW
+                CALL TST_POKEL
+                ; CALL TST_STOP
+                CALL TST_IMMFOR
+                CALL TST_NESTEDFOR
+                CALL TST_READ
                 CALL TST_CALL
 
                 UT_LOG "TST_STMNTS: PASSED"

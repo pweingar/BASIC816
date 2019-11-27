@@ -9,8 +9,8 @@ INITFONT        .proc
                 setxl
                 LDX #$0000
 
-loop            LDA @lBASIC_FONT,X    ; RAM Content
-                STA @lFONT_MEMORY_BANK0,X ; Vicky FONT RAM Bank
+loop            LDA @lBASIC_FONT,X          ; RAM Content
+                STA @lFONT_MEMORY_BANK0,X   ; Vicky FONT RAM Bank
                 INX
                 CPX #$0800
                 BNE loop
@@ -22,6 +22,6 @@ loop            LDA @lBASIC_FONT,X    ; RAM Content
                 RETURN
                 .pend
 
-;BASIC_FONT      .binary "resources/MSX_8x8.bin", 0, 2048
-;BASIC_FONT      .binary "resources/AppleLikeFont.bin", 0, 2048
+; BASIC_FONT      .binary "resources/MSX_8x8.bin", 0, 2048
+; BASIC_FONT      .binary "resources/AppleLikeFont.bin", 0, 2048
 BASIC_FONT      .binary "resources/CBM-ASCII_8x8.bin", 0, 2048

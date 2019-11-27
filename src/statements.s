@@ -582,8 +582,6 @@ S_FOR           .proc
                 PHP
                 TRACE "S_FOR"
 
-                setas
-
                 ; Save the current line to the RETURN stack
 
                 setal
@@ -801,6 +799,7 @@ loop_back       TRACE "loop back"
                 setas                           ; Set the action to RETURN to the spot
                 LDA #EXEC_RETURN
                 STA EXECACTION
+
                 BRA done
 
                 ; Got to the end of the loop, cleanup the RETURN stack
