@@ -2,20 +2,29 @@
 ;;; Custom statements for the C256
 ;;;
 
-.section variables
-GR_PM_ADDR      .dword ?            ; Address of the pixmap (from CPU's perspective)
-GR_PM_VRAM      .dword ?            ; Address of the pixmap (relative to start of VRAM)
-GR_MAX_COLS     .word ?             ; Width the display in pixels
-GR_MAX_ROWS     .word ?             ; Height of the display in pixels
-GR_TOTAL_PIXELS .word ?             ; Total number of pixels in the display
-.send
-
 GR_LUT_BLUE = 0
 GR_LUT_GREEN = 1
 GR_LUT_RED = 2
 GR_LUT_ALPHA = 3
 GR_DEFAULT_COLS = 640               ; Default number of columns in the display
 GR_DEFAULT_ROWS = 480               ; Default number of rows in the display
+GR_MAX_LUT = 8                      ; The number of LUTs Vicky supports
+SP_MAX = 18                         ; The number of sprites Vicky supports
+SP_REG_SIZE = 8                     ; The number of bytes in a sprite's register block
+SP_CONTROL = 0                      ; Offset of the control regsiter for a sprite
+SP_ADDR = 1                         ; Offset of the pixmap address for a sprite
+SP_X_COORD = 4                      ; Offset of the X coordinate for a sprite
+SP_Y_COORD = 6                      ; Offset of the Y coordinate for a sprite
+
+.section variables
+GR_PM_ADDR      .dword ?            ; Address of the pixmap (from CPU's perspective)
+GR_PM_VRAM      .dword ?            ; Address of the pixmap (relative to start of VRAM)
+GR_MAX_COLS     .word ?             ; Width the display in pixels
+GR_MAX_ROWS     .word ?             ; Height of the display in pixels
+GR_TOTAL_PIXELS .word ?             ; Total number of pixels in the display
+GR_TEMP         .word ?             ; A temporary word for graphics commands
+GS_SP_CONTROL   .fill SP_MAX        ; Shadow registers for the sprite controls
+.send
 
 ; BLOAD path,destination
 ; BSAVE path,source
@@ -73,12 +82,10 @@ GR_DEFAULT_ROWS = 480               ; Default number of rows in the display
 ;; Sprite
 ; SPRITE number,lut,layer,vblock
 ;       Set up a sprite, specifying it's color LUT, rendering layer, and the video block containing its pixel data
-; SPRITELOC sprite,x,y
+; SPRITEAT number,x,y
 ;       Move the sprite so it's upper-left corner is at (x, y)
-; SPRITESHOW number,boolean
+; SPRITESHOW number,boolean,layer
 ;       Control whether or not the sprite is visible
-; COLLISION%(number)
-;       Check to see if the sprite is colliding with another object
 
 ;; Tile
 ; TILESET number,lut,address,striding
@@ -234,32 +241,37 @@ S_SETDATE       .proc
 
 ;
 ; Set the text foreground color
-; SETFGCOLOR index
+; TEXTCOLOR foreground, background
 ;
 ; Inputs:
 ;   ARGUMENT1 = the index of the foreground color
 ;
-S_SETFGCOLOR    .proc
+S_TEXTCOLOR     .proc
                 PHP
-                TRACE "S_SETFGCOLOR"
+                TRACE "S_TEXTCOLOR"
 
-                ; TODO: convert float arguments to integer
-
-                CALL EVALEXPR       ; Get the red component
+                CALL EVALEXPR       ; Get the foreground index
                 CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
 
                 setas
-                LDA ARGUMENT1       ; Covert the color number to the right position
+                LDA ARGUMENT1       ; Covert the color number to the foreground position
                 AND #$0F
                 .rept 4
                 ASL A
                 .next
-
                 STA SCRATCH
-                LDA @lCURCOLOR      ; Mask off the old foreground color
+
+                LDA #','
+                CALL EXPECT_TOK     ; Try to find the comma
+
+                CALL EVALEXPR       ; Get the background index
+                CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
+
+                LDA ARGUMENT1       ; Covert the color number to the background position
                 AND #$0F
-                ORA SCRATCH            ; And add in the new one
-                STA @lCURCOLOR
+
+                ORA SCRATCH         ; Add in the foreground
+                STA @lCURCOLOR      ; And save the new color combination
 
                 PLP
                 RETURN
@@ -267,72 +279,117 @@ S_SETFGCOLOR    .proc
 
 ;
 ; Set the text background color
-; SETBGCOLOR index
-;
-; Inputs:
-;   ARGUMENT1 = the index of the background color
+; SETBGCOLOR red, green, blue
 ;
 S_SETBGCOLOR    .proc
                 PHP
                 TRACE "S_SETBGCOLOR"
 
-                ; TODO: convert float arguments to integer
-
-                CALL EVALEXPR       ; Get the red component
-                CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
-
                 setas
-                LDA ARGUMENT1       ; Make sure the index is just 4 bits
-                AND #$0F
 
-                STA SCRATCH
-                LDA @lCURCOLOR      ; Mask off the old background color
-                AND #$F0
-                ORA SCRATCH            ; And add in the new one
-                STA @lCURCOLOR
+                CALL EVALEXPR               ; Get the red component
+                CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+
+                LDA ARGUMENT1               ; Save the red component to the stack
+                PHA
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the green component
+                CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+
+                LDA ARGUMENT1               ; Save the green component to the stack
+                PHA
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the blue component
+                CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+
+                LDA ARGUMENT1               ; And set the actual color
+                STA @lBACKGROUND_COLOR_B
+                PLA
+                STA @lBACKGROUND_COLOR_G
+                PLA
+                STA @lBACKGROUND_COLOR_R
 
                 PLP
                 RETURN
                 .pend
 
 ; Set the border color give red, green, and blue components
-; SETBRDCOLOR red, green, blue
-S_SETBRDCOLOR   .proc
+; SETBORDER visible [, red, green, blue]
+S_SETBORDER     .proc
                 PHP
-                TRACE "S_SETBRDCOLOR"
-
-                ; TODO: convert float arguments to integer
-
-                CALL EVALEXPR       ; Get the red component
-                CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
+                TRACE "S_SETBORDER"
 
                 setas
-                LDA ARGUMENT1       ; Save the red component to the stack
-                PHA
 
-                LDA #','
-                CALL EXPECT_TOK     ; Try to find the comma
-
-                CALL EVALEXPR       ; Get the green component
-                CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
-
-                LDA ARGUMENT1       ; Save the green component to the stack
-                PHA
-
-                LDA #','
-                CALL EXPECT_TOK     ; Try to find the comma
-
-                CALL EVALEXPR       ; Get the blue component
-                CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
+                CALL EVALEXPR               ; Get the visible component
+                CALL ASS_ARG1_INT           ; Assert that the result is an integer value
 
                 LDA ARGUMENT1
-                STA @lBORDER_COLOR_B    ; Set the border color
+                BEQ hide_border
+
+                LDA #Border_Ctrl_Enable     ; Enable the border
+                STA @lBORDER_CTRL_REG
+
+                LDA #BORDER_WIDTH           ; Set the border width
+                STA BORDER_X_SIZE
+                STA BORDER_Y_SIZE
+
+                LDA #TEXT_COLS_WB           ; Make sure the screen size is right
+                STA @lCOLS_VISIBLE
+                LDA #TEXT_ROWS_WB
+                STA @lLINES_VISIBLE
+
+                BRA get_color
+
+hide_border     LDA #0                      ; Hide the border
+                STA @lBORDER_CTRL_REG
+
+                LDA #TEXT_COLS_WOB          ; Make sure the screen size is right
+                STA @lCOLS_VISIBLE
+                LDA #TEXT_ROWS_WOB
+                STA @lLINES_VISIBLE
+
+get_color       LDA #','
+                STA TARGETTOK
+                CALL OPT_TOK                ; Is there a comma?
+                BCC done                    ; No: we're done
+
+                CALL INCBIP
+                CALL EVALEXPR               ; Get the red component
+                CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+
+                LDA ARGUMENT1               ; Save the red component to the stack
+                PHA
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the green component
+                CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+
+                LDA ARGUMENT1               ; Save the green component to the stack
+                PHA
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the blue component
+                CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+
+                LDA ARGUMENT1
+                STA @lBORDER_COLOR_B        ; Set the border color
                 PLA
                 STA @lBORDER_COLOR_G
                 PLA
                 STA @lBORDER_COLOR_R            
 
-                PLP
+done            PLP
                 RETURN
                 .pend
 
@@ -1003,4 +1060,224 @@ S_FILL          .proc
                 CALL FILL                   ; Otherwise, use the block fill routine
 done            PLP
                 RETURN
+                .pend
+
+;;
+;; Sprite statements and support routines
+;;
+
+;
+; Set MTEMPPTR to the starting address of a sprite, given its number
+;
+; Inputs:
+;   ARGUMENT1 = the number of the sprite desired (0 - 8)
+;
+SPADDR          .proc
+                PHP
+
+                setas
+                LDA ARGUMENT1               ; Get the sprite number
+                CMP #SP_MAX
+                BGE error
+
+                ASL A                       ; Multiply it by 8 (the size of s sprite block)
+                ASL A
+                ASL A
+
+                CLC                         ; Add it to the address of the first
+                ADC #<SP00_CONTROL_REG      ; sprite block
+                STA MTEMPPTR
+                LDA #>SP00_CONTROL_REG
+                ADC #0
+                STA MTEMPPTR+1
+                LDA #`SP00_CONTROL_REG
+                ADC #0
+                STA MTEMPPTR+2
+                STZ MTEMPPTR+3              ; And save that to MTEMPPTR
+
+                PLP
+                RETURN
+error           THROW ERR_RANGE             ; Throw a range error
+                .pend
+
+;
+; SPRITE number, lut, address
+;       Set up a sprite, specifying it's color LUT, and the address of its pixel data
+;
+S_SPRITE        .proc
+                PHP
+                TRACE "S_SPRITE"
+
+                setas
+
+                CALL EVALEXPR               ; Get the sprite's number
+                CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                CALL SPADDR                 ; Compute the address of the sprite's block     
+                LDA ARGUMENT1
+                STA @lGR_TEMP               ; Save sprite number in GR_TEMP
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the LUT for the sprite
+                CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                LDA ARGUMENT1
+                CMP #GR_MAX_LUT             ; Check that it's in range
+                BGE error                   ; If not: throw an error
+                PHA                         ; Save it for later
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the address of the sprite's pixmap
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+
+                setal
+
+                SEC                         ; Adjust address to be in Vicky's space
+                LDA ARGUMENT1
+                SBC #<>VRAM
+                STA ARGUMENT1
+                LDA ARGUMENT1+2
+                SBC #`VRAM
+                STA ARGUMENT1+2
+                BMI error                   ; If negative, throw an error
+
+                setal
+                LDA ARGUMENT1               ; Save the lower word of the address
+                LDY #SP_ADDR
+                STA [MTEMPPTR],Y
+                setas
+                LDA ARGUMENT1+2
+                INY
+                INY
+                STA [MTEMPPTR],Y            ; Save the upper byte of the address
+
+                LDA @lGR_TEMP
+                TAX
+                LDA GS_SP_CONTROL,X         ; Get the sprite control register
+                AND #%11110001              ; Filter off the current LUT
+                STA SCRATCH
+
+                PLA                         ; Get the LUT back
+                ASL A                       ; Sift it into the LUT position
+                AND #%00001110              ; Make sure we don't have anything wrong there
+                ORA SCRATCH                 ; Combine it with what's in the sprite's control
+                STA [MTEMPPTR]              ; And set the register's bits
+                STA GS_SP_CONTROL,X         ; And the shadow register
+
+                PLP
+                RETURN
+error           THROW ERR_RANGE             ; Throw a range exception
+                .pend
+
+;
+; SPRITEAT number, x, y
+;       Move the sprite so it's upper-left corner is at (x, y)
+;
+S_SPRITEAT      .proc
+                PHP
+                TRACE "S_SPRITEAT"
+
+                setal
+                CALL EVALEXPR               ; Get the sprite's number
+                CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                CALL SPADDR                 ; Compute the address of the sprite's block     
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the X coordinate for the sprite
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+
+                LDA ARGUMENT1
+                LDY #SP_X_COORD             ; Save the X coordinate for the sprite
+                STA [MTEMPPTR],Y 
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the Y coordinate for the sprite
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+
+                LDA ARGUMENT1
+                LDY #SP_Y_COORD             ; Save the Y coordinate for the sprite
+                STA [MTEMPPTR],Y            
+
+                PLP
+                RETURN
+                .pend
+
+;
+; SPRITESHOW number, boolean [,layer]
+;       Control whether or not the sprite is visible
+;       Optionally set the layer for the sprite
+;
+S_SPRITESHOW    .proc
+                PHP
+                TRACE "S_SPRITESHOW"
+
+                setal
+                CALL EVALEXPR               ; Get the sprite's number
+                CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                CALL SPADDR                 ; Compute the address of the sprite's block 
+                LDA ARGUMENT1
+                STA GR_TEMP                 ; GR_TEMP := sprite #
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the visibility
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+                LDA ARGUMENT1
+                PHA                         ; And save it
+   
+                LDA #','
+                STA TARGETTOK
+                CALL OPT_TOK                ; Is there a comma?
+                BCS get_layer               ; Yes: get the layer
+
+no_layer        LDA @lGR_TEMP
+                TAX
+                LDA @lGS_SP_CONTROL,X       ; Get the current control register value
+                AND #$FE                    ; Filter out the enable bit
+                STA SCRATCH
+
+                PLA                         ; Get the desired enable bit
+                AND #$01                    ; Make sure it's just the bit
+                ORA SCRATCH                 ; Combine it with the current values
+                STA @lGS_SP_CONTROL,X       ; And save it
+                STA [MTEMPPTR]              ; ... and to Vicky
+                BRA done
+
+get_layer       setas
+                CALL INCBIP
+                CALL EVALEXPR               ; Get the sprite's layer
+                CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                LDA ARGUMENT1
+                CMP #8                      ; Make sure it's in range
+                BGE error                   ; If not, throw an out of range error
+                
+                ASL A                       ; If it's ok... shift it into position
+                ASL A
+                ASL A
+                ASL A
+                STA SCRATCH                 ; And save it in SCRATCH
+
+                PLA                         ; Get the desired enable bit
+                AND #$01                    ; Make sure it's just the bit
+                ORA SCRATCH                 ; Combine it with the current values
+                STA SCRATCH
+
+                LDA @lGR_TEMP
+                TAX
+                LDA GS_SP_CONTROL,X         ; Get the current control register value
+                AND #%10001110              ; Filter out the enable and layer bits
+                ORA SCRATCH                 ; Combine with the provided layer and enable
+                STA [MTEMPPTR]              ; And set the bits in Vicky
+                STA GS_SP_CONTROL,X         ; And to the shadow registers
+
+done            PLP
+                RETURN
+error           THROW ERR_RANGE             ; Throw an out of range error
                 .pend

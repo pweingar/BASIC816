@@ -648,10 +648,11 @@ process_initial CALL INCBIP         ; Otherwise, skip over it
 
                 CALL EVALEXPR       ; Evaluate the limit value
 
-                setas               ; Push the ending value
+                ; TODO: assert that we have a number
+
+                setal               ; Push the ending value
                 LDA ARGTYPE1
-                CALL PHRETURNB
-                setal
+                CALL PHRETURN
                 LDA ARGUMENT1+2
                 CALL PHRETURN
                 LDA ARGUMENT1
@@ -664,7 +665,7 @@ process_initial CALL INCBIP         ; Otherwise, skip over it
                 CALL OPT_TOK        ; Seek an optional STEP token
                 BCC default_inc     ; Not found: set a default increment of 1
 
-                CALL SKIPWS
+                CALL INCBIP
                 CALL EVALEXPR       ; Evaluate the next expression
 
                 setas
@@ -731,14 +732,6 @@ S_NEXT          .proc
                 INY                             ; RETURNSP points to the first free slot, so move up 2 bytes
                 INY
 
-                LDA #FOR_RECORD.FINAL,B,Y       ; ARGUMENT2 := FOR_RECORD.FINAL
-                STA ARGUMENT2
-                LDA #FOR_RECORD.FINAL+2,B,Y
-                STA ARGUMENT2+2
-                setas
-                LDA #FOR_RECORD.FINALTYPE,B,Y
-                STA ARGTYPE2
-
                 ; Get the variable and its current value
                 setal
                 LDA #FOR_RECORD.VARIBLE,B,Y     ; TOFIND := FOR_RECORD.VARIABLE
@@ -749,26 +742,12 @@ S_NEXT          .proc
                 LDA #FOR_RECORD.VARTYPE,B,Y
                 STA TOFINDTYPE
 
+                setal
+                PHY
                 CALL VAR_REF                    ; Get the value of the variable
+                PLY
 
-                LDX #ARGUMENT1
-                CALL PHARGUMENT                 ; Save the value for later
-
-                CALL OP_MINUS                   ; Are they equal?
-                CALL IS_ARG1_Z
-                BEQ end_loop                    ; Yes: end the loop
-
-                ; Not at end, so add the increment, reassign, and loop
-
-loop_back       TRACE "loop back"
-
-                LDX #ARGUMENT1
-                CALL PLARGUMENT                 ; Restore the value of the variable
-
-                LDY RETURNSP
-                INY
-                INY
-
+                setal
                 LDA #FOR_RECORD.INCREMENT,B,Y   ; ARGUMENT2 := FOR_RECORD.INCREMENT
                 STA ARGUMENT2
                 LDA #FOR_RECORD.INCREMENT+2,B,Y
@@ -777,13 +756,38 @@ loop_back       TRACE "loop back"
                 LDA #FOR_RECORD.INCTYPE,B,Y
                 STA ARGTYPE2
 
+                setal
+                PHY
                 CALL OP_PLUS                    ; Add the increment to the current value
                 CALL VAR_SET                    ; Assign the new value to the variable
+                PLY
 
-                LDY RETURNSP
-                INY
-                INY
-                
+                setal
+                LDA #FOR_RECORD.FINAL,B,Y       ; ARGUMENT2 := FOR_RECORD.FINAL
+                STA ARGUMENT2
+                LDA #FOR_RECORD.FINAL+2,B,Y
+                STA ARGUMENT2+2
+                setas
+                LDA #FOR_RECORD.FINALTYPE,B,Y
+                STA ARGTYPE2
+
+                setal
+                LDA #FOR_RECORD.INCREMENT+2,B,Y ; Check the increment's sign
+                BMI going_down
+
+going_up        CALL OP_LTE                     ; Is current =< limit?
+                CALL IS_ARG1_Z
+                BEQ end_loop                    ; No: end the loop
+                BRA loop_back                   ; Yes: loop back
+
+going_down      CALL OP_GTE                     ; Is current >= limit?
+                CALL IS_ARG1_Z
+                BEQ end_loop                    ; No: end the loop
+
+                ; Not at end, so add the increment, reassign, and loop
+
+loop_back       TRACE "loop back"
+               
                 setal                           ; Set the BIP to the correct spot (right after the FOR)
                 LDA #FOR_RECORD.BIP,B,Y
                 STA BIP

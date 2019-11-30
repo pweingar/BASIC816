@@ -15,19 +15,32 @@
 .include "screen.s"
 .include "font.s"
 
+BORDER_WIDTH = 32               ; The width of the border (when it is on)
+TEXT_COLS_WB = 72               ; Number of columns of text with the border enabled
+TEXT_ROWS_WB = 52               ; Number of rows of text with the border enabled
+TEXT_COLS_WOB = 80              ; Number of columns of text with no border enabled
+TEXT_ROWS_WOB = 60              ; Number of rows of text with no border enabled
+
 INITIO      .proc
             setas
 
             CALL INITFONT       ; Set up the BASIC font
 
-            LDA #72             ; Make sure the screen size is right
+            LDA #TEXT_COLS_WB   ; Make sure the screen size is right
             STA @lCOLS_VISIBLE  ; TODO: remove this when the kernel is correct
-            LDA #52
+            LDA #TEXT_ROWS_WB
             STA @lLINES_VISIBLE
 
-            LDA #32             ; Set the border width
+            LDA #BORDER_WIDTH   ; Set the border width
             STA BORDER_X_SIZE
             STA BORDER_Y_SIZE
+
+            LDX #0              ; Clear all the sprite control shadow registers
+            LDA #0
+sp_loop     STA GS_SP_CONTROL,X
+            INX
+            CPX #SP_MAX
+            BNE sp_loop
 
             ; DEV_SCREEN | DEV_UART
 .if UNITTEST = 1

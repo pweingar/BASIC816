@@ -352,10 +352,29 @@ TST_IMMFOR      .proc
 
                 CALL INITBASIC
 
-                RUNCMD "FOR I=1 TO 10:X=I:NEXT"
+                RUNCMD "FOR I=1 TO 1024:X=I:NEXT"
 
                 ; Validate that X=10
-                UT_VAR_EQ_W "X",TYPE_INTEGER,10
+                UT_VAR_EQ_W "X",TYPE_INTEGER,1024
+
+                UT_END
+                .pend
+
+; Test that we can do FOR/NEXT loops going down
+TST_STEPDOWN    .proc
+                UT_BEGIN "TST_STEPDOWN"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                RUNCMD "FOR I=10 TO 1 STEP 0-1:X=I:NEXT"
+
+                ; Validate that X=10
+                UT_VAR_EQ_W "X",TYPE_INTEGER,1
 
                 UT_END
                 .pend
@@ -372,7 +391,7 @@ TST_NESTEDFOR   .proc
                 CALL INITBASIC
 
                 TSTLINE "10 A%=0"
-                TSTLINE "20 FOR I%=1 TO 10:FOR J%=1 TO 20"
+                TSTLINE "20 FOR I%=1 TO 10:FOR J%=1 TO 40 STEP 2"
                 TSTLINE "40 A%=A%+1"
                 TSTLINE "50 NEXT:NEXT"
 
@@ -490,15 +509,16 @@ TST_SUBROUTINE4 .proc
                 .pend
 
 TST_STMNTS      .proc
-                CALL TST_REM
-                CALL TST_CLR
-                CALL TST_LET
-                CALL TST_POKE
-                CALL TST_POKEW
-                CALL TST_POKEL
-                ; CALL TST_STOP
-                CALL TST_IMMFOR
-                CALL TST_NESTEDFOR
+                ; CALL TST_REM
+                ; CALL TST_CLR
+                ; CALL TST_LET
+                ; CALL TST_POKE
+                ; CALL TST_POKEW
+                ; CALL TST_POKEL
+                ; ; CALL TST_STOP
+                ; CALL TST_IMMFOR
+                ; CALL TST_NESTEDFOR
+                CALL TST_STEPDOWN
                 CALL TST_READ
                 CALL TST_CALL
 

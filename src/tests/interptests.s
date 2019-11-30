@@ -728,7 +728,7 @@ TST_EXEC_FOR    .proc
 
                 CALL VAR_REF            ; Try to get the result
                 UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
-                UT_M_EQ_LIT_W ARGUMENT1,11,"EXPECTED A%=11"
+                UT_M_EQ_LIT_W ARGUMENT1,10,"EXPECTED A%=10"
 
                 ; Validate that I%=11
                 setal
@@ -741,13 +741,12 @@ TST_EXEC_FOR    .proc
                 LDA #TYPE_INTEGER
                 STA TOFINDTYPE
 
-                ; TODO: should i%=10 or 11?
                 CALL VAR_REF            ; Try to get the result
                 UT_M_EQ_LIT_B ARGTYPE1,TYPE_INTEGER,"EXPECTED INTEGER"
-                UT_M_EQ_LIT_W ARGUMENT1,10,"EXPECTED I%=10"
+                UT_M_EQ_LIT_W ARGUMENT1,11,"EXPECTED I%=11"
 
                 UT_END
-LINE10          .null "10 A%=1"
+LINE10          .null "10 A%=0"
 LINE20          .null "20 FOR I%=1 TO 10"
 LINE30          .null "30 A%=A%+1"
 LINE40          .null "40 NEXT"
