@@ -1,6 +1,7 @@
 import intelhex
 import foenix
 import configparser
+import os
 import re
 import sys
 from optparse import OptionParser
@@ -66,6 +67,29 @@ def display(base_address, data):
         
     sys.stdout.write(' {}\n'.format(text_buff))
 
+def send_text(port, filename, destination):
+    """Send the a text file to the fake file area on the C256 at $16:0000"""
+
+    file_size = os.path.getsize(filename)
+    if file_size > 65536:
+        raise Exception("text file is too big")
+    data_to_send = ""
+    with open(filename, 'r') as f:
+        data_to_send = f.read()
+
+    c256 = foenix.FoenixDebugPort()
+    try:
+        c256.open(port)
+        c256.enter_debug()
+        try:
+            size_list = [file_size & 0xFF, (file_size >> 8) & 0xFF]
+            c256.write_block(destination, bytes(size_list))
+            c256.write_block(destination+2, bytes(data_to_send, 'ascii'))
+        finally:
+            c256.exit_debug()
+    finally:
+        c256.close()  
+
 def send(port, filename):
     """Send the data in the hex file 'filename' to the C256 on the given serial port."""
     infile = intelhex.HexFile()
@@ -106,6 +130,8 @@ config.read('c256.ini')
 
 parser = OptionParser()
 parser.add_option("-s", "--send", dest="to_send", help="Intel HEX file to send.")
+parser.add_option("-t", "--text", dest="ascii_file", help="ASCII file to send.")
+parser.add_option("-z", "--text-dest", dest="ascii_dest", default=0x160000, help="Destination address for ASCII file.")
 parser.add_option("-p", "--port", dest="port", default=config['DEFAULT'].get('port', 'COM9'), help="communication port for the C256")
 parser.add_option("-a", "--address", dest="start_address", type="string", help="starting address for memory to fetch (in hex)")
 parser.add_option("-v", "--variable", dest="label", type="string", help="label to look up for the starting address")
@@ -119,6 +145,8 @@ try:
     if options.port != "":
         if options.to_send:
             send(options.port, options.to_send)
+        elif options.ascii_file:
+            send_text(options.port, options.ascii_file, options.ascii_dest)
         elif options.pointer and options.label_file:
             address = dereference(options.port, options.label_file, options.pointer)
             get(options.port, address, options.count)

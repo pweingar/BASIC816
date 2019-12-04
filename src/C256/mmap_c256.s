@@ -50,7 +50,8 @@ ARGUMENT_BOT = $006000      ; Starting address of the argument stack
 ARGUMENT_TOP = $006FFF      ; Ending address of the argument stack
 OPERATOR_BOT = $007000      ; Starting address of the operator stack
 OPERATOR_TOP = $007FFF      ; Ending address of the operator stack
-HEAP_TOP = $16FFFF          ; Starting point of the heap
+HEAP_TOP = $15FFFF          ; Starting point of the heap
 BASIC_BOT = $010000         ; Starting point for BASIC programs
-
 VRAM = $B00000              ; Start of video RAM
+FAKEFILE = $160002          ; Start of the fake file for loading
+FAKEFILESIZE = $160000      ; Location of the size of the fake file

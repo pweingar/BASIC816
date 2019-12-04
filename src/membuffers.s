@@ -38,6 +38,8 @@ loop            CALL IBUFF_GETC
                 BEQ end_of_line         ; Got a null? treat it as end of line
                 CMP #CHAR_CR            ; Is it a newline?
                 BEQ end_of_line         ; Yes: treat it as end of line
+                CMP #CHAR_LF            ; Is it a line feed?
+                BEQ end_of_line         ; Yes: treat it as end of line
 
                 STA @lINPUTBUF,X        ; Save the character
                 CMP #0                  ; Is it a NULL?

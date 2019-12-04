@@ -3,7 +3,11 @@
 ;;;
 
 ;
-; List an entire program
+; List a program
+;
+; Inputs:
+;   MARG1 = starting line (line number must be >= this to be listed)
+;   MARG2 = ending line (line number must be <= this to be listed)
 ;
 LISTPROG    .proc
             PHA
@@ -22,10 +26,21 @@ LISTPROG    .proc
             STA BIP+2
             STA CURLINE+2
 
-list_loop   LDY #LINE_NUMBER
-            LDA [BIP],Y
+list_loop   LDA KEYFLAG         ; Check the keyboard flags
+            BMI throw_break     ; If MSB: user pressed an interrupt key, stop the listing
+
+            LDY #LINE_NUMBER
+            LDA [CURLINE],Y
             BEQ done
-            CALL LISTLINE
+
+            CMP MARG1
+            BLT skip_line
+            
+            CMP MARG2
+            BEQ print_line
+            BGE done
+
+print_line  CALL LISTLINE
             BRA list_loop
 
 done        PLP
@@ -33,6 +48,10 @@ done        PLP
             PLY
             PLA
             RETURN
+
+skip_line   CALL NEXTLINE           ; Go to the next line
+            BRA list_loop           ; And try again
+throw_break THROW ERR_BREAK         ; Throw a BREAK condition
             .pend
 
 ;
@@ -59,10 +78,10 @@ LISTLINE    .proc
             CALL PR_STRING      ; And print it
 
             CLC                 ; Move the BIP to the first byte of the line
-            LDA BIP
+            LDA CURLINE
             ADC #LINE_TOKENS
             STA BIP
-            LDA BIP+2
+            LDA CURLINE+2
             ADC #0
             STA BIP+2
 
@@ -78,7 +97,7 @@ loop        CALL LISTBYTE
             LDA #CHAR_CR
             CALL PRINTC
 
-            CALL INCBIP         ; Move past the end of line
+            CALL NEXTLINE
 
             PLP
             RETURN

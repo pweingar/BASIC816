@@ -467,6 +467,7 @@ ret_false   PLP
 ;
 PEEK_TOK    .proc
             PHY
+            PHP
 
             setas
             LDY #0
@@ -483,7 +484,8 @@ loop        LDA [BIP],Y
 
 ret_null    LDA #0
 
-done        PLY
+done        PLP
+            PLY
             RETURN
             .pend
 

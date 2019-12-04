@@ -69,11 +69,67 @@ CMD_LIST        .proc
                 PHP
                 TRACE "CMD_LIST"
 
+                setal
+
+                STZ MARG1               ; MARG1 is starting line number, default 0
+
+                LDA #$7FFF
+                STA MARG2               ; MARG2 is ending line number, default MAXINT
+
                 CALL PRINTCR
+
+                CALL PEEK_TOK
+                AND #$00FF
+                CMP #0                  ; If no arguments...
+                BEQ call_list           ; ... just list with the defaults
+                CMP #TOK_MINUS          ; If just "- ###"...
+                BEQ parse_endline       ; ... try to parse the end line number
+
+                CALL SKIPWS
+                CALL PARSEINT           ; Try to get the starting line
+                LDA ARGUMENT1           ; And save it to MARG1
+                STA MARG1
+
+                CALL PEEK_TOK
+                AND #$00FF
+                CMP #0                  ; If no arguments...
+                BEQ call_list           ; ... just list with the defaults
+                CMP #TOK_MINUS
+                BNE error               ; At this point, if not '-', it's a syntax error
+          
+parse_endline   CALL EXPECT_TOK         ; Try to eat the '-'
+
+                CALL SKIPWS
+                CALL PARSEINT           ; Try to get the ending line
+                LDA ARGUMENT1           ; And save it to MARG2
+                STA MARG2
+
+call_list       LDA CURLINE+2           ; Save CURLINE
+                PHA
+                LDA CURLINE
+                PHA
+
+                LDA BIP+2               ; Save BIP
+                PHA
+                LDA BIP
+                PHA
+
+
                 CALL LISTPROG
+
+                PLA
+                STA BIP
+                PLA
+                STA BIP+2
+
+                PLA
+                STA CURLINE
+                PLA
+                STA CURLINE+2
 
                 PLP
                 RETURN
+error           THROW ERR_SYNTAX        ; Throw a syntax error
                 .pend
 
 ;
@@ -88,14 +144,14 @@ CMD_LOAD        .proc
                 ; TODO: actually load the file!
 
                 setaxl
-                LDA #<>SAMPLE               ; Set the start of the input buffer
+                LDA #<>FAKEFILE             ; Set the start of the input buffer
                 STA IBUFFER
                 setas
-                LDA #`SAMPLE
+                LDA #`FAKEFILE
                 STA IBUFFER+2
 
                 setal
-                LDA #SAMPLE_EOF - SAMPLE    ; Set the size of the input buffer
+                LDA @lFAKEFILESIZE          ; Set the size of the input buffer
                 STA IBUFFSIZE
 
                 ; Read and process each line
@@ -109,18 +165,3 @@ read_line       CALL IBUFF_EMPTY            ; Check to see if the buffer is empt
 end_of_file     PLP
                 RETURN
                 .pend
-
-SAMPLE          .null "10 POKE $AF0000,PEEK($AF0000) OR $2E"
-                .null "20 FOR V=0 TO 31:FOR U=0 TO 31"
-                .null "30 POKE $B10000 + V * 32 + U,V"
-                .null "40 NEXT:NEXT"
-                .null "50 POKE $AF0200,1"
-                .null "60 POKEW $AF0201,0:POKE $AF0203,1"
-                .null "70 POKEW $AF0204,100:POKEW $AF0206,100"
-                .null "80 FOR C = 1 to 31:BLUE = $AF2400 + C*4"
-                .null "90 POKE BLUE, 255 - C*8"
-                .null "100 POKE BLUE + 1, C*8"
-                .null "110 POKE BLUE + 2, 0"
-                .null "120 POKE BLUE + 3, $FF"
-                .null "130 NEXT"
-SAMPLE_EOF      .byte $00,$00,$00
