@@ -46,6 +46,9 @@ START       CLC                 ; Go to native mode
 
             CALL INITBASIC
 
+            LDA #STACK_END      ; Set the system stack
+            TCS
+
             ; Clear the screen and print the welcome message
             CALL CLSCREEN
 
@@ -72,7 +75,7 @@ INITBASIC   .proc
             PHP
 
             setal
-            LDA #<>HBREAK        ; Register the monitor's BRK handler
+            LDA #<>HBREAK       ; Register the monitor's BRK handler
             STA VBRK
 
             CALL INITIO         ; Initialize I/O system

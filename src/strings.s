@@ -370,6 +370,7 @@ terminate   setal
 STRCPY      .proc
             PHP
             PHD
+            PHB
 
             TRACE "STRCPY"
 
@@ -415,6 +416,7 @@ ret_copy    TRACE "/STRCPY"
             LDA #0
             STA ARGUMENT1+3
 
+            PLB
             PLD
             PLP
             RETURN

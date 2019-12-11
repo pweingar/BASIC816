@@ -197,6 +197,7 @@ TST_ABS         .proc
                 TSTLINE '10 A%=ABS(-20)'
                 TSTLINE '20 B%=ABS(20)'
                 TSTLINE '30 C%=ABS(0)'
+                TSTLINE '40 D%=2+ABS(-1)'
 
                 CALL CMD_RUN
 
@@ -204,6 +205,7 @@ TST_ABS         .proc
                 UT_VAR_EQ_W "A%",TYPE_INTEGER,20
                 UT_VAR_EQ_W "B%",TYPE_INTEGER,20
                 UT_VAR_EQ_W "C%",TYPE_INTEGER,0
+                UT_VAR_EQ_W "D%",TYPE_INTEGER,3
 
                 UT_END
                 .pend

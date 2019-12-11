@@ -226,6 +226,33 @@ continue
 .endif
             .endm
 
+;
+; Print trace message to the console if TRACE_LEVEL > 1
+; Print the value of the 3 bytes in memory at the bank 0 address index by X
+;
+TRACE_X     .macro  ; name
+.if TRACE_LEVEL > 0
+        .if TRACE_LEVEL > 1
+            JSR PRTRACE         ; Print the name of the trace point            
+        .endif
+            BRA continue
+TESTNAME    .null \1,": "
+continue
+        .if TRACE_LEVEL > 1
+            PHP
+            setas
+            LDA #2,B,X
+            CALL PRHEXB
+            LDA #1,B,X
+            CALL PRHEXB
+            LDA #0,B,X
+            CALL PRHEXB
+            PLP
+            CALL PRINTCR
+        .endif
+.endif
+            .endm
+
 LDARG_EA    .macro dest,ea,type
             PHP
             setal

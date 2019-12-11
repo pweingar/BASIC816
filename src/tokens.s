@@ -111,6 +111,45 @@ done        PLD
             .pend
 
 ;
+; Return the first non-whitespace character on the current line 
+; that comes before the current character
+;
+; Inputs:
+;   BIPPREV = pointer to the current character begin tokenized
+;   CURLINE = pointer to the first byte of the line
+;
+; Returns:
+;   A = the character found, 0 if none.
+;
+PREVCHAR    .proc
+            PHP
+
+            setal
+            SEC
+            LDA BIPPREV
+            SBC CURLINE
+            TAY
+            setas
+
+loop        LDA [CURLINE],Y
+            BEQ ret_false
+            CMP #CHAR_SP
+            BEQ go_back
+            CMP #CHAR_TAB
+            BEQ go_back
+
+            PLP
+            RETURN
+
+go_back     DEY
+            BNE loop
+
+
+ret_false   LDA #0
+            RETURN
+            .pend
+
+;
 ; Convert all the keywords to tokens in a line of BASIC text
 ;
 ; Inputs:
@@ -238,7 +277,13 @@ next_pos    INX                     ; Indicate we're no longer at the first posi
             BRA loop
 
             ; We found REM... tokenize it and return
-found_REM   LDA #3
+found_REM   LDA [BIP]               ; Get the current character
+            CMP #':'                ; Is it the delimiter?
+            BNE ret_REM             ; No: go ahead and return REM at that location
+
+            CALL INCBIP             ; Otherwise: skip over the colon
+
+ret_REM     LDA #3
             STA CURTOKLEN           ; Set the size
 
             LDA #TOK_REM            ; And the token to write
@@ -335,7 +380,7 @@ chk_delim   TRACE "chk_delim"
 try_match   setas
             CALL TKMATCH            ; Try to find the matching token
             CMP #0                  ; Did we get one?
-            BNE done                ; Yes: return it
+            BNE found               ; Yes: return it
 
 go_next     setal
             LDA BIP                 ; Update BIPPREV as the point to the previous character
@@ -347,9 +392,30 @@ go_next     setal
             CALL INCBIP             ; Move to the next character in the line
             BRA check_len           ; And try there
 
+found       CMP #TOK_MINUS          ; Found a token... is it minus?
+            BNE done                ; Nope: go ahead and return it
+
+            CALL PREVCHAR           ; Get the character (or token) just before this (ignoring white space)
+            CMP #0                  ; Did we get anything?
+            BEQ syntax              ; No: line cannot start with minus... throw error
+
+            BIT #$80                ; Is it a token?
+            BPL binaryminus         ; No: leave token unchanged
+
+            CALL TOKTYPE            ; Check the token type
+            CMP #TOK_TY_FUNC        ; Is it a function?
+            BEQ binaryminus         ; Yes: then this should be a binary minus operator
+
+            LDA #TOK_NEGATIVE       ; Otherwise: this should be a unary minus (negation)
+            BRA done
+
+binaryminus LDA #TOK_MINUS          ; It's data... so token should be for binary minus
+
 done        PLD
             PLP
             RETURN
+
+syntax      THROW ERR_SYNTAX        ; Throw a syntax error
             .pend
 
 ;
@@ -702,6 +768,7 @@ TOK_NEXT = $9B
 TOK_DO = $9C
 TOK_LOOP = $9D
 TOK_DATA = $A8
+TOK_NEGATIVE = $AF
 
 TOK_TY_OP = $00         ; The token is an operator
 TOK_TY_CMD = $10        ; The token is a command (e.g. RUN, LIST, etc.)
@@ -764,6 +831,7 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
 
             ; Functions
 
+            DEFTOK "-", TOK_TY_FUNC, 0, FN_NEGATIVE, 0
             DEFTOK "LEN", TOK_TY_FUNC, 0, FN_LEN, 0
             DEFTOK "PEEK", TOK_TY_FUNC, 0, FN_PEEK, 0
             DEFTOK "PEEKW", TOK_TY_FUNC, 0, FN_PEEKW, 0

@@ -18,9 +18,6 @@ FN_START        .macro              ; name
                 setas
                 LDA #TOK_LPAREN
                 CALL EXPECT_TOK     ; Skip any whitespace before the open parenthesis
-
-                LDA #TOK_FUNC_OPEN  ; Push the "operator" marker for the start of the function
-                CALL PHOPERATOR
                 .endm
 
 ;
@@ -42,6 +39,40 @@ FN_END          .macro
 .endif
 
 ;
+; Negative -- special "function" to convert its argument to a negative number
+;
+; Negative is special, since it does not include parenthesis around the argument
+;
+FN_NEGATIVE     .proc
+                PHP
+                TRACE "FN_NEGATIVE"
+                
+                setal
+                CALL EVALEXPR               ; Get the argument
+                ; CALL POPARGUMENT
+                CALL ASS_ARG1_INT           ; Make sure it is an integer
+
+                setal
+                LDA ARGUMENT1               ; Invert ARGUMENT1
+                EOR #$FFFF
+                STA ARGUMENT1
+                LDA ARGUMENT1+2
+                EOR #$FFFF
+                STA ARGUMENT1+2
+
+                INC ARGUMENT1               ; And increment to get two's complement
+                BNE done
+                INC ARGUMENT1+2
+
+                BRK
+
+done            TRACE "/FN_NEGATIVE"
+
+                PLP
+                RETURN
+                .pend
+
+;
 ; MID$(text$, index, count) -- return the middle COUNT characters of TEXT starting at index
 ;
 FN_MID          .proc
@@ -51,12 +82,8 @@ FN_MID          .proc
                 setaxl
 
                 CALL EVALEXPR               ; Evaluate the string
-
-                setas
-                LDA ARGTYPE1
-                CMP #TYPE_STRING
-                BEQ save_string
-                JMP type_mismatch           ; Type mismatch if it's not a string
+                ; CALL POPARGUMENT
+                CALL ASS_ARG1_STR
 
 save_string     setal
                 LDA ARGUMENT1+2             ; Save the pointer for later
@@ -75,6 +102,7 @@ save_string     setal
 skip_comma1     CALL INCBIP
 
                 CALL EVALEXPR               ; Evaluate the index
+                ; CALL POPARGUMENT
                 CALL ASS_ARG1_INT16         ; Make sure it is a 16 bit integer
 
                 setal
@@ -92,6 +120,7 @@ skip_comma1     CALL INCBIP
 skip_comma2     CALL INCBIP
 
                 CALL EVALEXPR               ; Evaluate the count
+                ; CALL POPARGUMENT
                 CALL ASS_ARG1_INT16         ; Make sure it is a 16 bit integer
 
                 MOVE_L MCOUNT,ARGUMENT1     ; MCOUNT := count of characters to return
@@ -114,7 +143,6 @@ done            FN_END
                 PLP
                 RETURN
 
-type_mismatch   THROW ERR_TYPE              ; Throw a type-mismatch error
 syntax_err      THROW ERR_SYNTAX            ; Throw a syntax error
 range_err       THROW ERR_RANGE             ; Throw a range error
                 .pend
@@ -351,17 +379,17 @@ type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
 ;
 FN_DEC          .proc
                 FN_START "FN_DEC"
+                PHP
 
                 CALL EVALEXPR       ; Get the number to convert
+                ; CALL POPARGUMENT
+                CALL ASS_ARG1_STR   ; Make sure the source is a string
 
                 setal
                 STZ SCRATCH
                 STZ SCRATCH+2
 
                 setaxs              ; Throw an error if it's not an integer
-                LDA ARGTYPE1
-                CMP #TYPE_STRING
-                BNE type_mismatch  
 
                 ; Skip leading spaces and dollar signs
                 LDY #0
@@ -402,10 +430,9 @@ ret_result      setal
                 LDA #TYPE_INTEGER
                 STA ARGTYPE1
 
+                PLP
                 FN_END
                 RETURN
-
-type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
 
 ;
@@ -413,18 +440,15 @@ type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
 ;
 FN_HEX          .proc
                 FN_START "FN_HEX"
+                PHP
 
                 CALL EVALEXPR       ; Get the number to convert
-
-                ; TODO: convert FLOAT to INTEGER
-
-                setaxs              ; Throw an error if it's not an integer
-                LDA ARGTYPE1
-                CMP #TYPE_INTEGER
-                BNE type_mismatch  
+                ; CALL POPARGUMENT
+                CALL ASS_ARG1_INT
 
                 CALL TEMPSTRING     ; Get a temporary string
 
+                setaxs
                 LDY #$FF            ; Terminate the string
                 LDA #0
                 STA [STRPTR],Y
@@ -480,6 +504,7 @@ loop            LDA ARGUMENT1       ; Write the low digit
 
                 CALL STRCPY         ; Allocate a copy on the heap
 
+                PLP
                 FN_END
                 RETURN
 
@@ -794,13 +819,8 @@ FN_ABS          .proc
                 FN_START "FN_ABS"
 
                 CALL EVALEXPR       ; Evaluate the first expression
-
-                ; TODO: handle floats
-
-                setas               ; Throw an error if it's not an integer
-                LDA ARGTYPE1
-                CMP #TYPE_INTEGER
-                BNE type_mismatch
+                ; CALL POPARGUMENT
+                CALL ASS_ARG1_INT   ; Make sure it's an integer
 
                 setal
                 LDA ARGUMENT1+2     ; Is it positive already?
@@ -817,9 +837,10 @@ FN_ABS          .proc
                 ADC #0
                 STA ARGUMENT1+2
 
+                TRACE "/FN_ABS"
+
 done            FN_END
                 RETURN
-type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
 
 ;

@@ -301,8 +301,8 @@ TST_EVAL_ADD    .proc
                 STA BIP+2
 
                 CALL EVALEXPR
-                LDX #<>ARGUMENT1    ; Get the result into ARGUMENT1
-                CALL PLARGUMENT
+                ; LDX #<>ARGUMENT1    ; Get the result into ARGUMENT1
+                ; CALL PLARGUMENT
 
                 UT_M_EQ_LIT_W ARGUMENT1,3,"EXPECTED 3"
 
@@ -326,8 +326,8 @@ TST_EVAL_MULT   .proc
                 STA BIP+2
 
                 CALL EVALEXPR
-                LDX #<>ARGUMENT1    ; Get the result into ARGUMENT1
-                CALL PLARGUMENT
+                ; LDX #<>ARGUMENT1    ; Get the result into ARGUMENT1
+                ; CALL PLARGUMENT
 
                 UT_M_EQ_LIT_W ARGUMENT1,6,"EXPECTED 6"
 
@@ -352,8 +352,8 @@ TST_EVAL_DIVIDE .proc
                 STA BIP+2
 
                 CALL EVALEXPR
-                LDX #<>ARGUMENT1    ; Get the result into ARGUMENT1
-                CALL PLARGUMENT
+                ; LDX #<>ARGUMENT1    ; Get the result into ARGUMENT1
+                ; CALL PLARGUMENT
 
                 UT_M_EQ_LIT_W ARGUMENT1,2,"EXPECTED 2"
 
@@ -378,8 +378,6 @@ TST_EVAL_MOD    .proc
                 STA BIP+2
 
                 CALL EVALEXPR
-                LDX #<>ARGUMENT1    ; Get the result into ARGUMENT1
-                CALL PLARGUMENT
 
                 UT_M_EQ_LIT_W ARGUMENT1,1,"EXPECTED 1"
 
@@ -405,8 +403,8 @@ TST_EVAL_PREC1  .proc
                 STA BIP+2
 
                 CALL EVALEXPR
-                LDX #<>ARGUMENT1    ; Get the result into ARGUMENT1
-                CALL PLARGUMENT
+                ; LDX #<>ARGUMENT1    ; Get the result into ARGUMENT1
+                ; CALL PLARGUMENT
 
                 UT_M_EQ_LIT_W ARGUMENT1,7,"EXPECTED 7"
 
@@ -432,8 +430,8 @@ TST_EVAL_PREC2  .proc
                 STA BIP+2
 
                 CALL EVALEXPR
-                LDX #<>ARGUMENT1    ; Get the result into ARGUMENT1
-                CALL PLARGUMENT
+                ; LDX #<>ARGUMENT1    ; Get the result into ARGUMENT1
+                ; CALL PLARGUMENT
 
                 UT_M_EQ_LIT_W ARGUMENT1,9,"EXPECTED 9"
 
@@ -473,6 +471,31 @@ TEST            .null '"ABC"'
 EXPECTED        .null "ABC"
                 .pend
 
+; We can evaluate negative integers
+TST_EVAL_NEG    .proc
+                UT_BEGIN "TST_EVAL_NEG"
+
+                setdp GLOBAL_VARS
+                setdbr 0
+
+                CALL INITBASIC
+                CALL INITEVALSP
+
+                setaxl
+
+                LDA #<>TEST1
+                STA BIP
+                LDA #`TEST1
+                STA BIP+2
+
+                CALL EVALEXPR
+
+                UT_M_EQ_LIT_W ARGUMENT1,1,"EXPECTED 1"
+
+                UT_END
+TEST1           .null "2 ", TOK_PLUS, " ", TOK_NEGATIVE, " 1 "
+                .pend
+
 ;
 ; Run all the evaluator tests
 ;
@@ -494,6 +517,7 @@ TST_EVAL        .proc
                 CALL TST_EVAL_PREC1
                 CALL TST_EVAL_PREC2
                 CALL TST_EVAL_STR
+                CALL TST_EVAL_NEG
 
                 UT_LOG "TST_EVAL: PASSED"
                 RETURN

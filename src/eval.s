@@ -48,7 +48,7 @@ INITEVALSP  .proc
 ;   ARGUMENTSP = the argument stack pointer
 ;
 PHARGUMENT  .proc
-            TRACE "PHARGUMENT"
+            TRACE_X "PHARGUMENT"
             PHP
             PHD
             PHB
@@ -93,11 +93,10 @@ PHARGUMENT  .proc
 ;   ARGUMENTSP = the argument stack pointer
 ;
 PLARGUMENT  .proc
-            TRACE "PLARGUMENT"
-
             PHP
             PHD
             PHB
+            TRACE "PLARGUMENT"
 
             setdp GLOBAL_VARS
             setdbr `GLOBAL_VARS
@@ -120,9 +119,29 @@ PLARGUMENT  .proc
             LDA #4,B,Y
             STA #4,B,X
 
+            LDA #0,B,X
+            TRACE_X "PLARGUMENT"
+
             PLY
             PLB
             PLD
+            PLP
+            RETURN
+            .pend
+
+;
+; Remove the top item from the argument stack
+;
+POPARGUMENT .proc
+            PHP
+            TRACE "POPARGUMENT"
+            setal
+
+            CLC
+            LDA ARGUMENTSP
+            ADC #ARGUMENT_SIZE
+            STA ARGUMENTSP
+
             PLP
             RETURN
             .pend
@@ -195,6 +214,51 @@ PLOPERATOR  .proc
             PLD
             PLP
             RETURN
+            .pend
+
+;
+; Flag the beginning of processing function and array parameter lists.
+; Pushes TOK_FUNC_OPEN "token" to the operator stack to save the position prior
+; to evaluating the function or array reference.
+;
+OPENPARAMS  .proc
+            PHP
+            TRACE "OPENPARAMS"
+
+            setas
+            LDA #TOK_FUNC_OPEN  ; Push the "operator" marker for the start of the function
+            CALL PHOPERATOR
+
+            PLP
+            RETURN
+            .pend
+
+;
+; Close out the processing of function and array parameter lists.
+; Removes TOK_FUNC_OPEN from the operator stack.
+;
+CLOSEPARAMS .proc
+            PHY
+            PHP
+            PHB
+            TRACE "CLOSEPARAMS"
+
+            setdbr 0
+
+            setas
+            LDY OPERATORSP      ; Peek at the top operator
+            LDA #1,B,Y
+            CMP #TOK_FUNC_OPEN  ; Is it the marker for the start of a parameter list
+            BNE error           ; No: there's a problem
+
+            setal
+            INC OPERATORSP      ; Yes: remove it from the operator stack.
+
+            PLB
+            PLP
+            PLY
+            RETURN
+error       THROW ERR_SYNTAX    ; Throw a syntax error (TODO: is this the right error type?)
             .pend
 
 ;
@@ -316,8 +380,7 @@ eval_index  CALL EVALEXPR       ; Evaluate the index
 skip_comma  CALL INCBIP         ; Skip the comma
             BRA eval_index      ; And grab the next index
 
-clean_op    CALL PLOPERATOR     ; Remove the open function marker
-            CALL INCBIP         ; Skip the trailing ")"
+clean_op    CALL INCBIP         ; Skip the trailing ")"
             TRACE "/ARR_GETIDX"
 
             PLP
@@ -348,14 +411,15 @@ is_array    setas
             LDA #TOK_LPAREN
             CALL EXPECT_TOK     ; Skip any whitespace before the open parenthesis
 
-            LDA #TOK_FUNC_OPEN  ; Push the "operator" marker for the start of the function
-            CALL PHOPERATOR
+            CALL OPENPARAMS     ; Start processing the array indexes
 
             ; Build the array index buffer
             PHARRIDX            ; Save the previous array index buffer
             CALL ARR_GETIDX
             CALL ARR_REF        ; And grab the value from the array
             PLARRIDX            ; Restore the old array index buffer
+
+            CALL CLOSEPARAMS    ; Stop procssing the array indexes
 
 done        PLP
             RETURN
@@ -445,8 +509,12 @@ EVAL_FUNC   .proc
             CALL TOKEVAL        ; Get the subroutine to evaluate the function
             STA JMP16PTR
 
+            CALL OPENPARAMS     ; Start processing the function argument list
+
             setdbr 0
             CALL OPSTUB         ; Call the opcode's evaluation function via the indirection stub
+
+            CALL CLOSEPARAMS    ; Stop processing the function argument list
 
             PLP
             RETURN
@@ -514,9 +582,8 @@ OPSTUB      JMP (JMP16PTR)      ; Annoying JMP to get around the fact we don't h
 ;   ARGUMENTSP = top contains the value of the expression
 ;
 EVALEXPR    .proc
-            TRACE_L "EVALEXPR", BIP
-            
             PHP
+            TRACE_L "EVALEXPR", BIP
 
             setdp GLOBAL_VARS
             setdbr `GLOBAL_VARS
@@ -619,7 +686,7 @@ is_rparen   setas
 paren_loop  LDY OPERATORSP      ; Peek at the top operator
             LDA #1,B,Y
             CMP #TOK_FUNC_OPEN  ; Is it the LPAREN of a function?
-            BEQ close_func      ; Yes: close out the function
+            BEQ done            ; Yes: treat it as an empty stack
             CMP #TOK_LPAREN     ; Is it an LPAREN?
             BEQ done_rparen     ; Yes: we're finished processing
 
@@ -631,13 +698,9 @@ done_rparen CALL PLOPERATOR     ; We've found the LPAREN... pop it off the stack
 next_char   CALL INCBIP         ; Point to the next character
             JMP get_char
 
-            ; We have hit the right parenthesis at the end of a function call
-            ; Pop the associated left parenthesis and finish evaluating the
-            ; current expression
-close_func  CALL PLOPERATOR     ; Pop the marker off the stack
-
             ; Process all the operators on the stack and quit
-proc_stack  LDX OPERATORSP      ; Is the operator stack empty?
+proc_stack  TRACE "proc_stack"
+            LDX OPERATORSP      ; Is the operator stack empty?
             CPX #<>OPERATOR_TOP
             BGE done            ; Yes: return to the caller
             LDA #1,B,X
@@ -660,7 +723,10 @@ is_alpha    CALL EVALREF        ; Attempt to evaluate the variable reference
             CALL PHARGUMENT     ; And push it to the argument stack
             JMP get_char     
 
-done        TRACE "EVALEXPR DONE"
+done        LDX #<>ARGUMENT1    ; Make sure the result is off the stack
+            CALL PLARGUMENT     ; And in ARGUMENT1
+
+            TRACE "/EVALEXPR"
             PLX
             PLP
             RETURN

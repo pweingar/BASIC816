@@ -51,7 +51,7 @@ TST_REM         .proc
                 UT_STRIND_EQ SCRATCH2,EXPECTED, "EXPECTED REM:ABC%=5678"
 
                 UT_END
-LINE10          .null "10 ABC%=1234"
+LINE10          .null "10 ABC%=1234:REM This comment should be ok"
 LINE20          .null "20 REM:ABC%=5678"
 VAR_A           .null "ABC%"
 EXPECTED        .null TOK_REM,":ABC%=5678"
@@ -230,23 +230,6 @@ TST_POKE        .proc
 
                 CALL INITBASIC
 
-; PIXMAP = $B90000
-
-;                 ; setas
-;                 ; LDA #$AA
-;                 ; STA @lPIXMAP
-;                 ; .rept 12
-;                 ; NOP
-;                 ; .next
-;                 ; LDA @lPIXMAP
-;                 ; CMP #$AA
-;                 ; BEQ continue
-
-;                 ; UT_LOG format("Could not STA [%x]", PIXMAP)
-;                 ; BRK
-;                 ; NOP
-
-
 continue        TSTLINE "10 POKE &h020000,&h55"
                 TSTLINE "20 A%=PEEK(&h020000)"
                 TSTLINE "30 POKE &h030000,&hAA"
@@ -371,7 +354,7 @@ TST_STEPDOWN    .proc
 
                 CALL INITBASIC
 
-                RUNCMD "FOR I=10 TO 1 STEP 0-1:X=I:NEXT"
+                RUNCMD "FOR I=10 TO 1 STEP -1:X=I:NEXT"
 
                 ; Validate that X=10
                 UT_VAR_EQ_W "X",TYPE_INTEGER,1
@@ -508,19 +491,63 @@ TST_SUBROUTINE4 .proc
                 RTL
                 .pend
 
+; Validate we can print negative literals
+TST_PRINTNEG    .proc
+                UT_BEGIN "TST_PRINTNEG"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE "10 PRINT -1"
+
+                setal
+
+                ; Set up the temporary buffer
+                LDA #<>TMP_BUFF_ORG             ; Set the address of the buffer
+                STA OBUFFER
+                setas
+                LDA #`TMP_BUFF_ORG
+                STA OBUFFER
+
+                setal                           ; Set the size of rhe buffer
+                LDA #TMP_BUFF_SIZ
+                STA OBUFFSIZE
+
+                STZ OBUFFIDX                    ; Clear the index
+
+                setas
+                LDA BCONSOLE
+                ORA #DEV_BUFFER                 ; Turn on the output buffer
+                STA BCONSOLE
+
+                CALL CMD_RUN
+
+                CALL OBUFF_CLOSE
+
+                UT_STR_EQ TMP_BUFF_ORG,EXPECTED,"EXPECTED '-1{CR}'"
+
+                UT_END
+EXPECTED        .null "-1",13
+                .pend
+
 TST_STMNTS      .proc
-                ; CALL TST_REM
-                ; CALL TST_CLR
-                ; CALL TST_LET
-                ; CALL TST_POKE
-                ; CALL TST_POKEW
-                ; CALL TST_POKEL
-                ; ; CALL TST_STOP
-                ; CALL TST_IMMFOR
-                ; CALL TST_NESTEDFOR
+                CALL TST_REM
+                CALL TST_CLR
+                CALL TST_LET
+                CALL TST_POKE
+                CALL TST_POKEW
+                CALL TST_POKEL
+                ; CALL TST_STOP
+                CALL TST_IMMFOR
+                CALL TST_NESTEDFOR
                 CALL TST_STEPDOWN
                 CALL TST_READ
                 CALL TST_CALL
+                CALL TST_PRINTNEG
 
                 UT_LOG "TST_STMNTS: PASSED"
                 RETURN
