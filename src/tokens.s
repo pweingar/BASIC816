@@ -123,8 +123,9 @@ done        PLD
 ;
 PREVCHAR    .proc
             PHP
+            TRACE "PREVCHAR"
 
-            setal
+            setaxl
             SEC
             LDA BIPPREV
             SBC CURLINE
@@ -138,14 +139,17 @@ loop        LDA [CURLINE],Y
             CMP #CHAR_TAB
             BEQ go_back
 
+            TRACE_A "/PREVCHAR"
             PLP
             RETURN
 
 go_back     DEY
+            CPY #$FFFF
             BNE loop
 
 
-ret_false   LDA #0
+ret_false   TRACE "/PREVCHAR"
+            LDA #0
             RETURN
             .pend
 
@@ -392,7 +396,8 @@ go_next     setal
             CALL INCBIP             ; Move to the next character in the line
             BRA check_len           ; And try there
 
-found       CMP #TOK_MINUS          ; Found a token... is it minus?
+found       TRACE_A "found"
+            CMP #TOK_MINUS          ; Found a token... is it minus?
             BNE done                ; Nope: go ahead and return it
 
             CALL PREVCHAR           ; Get the character (or token) just before this (ignoring white space)
@@ -406,12 +411,14 @@ found       CMP #TOK_MINUS          ; Found a token... is it minus?
             CMP #TOK_TY_FUNC        ; Is it a function?
             BEQ binaryminus         ; Yes: then this should be a binary minus operator
 
+            TRACE "make negative"
             LDA #TOK_NEGATIVE       ; Otherwise: this should be a unary minus (negation)
             BRA done
 
 binaryminus LDA #TOK_MINUS          ; It's data... so token should be for binary minus
 
-done        PLD
+done        TRACE "/TKFINDTOKEN"
+            PLD
             PLP
             RETURN
 
