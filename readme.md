@@ -17,7 +17,3 @@ You can see the current [TODO List and Status](status.md).
 You can also view the (incomplete) [Language Description](language.md) listing out the
 commands, statements, and functions this version of BASIC is intended to support.
 
-## License
-
-Currently, the license is TBD. My intention is to have something fairly permissive, however...
-probably a Creative Commons variant.

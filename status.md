@@ -5,7 +5,7 @@
 1. [X] Add a BREAK/Interrupt key
 1. [X] Move BASIC code to higher memory
 1. [X] Update ADDLINE to handle out of order entry
-1. [ ] Move key functions to a modifiable vector table
+1. [-] Move key functions to a modifiable vector table
     1. [ ] READLINE
     1. [ ] PUTC
     1. [ ] LOCATE
@@ -22,6 +22,7 @@
 1. [ ] Flesh out other forms of IF THEN ELSE
 1. [ ] Expand PRINT to support FLOATS and other types?
 1. [ ] BEGIN / BEND
+1. [X] CALL
 1. [X] CLR
 1. [X] CLS
 1. [X] DATA
@@ -40,9 +41,9 @@
 1. [X] CALL
 1. [ ] I/O
     1. [ ] CLOSE
-    1. [ ] GET
+    1. [X] GET
     1. [ ] GET#
-    1. [ ] INPUT
+    1. [X] INPUT
     1. [ ] INPUT#
     1. [ ] OPEN
     1. [ ] PRINT#
@@ -59,7 +60,7 @@
     1. [X] >
     1. [X] >=
     1. [X] <>
-1. [ ] String +
+1. [X] String +
 
 ## Functions
 
@@ -83,7 +84,7 @@
     1. [X] SPC
     1. [X] STR$
     1. [X] TAB
-    1. [ ] TIME$
+    1. [X] GETTIME$
     1. [X] VAL
 1. [ ] Other Functions
     1. [X] ABS
@@ -95,13 +96,12 @@
         1. [X] PEEKL()
     1. [X] SGN
     1. [ ] STATUS
-    1. [ ] TIME
     1. [ ] USR
 
 ## Commands
 
-1. [ ] LIST
-    1. [ ] Support line target ranges
+1. [X] LIST
+    1. [X] Support line target ranges
 1. [ ] CONT
 1. [ ] I/O Commands
     1. [ ] LOAD
