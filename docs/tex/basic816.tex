@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass{report}
 \usepackage{ccfonts}
 \begin{document}
     \newcommand{\BASIC}[0]{{\sc Basic816}}
@@ -196,6 +196,15 @@
 
     Note: This statement will be receiving considerable improvements in subsequent versions of \BASIC.
 
+    \subsection{\keyword{INPUT} [ \param{message}; ] \param{variable}}
+
+    If a literal string message is provided, print the message followed by a question mark.
+    If no message is provided, just print a question mark.
+    In either case, wait for the user to type a line of input on the keyboard and
+    put the value typed into the provided variable.
+
+    NOTE: Currently, this statement supports only string values and variables.
+
     \subsection{\keyword{NEXT}}
 
     Close the matching \keyword{FOR} loop.
@@ -356,21 +365,94 @@
 
     \BASIC\ includes a number of statements to support features of the C256 Foenix.
 
+    \subsection{\keyword{CLRPIXMAP}}
+
+    Sets all pixels in the bitmap to 0 (transparent).
+    The bitmap must have been setup with the \keyword{PIXMAP} statement before
+    this statement can be used.
+
+    \subsection{\keyword{FILL} \param{x0}, \param{y0}, \param{x1}, \param{y1}, \param{color}}
+
+    Fill the rectangle with corners at $(x_0, y_0)$ to $(x_1, y_1)$ with the color
+    specified by the \param{color} index number.
+    The actual color displayed will depend on the RGB values provided for
+    that index in the color lookup table currently used by the bitmap.
+    The \keyword{PIXMAP} statement must have been used before using
+    this statement.
+
+    \subsection{\keyword{GRAPHICS} \param{mode}}
+
+    Sets the graphics mode of the Vicky chip.
+    This statement just sets the master control register of the Vicky chip to
+    whatever value is provided in \param{mode}, which should be a number in the range 0--255.
+
+    The bits of the master control register can be seen described in Table~\ref{vicky_mcr}.
+
+    \begin{table}
+        \begin{tabular}{|l|l|l|} \hline
+            Bit & Purpose \\ \hline\hline
+            7 & Global disable: If set, this disables all Vicky output. \\ \hline
+            6 & Gamma Correction: If set, this enables gamma correction. \\ \hline
+            5 & Sprites: If set, this enables the sprite engine. \\ \hline
+            4 & Tiles: If set, this enables the tile engine. \\ \hline
+            3 & Bitmap: If set, this enables the bitmap engine. \\ \hline
+            2 & Graphics: If set, this enables the graphics blocks. \\ \hline
+            1 & Text Overlay: If set, text will be displayed over graphics. \\ \hline
+            0 & Text: If set, this enables the text display engine. \\ \hline
+        \end{tabular}
+        \caption{Vicky Master Control Regiser}
+        \label{vicky_mcr}
+    \end{table}
+
+    \subsection{\keyword{LINE} \param{x0}, \param{y0}, \param{x1}, \param{y1}, \param{color}}
+
+    Draw a line on the bitmap display from positions $(x_0, y_0)$ to $(x_1, y_1)$ in the color
+    specified by the \param{color} index number.
+    The actual color displayed will depend on the RGB values provided for
+    that index in the color lookup table currently used by the bitmap.
+    The \keyword{PIXMAP} statement must have been used before using
+    this statement.
+
     \subsection{\keyword{MONITOR}}
 
     Enter the machine language monitor.
 
-    \subsection{\keyword{SETBRDCOLOR} \param{red}, \param{green}, \param{blue}}
+    \subsection{\keyword{PIXMAP} \param{visible}, \param{lut} [, \param{address}]}
 
-    Sets the color of the border of the C256's screen, given
+    Controls the visibility of the bitmap display (the bitmap engine must be
+    enabled with the \keyword{GRAPHICS} command). The parameter \param{visible}
+    must be a number. If it is 0, the bitmap will be hidden. If it is any other
+    value, it will be shown.
+
+    The number of the color lookup table to use must also be provided as \param{lut},
+    which must be the number of one of the graphics color lookup tables.
+
+    Optionally, an address may be provided for the first byte of the bitmap.
+    This address must be in the video memory area starting at B00000.
+    If no address is provided, it will default to B00000.
+
+    \subsection{\keyword{PLOT} \param{column}, \param{row}, \param{color}}
+
+    Set the pixel at the specified \param{row} and \param{column} to the
+    color with the given \param{color} index number.
+    The actual color displayed will depend on the RGB values provided for
+    that index in the color lookup table currently used by the bitmap.
+    The \keyword{PIXMAP} statement must have been used before using
+    this statement.
+
+    \subsection{\keyword{SETBGCOLOR} \param{red}, \param{green}, \param{blue}}
+
+    Sets the background color to be used in graphics modes.
+    The color is specified as red, green, and blue components,
+    all of which must be in the range 0 -- 255.
+
+    \subsection{\keyword{SETBORDER} \param{visible} [, \param{red}, \param{green}, \param{blue} ]}
+
+    Sets the visibility and, optionally, color of the border of the C256's screen, given
     \param{red}, \param{green}, and \param{blue} intensity values, which must be
     between 0--255.
-
-    \subsection{\keyword{SETBGCOLOR} \param{index}}
-
-    Sets the color for the background of text to be printed on the screen given
-    an \param{index} into the color lookup table.
-    The index must be between 0--255.    
+    The parameter \param{visibility} must be a number: if it is 0, the border
+    will not be shown; if it is any other number, the border will be visible.
 
     \subsection{\keyword{SETDATE} \param{day}, \param{month}, \param{year}}
 
@@ -380,11 +462,66 @@
     The month number must be from 1--12.
     The year number must be from 0--99.
 
-    \subsection{\keyword{SETFGCOLOR} \param{index}}
+    \subsection{\keyword{SETCOLOR} \param{lut}, \param{color}, \param{red}, \param{green}, \param{blue}}
 
-    Sets the color for the foreground of text to be printed on the screen given
-    an \param{index} into the color lookup table.
-    The index must be between 0--255.    
+    Define the RGB intensities for a color in one of the Vicky chip's color lookup tables.
+    The color lookup table is a number \param{lut} in the range 0--9.
+    The number of the color to change is \param{color}, which is in the range 0--255 for all graphics lookup tables
+    and 0--14 for the two text mode lookup tables.
+    The RGB intensities are provided by the parameters \param{red}, \param{green}, and \param{blue}, which 
+    must be in the range 0--255.
+
+    The association of \param{lut} number to the color lookup table in Vicky
+    is shown in Table~\ref{luts}.
+
+    \begin{table}
+        \begin{tabular}{|l|l|l|} \hline
+            LUT & Lookup Table & Max Color \\ \hline\hline
+            0 & Graphics LUT 0 & 255 \\ \hline
+            1 & Graphics LUT 1 & 255 \\ \hline
+            2 & Graphics LUT 2 & 255 \\ \hline
+            3 & Graphics LUT 3 & 255 \\ \hline
+            4 & Graphics LUT 4 & 255 \\ \hline
+            5 & Graphics LUT 5 & 255 \\ \hline
+            6 & Graphics LUT 6 & 255 \\ \hline
+            7 & Graphics LUT 7 & 255 \\ \hline
+            8 & Text Foreground LUT & 15 \\ \hline
+            9 & Text Background LUT & 15 \\ \hline
+        \end{tabular}
+        \caption{Color lookup table numbers}
+        \label{luts}
+    \end{table}
+
+    \subsection{\keyword{SPRITE} \param{number}, \param{lut} [, \param{address} ]}
+
+    Set the color lookup table and the address for sprite \param{number}.
+    The parameter \param{lut} must be the number of the graphics lookup table the
+    sprite should use (0--7).
+    The optional parameter \param{address} would be the first byte of the sprite's
+    bitmap data and must be an address in the video RAM (starting at address B00000).
+    If no address is provided, the sprite will default to B00000.
+
+    \subsection{\keyword{SPRITEAT} \param{number}, \param{column}, \param{row}}
+
+    Sets the location of a sprite.
+    The sprite to move is \param{number}.
+    Its upper-left corner will be set to \param{row} and \param{column}.
+
+    \subsection{\keyword{SPRITESHOW} \param{number}, \param{visible} [, \param{layer} ]}
+
+    Controls the visibility of sprite \param{number}.
+    If \param{visible} is 0, the sprite will not be visible.
+    If it is any other number, the sprite will be visible.
+    Optionally, the display priority \param{layer} may be set, which will control
+    which sprites and tiles this sprite will display in front of or behind when
+    they overlap.
+
+    \subsection{\keyword{TEXTCOLOR} \param{foreground}, \param{background}}
+
+    Sets the color for text to be printed.
+    The foreground color index is specified by \param{foreground},
+    and the background color index is specified by \param{background}.
+    Both values must be in the range 0 -- 15.
 
     \subsection{\keyword{SETTIME} \param{hour}, \param{minute}, \param{second}}
 
