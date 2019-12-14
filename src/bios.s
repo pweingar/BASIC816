@@ -26,7 +26,7 @@ SAVE_A      .byte ?     ; Save spot for the A register
 ;   A = the character to print
 ;   BCONSOLE = the device number for the console
 ;
-PRINTC      .proc
+IPRINTC     .proc
             PHP
             setas
             setxl

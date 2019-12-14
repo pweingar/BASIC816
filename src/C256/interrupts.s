@@ -90,8 +90,14 @@ KEYBOARD_INTERRUPT
 IRQ_HANDLER_FETCH
                 LDA KBD_INPT_BUF        ; Get Scan Code from KeyBoard
                 STA KEYBOARD_SC_TMP     ; Save Code Immediately
+
+                ; Check for the programmer key
+                CMP #$46                ; Check for scroll lock
+                BNE NOT_SCROLLLOCK
+                JMP programmerKey       ; Otherwise: handle the programmer keypress
+
                 ; Check for Shift Press or Unpressed
-                CMP #$2A                ; Left Shift Pressed
+NOT_SCROLLLOCK  CMP #$2A                ; Left Shift Pressed
                 BNE NOT_KB_SET_LSHIFT
                 BRL KB_SET_SHIFT
 NOT_KB_SET_LSHIFT
@@ -217,7 +223,7 @@ SAVECHAR2CMDLINE
                 CMP #CHAR_CTRL_C        ; Is it CTRL-C?
                 BEQ flag_break          ; Yes: flag a break
 
-                LDX KEY_BUFFER_WPOS     ; So the Receive Character is saved in the Buffer
+no_break        LDX KEY_BUFFER_WPOS     ; So the Receive Character is saved in the Buffer
 
                 ; Save the Character in the Buffer
                 CPX #KEY_BUFFER_SIZE    ; Make sure we haven't been overboard.
@@ -231,6 +237,18 @@ SAVECHAR2CMDLINE
 
 done            PLD
                 RTL
+
+;
+; The user has pressed the "programmer's key" which should bring up the monitor
+;
+programmerKey   setaxl
+                PLA                     ; Get and throw-away the return address to the interrupt handler
+                PLD                     ; Restore the registers that were present when the handler was invoked
+                PLB
+                PLY
+                PLX
+                PLA
+                JML HBREAK              ; And go to the BRK handler directly to open the monitor
 
 flag_break      LDA #$80                ; Flag that an interrupt key has been pressed
                 STA @lKEYFLAG           ; The interpreter should see this soon and throw a BREAK

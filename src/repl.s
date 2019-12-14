@@ -23,12 +23,16 @@ PRREADY         .proc
 ;
 ; Read a line from the user
 ;
-READLINE        .proc
+IREADLINE       .proc
                 PHP
                 TRACE "READLINE"
 
                 setaxs
-read_loop       JSL GETKEYE
+
+                LDA #1
+                CALL SHOWCURSOR
+
+read_loop       CALL GETKEYE
                 BEQ done
                 CMP #CHAR_CR
                 BEQ done
@@ -90,6 +94,10 @@ INTERACT        .proc
 ready_loop      CALL PRREADY        ; Print the READY prompt
 no_ready_loop   CALL READLINE       ; Read characters until the user presses RETURN
                 CALL SCRCOPYLINE    ; Copy the line the cursor is on to the INPUTBUF
+
+                LDA #0              ; Hide the cursor
+                CALL SHOWCURSOR
+
                 CALL PROCESS        ; Tokenize and handle the line
                 BCS no_ready_loop
                 BRA ready_loop

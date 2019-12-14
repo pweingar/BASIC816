@@ -10,6 +10,28 @@
 
 .section code
 
+;;
+;; Jump table 
+
+COLDBOOT        JMP START
+
+;;
+;; I/O hooks... these could be replaced by an external system
+;;
+
+READLINE        JMP IREADLINE           ; Wait for the user to enter a line of text (for programming input)
+SCRCOPYLINE     JMP ISCRCPYLINE         ; Copy the line on the screen the user just input to INPUTBUF
+INPUTLINE       JMP IINPUTLINE          ; Read a single line of text from the user, and copy it to TEMPBUF (for INPUT statement)
+GETKEY          JMP IGETKEY             ; Wait for a keypress by the user and return the ASCII code in A
+PRINTC          JMP IPRINTC             ; Print the character in A to the console
+SHOWCURSOR      JMP ISHOWCURSOR         ; Set cursor visibility: A=0, hide... A<>0, show.
+CURSORXY        JMP ICURSORXY           ; Set the position of the cursor to (X, Y)
+CLSCREEN        JMP ICLSCREEN           ; Clear the screen
+
+;;
+;; A mess o' includes...
+;;
+
 .include "bootstrap.s"
 
 .include "bios.s"

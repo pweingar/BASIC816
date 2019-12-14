@@ -3,6 +3,46 @@
 ;;;
 
 ;
+; Show or hide the cursor
+;
+; Inputs:
+;   A = cursor visiblity. 0 = hide, any other value = show
+;
+ISHOWCURSOR .proc
+            PHP
+            setas
+            CMP #0
+            BEQ hide
+
+show        LDA @lVKY_TXT_CURSOR_CTRL_REG
+            ORA #Vky_Cursor_Enable
+            BRA setit
+
+hide        LDA @lVKY_TXT_CURSOR_CTRL_REG
+            AND #~Vky_Cursor_Enable
+            
+setit       STA @lVKY_TXT_CURSOR_CTRL_REG
+            PLP
+            RETURN
+            .pend
+
+;
+; Set the location of the cursor.
+;
+; Inputs:
+;   X = the column of the cursor
+;   Y = the row of the cursor
+;
+ICURSORXY   .proc
+            PHP
+
+            JSL FK_LOCATE
+
+            PLP
+            RETURN
+            .pend
+
+;
 ; Kernel routines needed
 ;
 
@@ -51,7 +91,7 @@ SCROLLUPLINELASTLINE
 ;
 ; Clear the screen and move the cursor to the home position
 ;
-CLSCREEN    .proc
+ICLSCREEN   .proc
             PHA
             PHX
             PHY
@@ -222,7 +262,7 @@ done        PLP
 ; Copy the current line on the screen to the input buffer
 ; Trim whitespace from the end of the line to make input buffer null-terminated
 ;
-SCRCOPYLINE .proc
+ISCRCPYLINE .proc
             PHX
             PHY
             PHD

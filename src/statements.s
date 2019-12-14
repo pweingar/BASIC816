@@ -6,6 +6,121 @@
 .include "C256/statements_c256.s"
 .endif
 
+;
+; Read a line of input from the keyboard and assign it to the variable
+; INPUT <variable>
+S_INPUT         .proc
+                PHP
+                TRACE "S_INPUT"
+
+varloop         CALL SKIPWS
+
+                setas
+                LDA [BIP]
+                BEQ done            ; If EOL, we're done
+                CMP #':'
+                BEQ done            ; If colon, we're done
+
+                CMP #CHAR_DQUOTE    ; Is it the start of a string?
+                BNE check_var       ; No: then it should be a variable name
+
+                CALL EVALSTRING     ; Parse the string
+                CALL PR_STRING      ; Pring the string
+
+                LDA #';'            ; Look for a semicolon
+                CALL EXPECT_TOK
+
+check_var       CALL ISALPHA        ; Check to see if it's the start of a variable
+                BCC syntax_err      ; No: it's a syntax error
+
+                CALL VAR_FINDNAME   ; Try to find the variable name
+                BCC syntax_err      ; If we didn't get a variable, throw a syntax error
+
+                LDA #"?"            ; Print a "? " to follow
+                CALL PRINTC
+                LDA #CHAR_SP
+                CALL PRINTC
+
+                CALL INPUTLINE      ; Get a line of keyboard input
+
+                setal
+                LDA #<>INPUTBUF
+                STA ARGUMENT1
+                LDA #`INPUTBUF
+                STA ARGUMENT1+2
+                setas
+                LDA #TYPE_STRING
+                STA ARGTYPE1
+
+                CALL STRCPY         ; And make a copy on the heap
+                
+                CALL VAR_SET        ; Attempt to set the value to the variable
+
+                LDA #CHAR_CR        ; Print a newline
+                CALL PRINTC
+                
+done            PLP
+                RETURN
+syntax_err      THROW ERR_SYNTAX
+                .pend
+
+;
+; Read one of more characters from the keyboard without echoing them to the screen
+; GET <variable> [, <variable> ...]
+S_GET           .proc
+                PHP
+                TRACE "S_GET"
+
+varloop         CALL SKIPWS
+
+                setas
+                LDA [BIP]
+                BEQ done            ; If EOL, we're done
+                CMP #':'
+                BEQ done            ; If colon, we're done
+
+                CALL ISALPHA        ; Check to see if it's the start of a variable
+                BCC syntax_err      ; No: it's a syntax error
+
+                CALL VAR_FINDNAME   ; Try to find the variable name
+                BCC syntax_err      ; If we didn't get a variable, throw a syntax error
+
+                CALL GETKEY         ; Get a key from the keyboard, without echoing it
+
+                setas               ; Save the character as a temporary string
+                STA @lTEMPBUF
+                LDA #0
+                STA @lTEMPBUF+1
+
+                setal
+                LDA #<>TEMPBUF
+                STA ARGUMENT1
+                LDA #`TEMPBUF
+                STA ARGUMENT1+2
+                setas
+                LDA #TYPE_STRING
+                STA ARGTYPE1
+
+                CALL STRCPY         ; And make a copy on the heap
+                
+                CALL VAR_SET        ; Attempt to set the value to the variable
+
+                CALL SKIPWS
+                LDA [BIP]           ; Get the next non-space
+                BEQ done            ; EOL? We're done
+                CMP #':'            ; Colon? We're done
+                BEQ done
+                CMP #','            ; Comma?
+                BNE syntax_err      ; Nope: syntax error
+
+                CALL INCBIP         ; Yes... check for another variable
+                BRA varloop
+                
+done            PLP
+                RETURN
+syntax_err      THROW ERR_SYNTAX
+                .pend
+
 ; Call a machine language subroutine. Return from subroutines must be long (RTL)
 ; CALL address [,a_value [,x_value [,y_value]]]
 S_CALL          .proc

@@ -5,16 +5,89 @@
 .include "interrupts.s"
 .include "keyboard_def.s"
 
-;KEY_BUFFER       = $000F00 ;64 Bytes keyboard buffer
-;KEY_BUFFER_SIZE  = $0080   ;128 Bytes (constant) keyboard buffer length
-;KEY_BUFFER_END   = $000F7F ;1 Byte  Last byte of keyboard buffer
-;KEY_BUFFER_CMD   = $000F83 ;1 Byte  Indicates the Command Process Status
-;COMMAND_SIZE_STR = $000F84 ; 1 Byte
-;COMMAND_COMP_TMP = $000F86 ; 2 Bytes
-;KEYBOARD_SC_FLG  = $000F87 ;1 Bytes that indicate the Status of Left Shift, Left CTRL, Left ALT, Right Shift
-;KEYBOARD_SC_TMP  = $000F88 ;1 Byte, Interrupt Save Scan Code while Processing
-;KEY_BUFFER_RPOS  = $000050  ;2 byte: index of the first key to read
-;KEY_BUFFER_WPOS  = $000052  ;2 byte: index of the first key to write
+;
+; Read a line of text from the user into INPUTBUF.
+; This routine provides only a single-line editor and is intended for use by the INPUT command
+;
+IINPUTLINE      .proc
+                PHP
+                TRACE "IINPUTLINE"
+
+                setxl
+                setas
+                LDA #1              ; Show the cursor
+                CALL SHOWCURSOR
+
+                ; Zero out the input buffer
+                LDX #0
+                LDA #0
+zero_loop       STA @lINPUTBUF,X
+                INX
+                CPX #$100
+                BNE zero_loop
+
+                LDX #0
+getchar         CALL GETKEY         ; Get a keypress
+                CMP #CHAR_CR        ; Got a CR?
+                BNE not_cr
+                JMP endofline       ; Yes: we're done
+
+not_cr          CMP #K_LEFT         ; Is it the left cursor?
+                BNE not_left
+                CPX #0              ; Are we all the way to the left?
+                BEQ getchar         ; Yes: ignore it
+                DEX                 ; Move the cursor back
+                BRA echo            ; And echo it
+
+not_left        CMP #K_RIGHT        ; Is it the right arrow?
+                BNE not_right
+                LDA @lINPUTBUF,X    ; Check the current character
+                BEQ getchar         ; If it's already blank, we're as far right as we go
+                CPX #79             ; Are we at the end of the line?
+                BEQ getchar         ; Yes: ignore it
+                INX                 ; Otherwise: advance the cursor
+                BRA echo            ; And print the code
+
+not_right       CMP #CHAR_BS        ; Is it a backspace?
+                BNE not_bs
+
+                CPX #0              ; Are we at the beginning of the line?
+                BEQ getchar         ; yes: ignore the backspace
+                
+                PHX                 ; Save the cursor position
+clr_loop        LDA @lINPUTBUF+1,X  ; Get the character above
+                STA @lINPUTBUF,X    ; Save it to the current position
+                BEQ done_clr        ; If we copied a NUL, we're done copying
+                INX                 ; Otherwise, keep copying down
+                CPX #$FF            ; Until we're at the end of the buffer
+                BNE clr_loop
+done_clr        PLX                 ; Restore the cursor position
+
+                DEX                 ; No: move the cursor left
+                BRA print_bs        ; And print the backspace
+
+not_bs          CMP #$20            ; Is it in range 00 -- 1F?
+                BLT getchar         ; Yes: ignore it
+
+                ; A regular printable key was found
+                STA @lINPUTBUF,X    ; Save it to the input buffer
+                INX                 ; Move the cursor forward
+
+echo            CALL PRINTC         ; Print the character
+                BRA getchar         ; And get another...
+
+                ; Print a backspace 
+print_bs        LDA #CHAR_BS        ; Backspace character...
+                CALL PRINTC         ; Print the character
+                BRA getchar         ; And get another...
+
+                ; We've finished the line... return to the caller
+endofline       LDA #0              ; Hide the cursor
+                CALL SHOWCURSOR
+
+                PLP
+                RETURN
+                .pend
 
 ;
 ; Get a character from the keyboard input buffer
@@ -23,10 +96,11 @@
 ; Outputs:
 ;   A = the key read
 ;
-GETKEY          .proc
+IGETKEY         .proc
                 PHX
                 PHD
                 PHP
+                TRACE "IGETKEY"
 
                 setdp KEY_BUFFER_RPOS
 
@@ -55,7 +129,7 @@ read_buff       SEI                     ; Don't interrupt me!
 done            PLP                     ; Restore status and interrupts
                 PLD
                 PLX
-                RTL
+                RTS
 
 reset_indexes   STZ KEY_BUFFER_RPOS     ; Reset read index to the beginning
                 STZ KEY_BUFFER_WPOS     ; Reset the write index to the beginning
@@ -71,11 +145,12 @@ reset_indexes   STZ KEY_BUFFER_RPOS     ; Reset read index to the beginning
 ;   A = the key read
 ;
 GETKEYE         .proc
-                JSL GETKEY
+                TRACe "GETKEYE"
+                CALL GETKEY
                 PHA
                 CALL PRINTC
                 PLA
-                RTL
+                RETURN
                 .pend
 
 K_UP = $11      ; Keypad UP
