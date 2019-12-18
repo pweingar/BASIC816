@@ -534,6 +534,49 @@ TST_PRINTNEG    .proc
 EXPECTED        .null "-1",13
                 .pend
 
+; Validate we can print using the semicolon correctly
+TST_PRINTSEMI   .proc
+                UT_BEGIN "TST_PRINTSEMI"
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setaxl
+
+                CALL INITBASIC
+
+                TSTLINE "10 PRINT ""hi"";:PRINT ""bye"""
+
+                setal
+
+                ; Set up the temporary buffer
+                LDA #<>TMP_BUFF_ORG             ; Set the address of the buffer
+                STA OBUFFER
+                setas
+                LDA #`TMP_BUFF_ORG
+                STA OBUFFER
+
+                setal                           ; Set the size of rhe buffer
+                LDA #TMP_BUFF_SIZ
+                STA OBUFFSIZE
+
+                STZ OBUFFIDX                    ; Clear the index
+
+                setas
+                LDA BCONSOLE
+                ORA #DEV_BUFFER                 ; Turn on the output buffer
+                STA BCONSOLE
+
+                CALL CMD_RUN
+
+                CALL OBUFF_CLOSE
+
+                UT_STR_EQ TMP_BUFF_ORG,EXPECTED,"EXPECTED 'hibye{CR}'"
+
+                UT_END
+EXPECTED        .null "hibye",13
+                .pend
+
 TST_STMNTS      .proc
                 CALL TST_REM
                 CALL TST_CLR
@@ -548,6 +591,7 @@ TST_STMNTS      .proc
                 CALL TST_READ
                 CALL TST_CALL
                 CALL TST_PRINTNEG
+                CALL TST_PRINTSEMI
 
                 UT_LOG "TST_STMNTS: PASSED"
                 RETURN

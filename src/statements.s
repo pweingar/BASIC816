@@ -1258,7 +1258,7 @@ is_more         CALL INCBIP         ; Skip the separator
                 CALL SKIPWS         ; Skip any whitespace
                 LDA [BIP]           ; Get the character
                 BEQ done            ; If it's NULL, return without printing a newline
-                LDA #':'            ; If it's a colon
+                CMP #':'            ; If it's a colon
                 BEQ done            ; ... return without printing a newline
                 BRA pr_loop         ; Otherwise, we should have another expression, try to handle it
 

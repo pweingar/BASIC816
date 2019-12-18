@@ -1524,7 +1524,6 @@ IMDOS           BRK ; Execute DOS command
 ; MMESSAGES
 ; MONITOR messages and responses.
 MMESSAGES
-MMERROR         .text
 MERRARGS        .null "Bad arguments",CHAR_CR
 
 mregisters_msg  .null $0D,"  PC     A    X    Y    SP   DBR DP   NVMXDIZC",CHAR_CR

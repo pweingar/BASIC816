@@ -137,7 +137,7 @@ TST_ALLOCFREE   .proc
 TST_HEAP        .proc
                 CALL TEST_ALLOCATE
                 CALL TST_FREE
-                CALL TST_ALLOCFREE
+                ; CALL TST_ALLOCFREE
 
                 UT_LOG "TST_HEAP: PASSED"
                 RETURN

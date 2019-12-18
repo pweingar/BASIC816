@@ -86,7 +86,7 @@ GETTIME     .proc
             LDA @lRTC_HRS           ; Copy the hour in BCD
             STA ARGUMENT1+2
 
-            STZ @ARGUMENT1+3
+            STZ ARGUMENT1+3
 
             LDA @lRTC_CTRL          ; Re-enable updates to the clock registers
             AND #%11110111
@@ -119,7 +119,7 @@ GETDATE     .proc
             LDA @lRTC_DAY           ; Copy the hour in BCD
             STA ARGUMENT1+2
 
-            STZ @ARGUMENT1+3
+            STZ ARGUMENT1+3
 
             LDA @lRTC_CTRL          ; Re-enable updates to the clock registers
             AND #%11110111
