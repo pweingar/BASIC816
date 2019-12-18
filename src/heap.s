@@ -251,7 +251,7 @@ has_block   TRACE "has_block"
             STA SCRATCH+2
 
             setal
-            SEC                         ; SCRATCH := CURRFREED + size of block required + size of header + 1
+            CLC                         ; SCRATCH := CURRFREED + size of block required + size of header
             LDA SCRATCH                 ; (that is, it's a pointer to the byte immediately after the block desired)
             ADC #size(HEAPOBJ)
             STA SCRATCH

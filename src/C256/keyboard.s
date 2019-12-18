@@ -100,7 +100,7 @@ IGETKEY         .proc
                 PHX
                 PHD
                 PHP
-                TRACE "IGETKEY"
+                ;TRACE "IGETKEY"
 
                 setdp KEY_BUFFER_RPOS
 
@@ -145,7 +145,7 @@ reset_indexes   STZ KEY_BUFFER_RPOS     ; Reset read index to the beginning
 ;   A = the key read
 ;
 GETKEYE         .proc
-                TRACe "GETKEYE"
+                ;TRACE "GETKEYE"
                 CALL GETKEY
                 PHA
                 CALL PRINTC

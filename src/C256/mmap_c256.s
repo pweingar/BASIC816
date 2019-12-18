@@ -27,6 +27,10 @@
 .dsection data
 .cerror * > $19FFFF, "Too many string constants"
 
+; A block of memory for the virtul file system (jetison this when there is a real one)
+* = VFS
+.dsection vfs_block
+
 ; Section of memory for the restart vector
 ; TODO: this will need to be removed once C256 is out of the prototype stage
 * = $00FFFC
@@ -53,5 +57,5 @@ OPERATOR_TOP = $007FFF      ; Ending address of the operator stack
 HEAP_TOP = $15FFFF          ; Starting point of the heap
 BASIC_BOT = $010000         ; Starting point for BASIC programs
 VRAM = $B00000              ; Start of video RAM
-FAKEFILE = $160002          ; Start of the fake file for loading
-FAKEFILESIZE = $160000      ; Location of the size of the fake file
+VFS = $160000               ; Start of the "virtual file system"
+LOADBLOCK = $020000         ; File loading will start here
