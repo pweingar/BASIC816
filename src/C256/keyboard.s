@@ -21,7 +21,7 @@ IINPUTLINE      .proc
                 ; Zero out the input buffer
                 LDX #0
                 LDA #0
-zero_loop       STA @lINPUTBUF,X
+zero_loop       STA @lIOBUF,X
                 INX
                 CPX #$100
                 BNE zero_loop
@@ -41,7 +41,7 @@ not_cr          CMP #K_LEFT         ; Is it the left cursor?
 
 not_left        CMP #K_RIGHT        ; Is it the right arrow?
                 BNE not_right
-                LDA @lINPUTBUF,X    ; Check the current character
+                LDA @lIOBUF,X       ; Check the current character
                 BEQ getchar         ; If it's already blank, we're as far right as we go
                 CPX #79             ; Are we at the end of the line?
                 BEQ getchar         ; Yes: ignore it
@@ -55,8 +55,8 @@ not_right       CMP #CHAR_BS        ; Is it a backspace?
                 BEQ getchar         ; yes: ignore the backspace
                 
                 PHX                 ; Save the cursor position
-clr_loop        LDA @lINPUTBUF+1,X  ; Get the character above
-                STA @lINPUTBUF,X    ; Save it to the current position
+clr_loop        LDA @lIOBUF+1,X     ; Get the character above
+                STA @lIOBUF,X       ; Save it to the current position
                 BEQ done_clr        ; If we copied a NUL, we're done copying
                 INX                 ; Otherwise, keep copying down
                 CPX #$FF            ; Until we're at the end of the buffer
@@ -70,7 +70,7 @@ not_bs          CMP #$20            ; Is it in range 00 -- 1F?
                 BLT getchar         ; Yes: ignore it
 
                 ; A regular printable key was found
-                STA @lINPUTBUF,X    ; Save it to the input buffer
+                STA @lIOBUF,X       ; Save it to the input buffer
                 INX                 ; Move the cursor forward
 
 echo            CALL PRINTC         ; Print the character

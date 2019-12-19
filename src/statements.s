@@ -17,11 +17,13 @@ varloop         CALL SKIPWS
 
                 setas
                 LDA [BIP]
-                BEQ done            ; If EOL, we're done
-                CMP #':'
-                BEQ done            ; If colon, we're done
+                BNE check_colon
+                JMP done            ; If EOL, we're done
+check_colon     CMP #':'
+                BNE check_string
+                JMP done            ; If colon, we're done
 
-                CMP #CHAR_DQUOTE    ; Is it the start of a string?
+check_string    CMP #CHAR_DQUOTE    ; Is it the start of a string?
                 BNE check_var       ; No: then it should be a variable name
 
                 CALL EVALSTRING     ; Parse the string
@@ -43,17 +45,32 @@ check_var       CALL ISALPHA        ; Check to see if it's the start of a variab
 
                 CALL INPUTLINE      ; Get a line of keyboard input
 
-                setal
-                LDA #<>INPUTBUF
+                setas
+                LDA TOFINDTYPE      ; Check the type of the variable
+                CMP #TYPE_STRING    ; If it's a string...
+                BEQ in_string       ; ... go to copy the string data
+
+                CMP #TYPE_INTEGER   ; If it's an integer...
+                BEQ in_integer      ; ... go to parse the integer
+
+                CMP #TYPE_FLOAT     ; If it's a float...
+                BEQ in_float        ; ... go to parse the float
+
+                THROW ERR_TYPE      ; Otherwise, throw a type error
+
+syntax_err      THROW ERR_SYNTAX
+
+in_string       setal
+                LDA #<>IOBUF
                 STA ARGUMENT1
-                LDA #`INPUTBUF
+                LDA #`IOBUF
                 STA ARGUMENT1+2
                 setas
                 LDA #TYPE_STRING
                 STA ARGTYPE1
-
                 CALL STRCPY         ; And make a copy on the heap
-                
+
+save_input      setal
                 CALL VAR_SET        ; Attempt to set the value to the variable
 
                 LDA #CHAR_CR        ; Print a newline
@@ -61,7 +78,29 @@ check_var       CALL ISALPHA        ; Check to see if it's the start of a variab
                 
 done            PLP
                 RETURN
-syntax_err      THROW ERR_SYNTAX
+
+in_float        NOP                 ; TODO: flesh out floating point input
+in_integer      setal               ; Parse the input as an integer (or try to)
+                LDA BIP             ; Save the BIP for later use
+                STA SAVEBIP
+                LDA BIP+2
+                STA SAVEBIP+2
+
+                LDA #<>IOBUF        ; Point to the line that was just input
+                STA BIP
+                LDA #`IOBUF
+                STA BIP+2
+
+                ; TODO: intercept errors
+
+                CALL PARSEINT       ; Attempt to parse the integer
+
+                setal
+                LDA SAVEBIP         ; Restore the BIP
+                STA BIP
+                LDA SAVEBIP+2
+                STA BIP+2
+                BRA save_input
                 .pend
 
 ;

@@ -250,7 +250,8 @@ programmerKey   setaxl
                 PLA
                 JML HBREAK              ; And go to the BRK handler directly to open the monitor
 
-flag_break      LDA #$80                ; Flag that an interrupt key has been pressed
+flag_break      setas
+                LDA #$80                ; Flag that an interrupt key has been pressed
                 STA @lKEYFLAG           ; The interpreter should see this soon and throw a BREAK
                 BRA done
 
