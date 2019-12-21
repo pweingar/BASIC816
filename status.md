@@ -103,8 +103,8 @@
 1. [X] LIST
     1. [X] Support line target ranges
 1. [ ] CONT
-1. [ ] I/O Commands
-    1. [ ] LOAD
+1. [-] I/O Commands
+    1. [X] LOAD
     1. [ ] SAVE
-    1. [ ] DIR
+    1. [X] DIR
     1. [ ] DEL

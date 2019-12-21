@@ -138,8 +138,8 @@ error           THROW ERR_SYNTAX        ; Throw a syntax error
 ;
 CMD_LOAD        .proc
                 PHP
+                TRACE "CMD_LOAD"
 
-                ; TODO: process file name, address, etc.
                 ; TODO: actually load the file!
 
                 CALL EVALEXPR               ; Get the file name
@@ -166,6 +166,8 @@ done_name       setaxl
                 LDA #`LOADBLOCK
                 STA IBUFFER+2
                 STA MARG2+2
+
+                STZ IBUFFIDX                ; Reset the input cursor to position 0
 
                 CALL CMD_NEW                ; Erase any program we already had
 

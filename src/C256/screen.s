@@ -132,10 +132,12 @@ loop        LDA #$20
 ; Codes supported:
 ;   $08 = backspace
 ;   $0D = carriage return (newline)
+;   $0F = insert a space at the cursor
 ;   $11 = move the cursor up
 ;   $1D = move the cursor right
 ;   $91 = move the cursor down
 ;   $9D = move the cursor left
+;   $7F = delete the character under the cursor
 ;
 ; Otherwise, codes in [$00..$1F] and [$7F..$9F] will be ignored
 ; as unprintable characters.
@@ -158,16 +160,18 @@ WRITEC      .proc
             CMP #$20
             BCC check_ctrl0     ; [$00..$1F]: check for arrows
             CMP #$7F
+            BEQ do_del
             BCS check_A0        ; [$20..$7E]: print it
             JMP printc
 check_A0    CMP #$A0
-            BCS printc          ; [$A0..$FF]: print it
+            BCC check_ctrl1
+            BRL printc          ; [$A0..$FF]: print it
 
 check_ctrl1 CMP #K_DOWN         ; If the down arrow key was pressed
             BEQ go_down         ; ... move the cursor down one row
             CMP #K_LEFT         ; If the left arrow key was pressed
             BEQ go_left         ; ... move the cursor left one column
-            JMP done
+            BRL done
 
 check_ctrl0 CMP #CHAR_TAB       ; If it's a TAB...
             BEQ do_TAB          ; ... move to the next TAB stop
@@ -179,13 +183,19 @@ check_ctrl0 CMP #CHAR_TAB       ; If it's a TAB...
             BEQ go_up           ; ... move the cursor up one row
             CMP #K_RIGHT        ; If the right arrow key was pressed
             BEQ go_right        ; ... move the cursor right one column
-            JMP done            ; Ignore anything else
+            CMP #CHAR_INS       ; If the insert key was pressed
+            BEQ do_ins          ; ... insert a space
+            BRL done            ; Ignore anything else
 
-backspace   JSL FK_PUTC         ; Print the backspace
-            LDA #' '            ; Clear the space
+do_del      CALL SCRSHIFTLL     ; Shift the current line left one space into the cursor
+            BRA done
+
+do_ins      CALL SCRSHIFTLR     ; Shift the current line right one space from the cursor
+            BRA done
+
+backspace   LDA #CHAR_BS        ; Move the cursor back
             JSL FK_PUTC
-            LDA #CHAR_BS        ; And move the cursor back again
-            JSL FK_PUTC
+            CALL SCRSHIFTLL     ; Shift the current line left one space into the cursor
             BRA done
 
 do_cr       LDX #0              ; Handle a carriage return
@@ -255,6 +265,58 @@ done        PLP
             PLD
             PLY
             PLX
+            RETURN
+            .pend
+
+; Shift all the characters on the current line left one cell, starting from the character to the right of the cursor
+SCRSHIFTLL  .proc
+            PHX
+            PHY
+            PHP
+
+            setaxl
+            LDA CURSORPOS       ; Get the current cursor position
+            TAY                 ; Set it as the destination
+            TAX
+            INX                 ; And set the next cell as the source
+
+            SEC                 ; Calculate the length of the block to move
+            LDA #127            ; as 127 - X
+            SBC CURSORX
+
+            MVN $AF, $AF        ; And move the block
+
+            PLP
+            PLY
+            PLX
+            RETURN
+            .pend
+
+; Shift all the characters on the current line right one cell, starting from the character to the right of the cursor
+; The character under the cursor should be replaced with a space.
+SCRSHIFTLR  .proc
+            PHP
+
+            setaxl
+            LDA CURSORPOS       ; Get the current cursor position
+            AND #$FF80          ; Mask off the column bits
+            ORA #$007F          ; And compute the address of the last cell
+            TAY                 ; And set that as the destination address
+            DEC A               ; Compute the address of the character to the left
+            TAX                 ; And make it the source
+
+            SEC                 ; Calculate the length of the block to move
+            LDA #127            ; as 127 - X
+            SBC CURSORX
+
+            MVP $AF, $AF        ; And move the block
+
+            LDA #CHAR_SP        ; Put a blank space at the cursor position
+            CALL PRINTC
+            LDA #K_LEFT
+            CALL PRINTC
+
+            PLP
             RETURN
             .pend
 

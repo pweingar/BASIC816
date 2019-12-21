@@ -9,7 +9,7 @@
     \date{20 September 2019}
     \maketitle
 
-    \section{About \BASIC}
+    \section*{About \BASIC}
 
     \BASIC\ is an implementation of the BASIC programming language for the Western Design Center's 65816 microprocessor.
     It is focused on providing a simple BASIC interpreter for the C256 Foenix computer designed by Stefany Allaire.
@@ -28,7 +28,27 @@
     As such, \BASIC\ is a fairly traditional, tokenized, line-number based implementation of BASIC, similar to those
     implementation of BASIC on the 8-bit computers of the 1970s and 1980s.
 
-    \section{Data Types}
+    \section*{Screen Editing}
+
+    BASIC816 for the C256 includes a simple screen editor.
+    To enter a program, just type the lines, being sure to press the return key at the end of each line.
+    The interpreter will not attempt to process the line until you press return, and the text it will process
+    is whatever text is on the line of the screen where your cursor is.
+    If you need to edit a line that's on the screen, you can use the cursor keys to move to the line and make your change.
+    A few other special keys are supported:
+
+    \begin{itemize}
+        \item[Arrow Keys] The arrow keys will move the cursor on the screen in a natural fashion.
+        \item[Backspace] The backspace key deletes the character to the left of the cursor.
+        \item[Delete] The delete key deletes the character under the cursor.
+        \item[Insert] The insert key inserts a space at the cursor (pushing the character that was under the cursor to the right).    
+    \end{itemize}
+
+    Although not an edit key, the Scroll Lock key is currently assigned as a ``programmer's key'' and will interrupt
+    the currently running BASIC program and open the monitor. It should work for any program (even machine language), so
+    long as the keyboard interrupt logic has not been intercepted.
+
+    \section*{Data Types}
 
     \BASIC\ supports three data types:
 
@@ -50,7 +70,7 @@
     Note: when \BASIC\ leaves the alpha stage of development, it will include a fourth type: 32-bit floating point numbers as well
     as arrays of 32-bit floating point numbers.
 
-    \subsection{Literal Values}
+    \subsection*{Literal Values}
 
     Integers and strings may both be entered directly into programs as literal values.
     Strings are designated with double quote marks, but there is no character escape
@@ -66,7 +86,7 @@
         \item \verb+&HFFD2+
     \end{itemize}
 
-    \section{Variables}
+    \section*{Variables}
 
     A \BASIC\ program can assign data to variables using the \keyword{LET} statement or an implicit \keyword{LET} statement.
     Variables need not be declared before use, with the exception of array variables, which must be declared through the
@@ -79,7 +99,7 @@
     be considered as part of the name. This means that a program can have six different variables with the same ``name'' but different
     types (e.g. \verb+A+, \verb+A%+, \verb+A$+, \verb+A()+, \verb+A%()+, and \verb+A$()+).
 
-    \section{Expressions}
+    \section*{Expressions}
 
     An expression is a sequence of values, operators, and function calls which will have some data value as a {\em result}.
     An expression may have a numeric (integer) result or a text (string) result.
@@ -103,59 +123,73 @@
         \end{tabular}
         \caption{Operators in order of descending precedence.}
     \end{table}
-    \section{Commands}
+
+    \section*{Commands}
 
     Commands in \BASIC\ are keywords which triggers some action but which may only be used at the interactive prompt.
     Commands may not be used within a \BASIC\ program.
 
-    \subsection{\keyword{CONT}}
+    \subsection*{\keyword{CONT}}
 
     Continue execution of the current program from the point immediately after the \keyword{STOP} statement that was executed.
     It is an error to use this command if the current program was not interrupted by the \keyword{STOP} command or if there
     is no current program.
 
-    \subsection{\keyword{NEW}}
+    \subsection*{\keyword{DIR}}
+
+    Print a listing of the files on the current file device. {\em NOTE:} currently, this command only works with a small
+    RAM disk in bank 0x16. Eventually, this command will work with the IDE drive and SD card.
+
+    \subsection*{\keyword{NEW}}
 
     \verb+NEW+ clears all of \BASIC's memory. All program and variable data are erased, and a new program may be entered.
 
-    \subsection{\keyword{{LIST [\param{start}] [- \param{end}]}}}
+    \subsection*{\keyword{{LIST [\param{start}] [- \param{end}]}}}
 
     \verb+LIST+ types a program listing to the console screen. It accepts two optional line-numbers to limit the listing.
     The first line number specifies the smallest line number to list; if it is not specified, there is no lower limit.
     The second line number specifies the largest line number to list; if it is not specified, there is no upper limit.
 
-    \subsection{\keyword{RUN}}
+    \subsection*{\keyword{LOAD} \param{filename}}
+
+    Load the BASIC program with the given file name.
+    
+    {\em NOTE:} currently, this command only works with a small
+    RAM disk in bank 0x16. Eventually, this command will work with the IDE drive and SD card.
+    This command will also eventually support other file types and loading destinations.
+
+    \subsection*{\keyword{RUN}}
 
     Starts execution of the program from the first line of the code.
 
 
-    \section{Statements}
+    \section*{Statements}
 
     Statements are keywords which trigger some action and may be used either at the interactive prompt or within a program.
     A \BASIC\ program can be seen as a series of lines, each of which must have one or more statements on it.
     If a line has more than one statement, each statement is separated from the next by a colon (:).
 
-    \subsection{\keyword{CLR}}
+    \subsection*{\keyword{CLR}}
 
     Erases all variable definitions. Any variable that was defined prior to the use of \keyword{CLR} will be undefined.
     Also all data stored directly or indirectly through variables will be returned to free memory. This is similar to
     \keyword{NEW}, except that the program may be running and is left intact.
 
-    \subsection{\keyword{CLS}}
+    \subsection*{\keyword{CLS}}
 
     Clears the text screen and moves the cursor to the home position.
 
-    \subsection{\keyword{CALL \param{address}[, \param{a}[, \param{x}[, \param{y}]]]}}
+    \subsection*{\keyword{CALL \param{address}[, \param{a}[, \param{x}[, \param{y}]]]}}
 
     Call a machine language subroutine at \param{address}. If the subroutine returns at all to the caller, it
     must return using the \keyword{RTL} instruction. Values may be provided for the \keyword{A}, \keyword{X}, and
     \keyword{Y} registers and may be 16-bit values.
 
-    \subsection{\keyword{DATA \param{value}[, ...]}}
+    \subsection*{\keyword{DATA \param{value}[, ...]}}
 
     Provide numeric or string data in the program which may be retrieved into a variable using the \keyword{READ} statement.
 
-    \subsection{\keyword{DIM \param{variable}(\param{size}[, ...])}}
+    \subsection*{\keyword{DIM \param{variable}(\param{size}[, ...])}}
 
     Declare an array named \param{variable}.
     The array can have many dimensions, each with the size provided.
@@ -163,12 +197,12 @@
     consumed by the array cannot exceed 65,536 bytes (including the ``book keeping'' memory allocated to keep track of the array
     (which is at most 256 bytes).
 
-    \subsection{\keyword{END}}
+    \subsection*{\keyword{END}}
 
     Stops execution of the program. The only way to restart execution after \keyword{END} has been
     executed is to use the \keyword{RUN} command.
 
-    \subsection{\keyword{FOR} \param{variable} = \param{initial} \keyword{TO} \param{target} [\keyword{STEP} \param{increment}]}
+    \subsection*{\keyword{FOR} \param{variable} = \param{initial} \keyword{TO} \param{target} [\keyword{STEP} \param{increment}]}
 
     The \keyword{FOR} statement marks the beginning of a loop that will repeat a specified number of times.
     It starts by assigning an \param{initial} value to a \param{variable} and executing the following statement until
@@ -176,19 +210,23 @@
     \param{increment}, if provided. So long as \param{variable} is not \param{target}, the statements between the
     \keyword{FOR} and \keyword{NEXT} will be executed.
 
-    \subsection{\keyword{GOTO} \param{line number}}
+    \subsection*{\keyword{GET} \param{variable}}
+
+    Waits for the user to press a key, the assigns the character of that key to the string \param{variable} provided.
+
+    \subsection*{\keyword{GOTO} \param{line number}}
 
     Continue execution with the first statement on the line with the given \param{line number}.
     It is an error to \keyword{GOTO} a \param{line number} that does not exist in the program.
 
-    \subsection{\keyword{GOSUB} \param{line number}}
+    \subsection*{\keyword{GOSUB} \param{line number}}
 
     Call a subroutine starting at the line with the given \param{line number}.
     A subsequent \keyword{RETURN} statement will return the program to the statement
     following the \keyword{GOSUB}.
     It is an error to \keyword{GOSUB} a \param{line number} that does not exist in the program.
 
-    \subsection{\keyword{IF} \param{expr} \keyword{THEN} \param{line}}
+    \subsection*{\keyword{IF} \param{expr} \keyword{THEN} \param{line}}
 
     Evaluates \param{expr} and examines the result.
     If the result is not zero, execution continues with the first statement on the line with number \param{line}.
@@ -196,7 +234,7 @@
 
     Note: This statement will be receiving considerable improvements in subsequent versions of \BASIC.
 
-    \subsection{\keyword{INPUT} [ \param{message}; ] \param{variable}}
+    \subsection*{\keyword{INPUT} [ \param{message}; ] \param{variable}}
 
     If a literal string message is provided, print the message followed by a question mark.
     If no message is provided, just print a question mark.
@@ -205,23 +243,23 @@
 
     NOTE: Currently, this statement supports only string values and variables.
 
-    \subsection{\keyword{NEXT}}
+    \subsection*{\keyword{NEXT}}
 
     Close the matching \keyword{FOR} loop.
 
-    \subsection{\keyword{POKE} \param{address}, \param{value}}
+    \subsection*{\keyword{POKE} \param{address}, \param{value}}
 
     Write the 8-bit \param{value} to the memory location at \param{address}.
     It is an error to try to write a value that requires more than 8-bits.
 
-    \subsection{\keyword{POKEW} \param{address}, \param{value}}
+    \subsection*{\keyword{POKEW} \param{address}, \param{value}}
 
     Write the 16-bit \param{value} to the memory location at \param{address}.
     The low byte of \param{value} will be written to \param{address}, and
     the high byte of \param{value} will be written to the following byte in memory.
     It is an error to try to write a value that requires more than 16-bits.    
 
-    \subsection{\keyword{POKEL} \param{address}, \param{value}}
+    \subsection*{\keyword{POKEL} \param{address}, \param{value}}
 
     Write the 24-bit \param{value} to the memory location at \param{address}.
     The low byte of \param{value} will be written to \param{address}, and
@@ -229,7 +267,7 @@
     and the high byte of \param{value} will be written to the next byte in memory.
     It is an error to try to write a value that requires more than 24-bits.  
 
-    \subsection{\keyword{PRINT} [\param{value} [,/;]] ...}
+    \subsection*{\keyword{PRINT} [\param{value} [,/;]] ...}
 
     Write the textual representation of \param{value} to the screen.
     If more than one \param{value} is provided, they must be separated by either a comma (,)
@@ -239,12 +277,12 @@
     A \keyword{PRINT} statement will print a carriage return as the last thing, unless the
     statement is ended with a semicolon.
 
-    \subsection{\keyword{REM} \param{comment}}
+    \subsection*{\keyword{REM} \param{comment}}
 
     Inserts a comment into the \BASIC\ program. All characters after the \keyword{REM} until
     end of the line will be ignored.
 
-    \subsection{\keyword{READ} \param{variable}[, ...]}
+    \subsection*{\keyword{READ} \param{variable}[, ...]}
 
     Read one of more values out of the \keyword{DATA} statements in the program into
     \param{variable}.
@@ -253,50 +291,50 @@
     If a \keyword{READ} is executed when the cursor has reached the end of the data
     elements, it is an error.
 
-    \subsection{\keyword{RESTORE}}
+    \subsection*{\keyword{RESTORE}}
 
     Resets the data cursor to the first data element of the first \keyword{DATA} statement.
 
-    \subsection{\keyword{STOP}}
+    \subsection*{\keyword{STOP}}
 
     Stops execution of the program in such a way that the user can restart it with the
     \keyword{CONT} command.
 
-    \section{Functions}
+    \section*{Functions}
 
-    \subsection{\keyword{ABS(\param{value})}}
+    \subsection*{\keyword{ABS(\param{value})}}
 
     Returns the absolute value of \param{value}.
     If the parameter is negative, it is converted to its positive equivalent
     (for instance, \verb+ABS(-5)+ will evaluate to \verb+5+).
 
-    \subsection{\keyword{ASC(\param{text})}}
+    \subsection*{\keyword{ASC(\param{text})}}
 
     Returns the ASCII code for the first character of \param{text}.
     Example: \verb+ASC("A")+ returns \verb+65+.
 
-    \subsection{\keyword{CHR\$(\param{value})}}
+    \subsection*{\keyword{CHR\$(\param{value})}}
 
     Returns the character corresponding to the ASCII code in \param{value}.
     Example: \verb+CHR$(65)+ returns \verb+"A"+.   
 
-    \subsection{\keyword{DEC(\param{hex})}}
+    \subsection*{\keyword{DEC(\param{hex})}}
 
     Returns an integer that is conversion of the hexadecimal number in the string \param{hex}.
     Example: \verb+DEC("A0") + returns \verb+160+.
 
-    \subsection{\keyword{HEX\$(\param{value})}}
+    \subsection*{\keyword{HEX\$(\param{value})}}
 
     Returns a string that is the hexadecimal representation of the integer value passed.
     Example: \verb+HEX$(160) + returns \verb+"A0"+.
 
-    \subsection{\keyword{LEFT\$(\param{text}, \param{count})}}
+    \subsection*{\keyword{LEFT\$(\param{text}, \param{count})}}
 
     Returns the left-most \param{count} characters of the string \param{text}.
 
     Example: \verb+LEFT$("Hello", 3)+ returns \verb+"Hel"+.   
 
-    \subsection{\keyword{MID\$(\param{text}, \param{first}, \param{count})}}
+    \subsection*{\keyword{MID\$(\param{text}, \param{first}, \param{count})}}
 
     Returns a substring of the string \param{text}.
     The parameter \param{first} specifies the number of the first character to use, where
@@ -305,30 +343,30 @@
 
     Example: \verb+MID$("Hello", 2, 3)+ returns \verb+"llo"+.
 
-    \subsection{\keyword{PEEK(\param{address})}}
+    \subsection*{\keyword{PEEK(\param{address})}}
 
     Returns the byte stored in memory at location \param{address}.
 
-    \subsection{\keyword{PEEKW(\param{address})}}
+    \subsection*{\keyword{PEEKW(\param{address})}}
 
     Returns the 16-bit word stored in memory at location \param{address}.
     The low byte of the returned value is at \param{address}, and the
     high byte is at \verb-address + 1-.
 
-    \subsection{\keyword{PEEKL(\param{address})}}
+    \subsection*{\keyword{PEEKL(\param{address})}}
 
     Returns the 24-bit word stored in memory at location \param{address}.
     The low byte of the returned value is at \param{address},
     the middle byte is at \verb-address + 1-, 
     and the high byte is at \verb-address + 2-.
 
-    \subsection{\keyword{RIGHT\$(\param{text}, \param{count})}}
+    \subsection*{\keyword{RIGHT\$(\param{text}, \param{count})}}
 
     Returns the right-most \param{count} characters of the string \param{text}.
 
     Example: \verb+LEFT$("Hello", 3)+ returns \verb+"llo"+.
     
-    \subsection{\keyword{SGN(\param{value})}}
+    \subsection*{\keyword{SGN(\param{value})}}
 
     Returns the sign of the number \param{value}.
     If the number is negative, the result is \verb+-1+,
@@ -337,41 +375,41 @@
 
     Example: \verb+SGN(-25)+ returns \verb+-1+.
 
-    \subsection{\keyword{SPC(\param{value})}}
+    \subsection*{\keyword{SPC(\param{value})}}
 
     Returns a string containing \param{value} spaces.
     
     Example: \verb+SPC(5)+ returns a string of five spaces.
 
-    \subsection{\keyword{STR\$(\param{value})}}
+    \subsection*{\keyword{STR\$(\param{value})}}
 
     Returns a string containing the decimal representation of the number \param{value}.
     
     Example: \verb+STR$(25)+ returns \verb+"25"+.
 
-    \subsection{\keyword{TAB(\param{value})}}
+    \subsection*{\keyword{TAB(\param{value})}}
 
     Returns a string containing \param{value} TAB characters.
     
     Example: \verb+TAB(2)+ returns a string of two TABs.
 
-    \subsection{\keyword{VAL(\param{text})}}
+    \subsection*{\keyword{VAL(\param{text})}}
 
     Returns the numeric value represented by the string of decimal digits in \param{text}.
     
     Example: \verb+VAL("42")+ returns \verb+42+.
 
-    \section{C256 Specific Statements}
+    \section*{C256 Specific Statements}
 
     \BASIC\ includes a number of statements to support features of the C256 Foenix.
 
-    \subsection{\keyword{CLRPIXMAP}}
+    \subsection*{\keyword{CLRPIXMAP}}
 
     Sets all pixels in the bitmap to 0 (transparent).
     The bitmap must have been setup with the \keyword{PIXMAP} statement before
     this statement can be used.
 
-    \subsection{\keyword{FILL} \param{x0}, \param{y0}, \param{x1}, \param{y1}, \param{color}}
+    \subsection*{\keyword{FILL} \param{x0}, \param{y0}, \param{x1}, \param{y1}, \param{color}}
 
     Fill the rectangle with corners at $(x_0, y_0)$ to $(x_1, y_1)$ with the color
     specified by the \param{color} index number.
@@ -380,7 +418,7 @@
     The \keyword{PIXMAP} statement must have been used before using
     this statement.
 
-    \subsection{\keyword{GRAPHICS} \param{mode}}
+    \subsection*{\keyword{GRAPHICS} \param{mode}}
 
     Sets the graphics mode of the Vicky chip.
     This statement just sets the master control register of the Vicky chip to
@@ -404,7 +442,7 @@
         \label{vicky_mcr}
     \end{table}
 
-    \subsection{\keyword{LINE} \param{x0}, \param{y0}, \param{x1}, \param{y1}, \param{color}}
+    \subsection*{\keyword{LINE} \param{x0}, \param{y0}, \param{x1}, \param{y1}, \param{color}}
 
     Draw a line on the bitmap display from positions $(x_0, y_0)$ to $(x_1, y_1)$ in the color
     specified by the \param{color} index number.
@@ -413,11 +451,11 @@
     The \keyword{PIXMAP} statement must have been used before using
     this statement.
 
-    \subsection{\keyword{MONITOR}}
+    \subsection*{\keyword{MONITOR}}
 
     Enter the machine language monitor.
 
-    \subsection{\keyword{PIXMAP} \param{visible}, \param{lut} [, \param{address}]}
+    \subsection*{\keyword{PIXMAP} \param{visible}, \param{lut} [, \param{address}]}
 
     Controls the visibility of the bitmap display (the bitmap engine must be
     enabled with the \keyword{GRAPHICS} command). The parameter \param{visible}
@@ -431,7 +469,7 @@
     This address must be in the video memory area starting at B00000.
     If no address is provided, it will default to B00000.
 
-    \subsection{\keyword{PLOT} \param{column}, \param{row}, \param{color}}
+    \subsection*{\keyword{PLOT} \param{column}, \param{row}, \param{color}}
 
     Set the pixel at the specified \param{row} and \param{column} to the
     color with the given \param{color} index number.
@@ -440,13 +478,13 @@
     The \keyword{PIXMAP} statement must have been used before using
     this statement.
 
-    \subsection{\keyword{SETBGCOLOR} \param{red}, \param{green}, \param{blue}}
+    \subsection*{\keyword{SETBGCOLOR} \param{red}, \param{green}, \param{blue}}
 
     Sets the background color to be used in graphics modes.
     The color is specified as red, green, and blue components,
     all of which must be in the range 0 -- 255.
 
-    \subsection{\keyword{SETBORDER} \param{visible} [, \param{red}, \param{green}, \param{blue} ]}
+    \subsection*{\keyword{SETBORDER} \param{visible} [, \param{red}, \param{green}, \param{blue} ]}
 
     Sets the visibility and, optionally, color of the border of the C256's screen, given
     \param{red}, \param{green}, and \param{blue} intensity values, which must be
@@ -454,7 +492,7 @@
     The parameter \param{visibility} must be a number: if it is 0, the border
     will not be shown; if it is any other number, the border will be visible.
 
-    \subsection{\keyword{SETDATE} \param{day}, \param{month}, \param{year}}
+    \subsection*{\keyword{SETDATE} \param{day}, \param{month}, \param{year}}
 
     Sets the date on the C256's real time clock, given the date as three numbers:
     \param{day}, \param{month}, and \param{year}.
@@ -462,7 +500,7 @@
     The month number must be from 1--12.
     The year number must be from 0--99.
 
-    \subsection{\keyword{SETCOLOR} \param{lut}, \param{color}, \param{red}, \param{green}, \param{blue}}
+    \subsection*{\keyword{SETCOLOR} \param{lut}, \param{color}, \param{red}, \param{green}, \param{blue}}
 
     Define the RGB intensities for a color in one of the Vicky chip's color lookup tables.
     The color lookup table is a number \param{lut} in the range 0--9.
@@ -492,7 +530,7 @@
         \label{luts}
     \end{table}
 
-    \subsection{\keyword{SPRITE} \param{number}, \param{lut} [, \param{address} ]}
+    \subsection*{\keyword{SPRITE} \param{number}, \param{lut} [, \param{address} ]}
 
     Set the color lookup table and the address for sprite \param{number}.
     The parameter \param{lut} must be the number of the graphics lookup table the
@@ -501,13 +539,13 @@
     bitmap data and must be an address in the video RAM (starting at address B00000).
     If no address is provided, the sprite will default to B00000.
 
-    \subsection{\keyword{SPRITEAT} \param{number}, \param{column}, \param{row}}
+    \subsection*{\keyword{SPRITEAT} \param{number}, \param{column}, \param{row}}
 
     Sets the location of a sprite.
     The sprite to move is \param{number}.
     Its upper-left corner will be set to \param{row} and \param{column}.
 
-    \subsection{\keyword{SPRITESHOW} \param{number}, \param{visible} [, \param{layer} ]}
+    \subsection*{\keyword{SPRITESHOW} \param{number}, \param{visible} [, \param{layer} ]}
 
     Controls the visibility of sprite \param{number}.
     If \param{visible} is 0, the sprite will not be visible.
@@ -516,31 +554,31 @@
     which sprites and tiles this sprite will display in front of or behind when
     they overlap.
 
-    \subsection{\keyword{TEXTCOLOR} \param{foreground}, \param{background}}
+    \subsection*{\keyword{TEXTCOLOR} \param{foreground}, \param{background}}
 
     Sets the color for text to be printed.
     The foreground color index is specified by \param{foreground},
     and the background color index is specified by \param{background}.
     Both values must be in the range 0 -- 15.
 
-    \subsection{\keyword{SETTIME} \param{hour}, \param{minute}, \param{second}}
+    \subsection*{\keyword{SETTIME} \param{hour}, \param{minute}, \param{second}}
 
     Sets the time on the C256's real time clock, given the time as three numbers:
     \param{hour}, \param{minute}, and \param{second}.
 
-    \section{C256 Specific Functions}
+    \section*{C256 Specific Functions}
 
-    \subsection{\keyword{GETDATE\$(0)}}
+    \subsection*{\keyword{GETDATE\$(0)}}
 
     Returns the current date from the C256's real time clock as a string
     in \verb+"DD:MM:YY"+ format.
 
-    \subsection{\keyword{GETTIME\$(0)}}
+    \subsection*{\keyword{GETTIME\$(0)}}
 
     Returns the current time from the C256's real time clock as a string
     in \verb+"HH:MM:SS"+ format.    
 
-    \section{Proposed: Extentions}
+    \section*{Proposed: Extentions}
 
     The following is a proposal for an extension mechanism \BASIC\ may provide in the future.
     It is not currently implemented in the interpreter.
@@ -568,7 +606,7 @@ EXTENSION <path>
     statement \keyword{PLAY}, it might have the token \$F1 in one program, but in another program, it
     might have the token \$F8.
 
-    \subsection{Coding an Extension}
+    \subsection*{Coding an Extension}
     
     An extension will be a binary file on a storage device (SD Card, floppy disk, hard drive). Each
     extension will be loaded into its own memory bank of 64KB. The extension will have free use of all
@@ -614,5 +652,26 @@ struct {
     After all the token records have been provided, the next byte should be \$FF to indicate there are no more records to process.
     All other bytes in the file after that point are left for the extension's use. They may be arranged however the extension
     author desires.
+
+    \section*{C256 Character Set}
+
+    The character set for BASIC816 on the C256 is assummed to be ASCII, with each character taking a full 8-bit byte.
+    There are a number of special characters the system supports, shown in Table~\ref{char_codes}.
+
+    \begin{table}
+        \begin{tabular}{|l|l|} \hline
+            Code & Purpose \\ \hline\hline
+            0x08 & Delete character to the left and move cursor left \\ \hline
+            0x09 & Move cursor to next tab \\ \hline
+            0x0A & Line Feed \\ \hline
+            0x0D & Carriage Return \\ \hline
+            0x11 & Move cursor up a line \\ \hline
+            0x1D & Move cursor right one column \\ \hline
+            0x91 & Move cursor down a line \\ \hline
+            0x9D & Move the cursor left one column \\ \hline
+        \end{tabular}
+        \caption{Special Character Codes}
+        \label{char_codes}
+    \end{table}
     
 \end{document}

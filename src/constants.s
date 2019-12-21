@@ -14,12 +14,12 @@ SYSTEM_C64 = 1          ; Commodore 64 with SuperCPU
 ;
 
 CHAR_CTRL_C = $03       ; CTRL-C: used as a program interrupt key
-CHAR_CTRL_A = $01       ; CTRL-A: used (temporarily) as a programmer interrupt
 CHAR_BELL = $07         ; Ring the console bell
 CHAR_BS = $08           ; Backspace
 CHAR_TAB = $09          ; TAB
 CHAR_LF = $0A           ; Linefeed
 CHAR_CR = $0D           ; Carriage Return
+CHAR_INS = $0F          ; Insert
 CHAR_ESC = $1B          ; Escape
 CHAR_DQUOTE = $22       ; Double quote
 CHAR_SP = $20           ; Space

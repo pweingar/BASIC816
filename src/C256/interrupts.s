@@ -129,9 +129,12 @@ NOT_KB_CLR_CTRL
                 BRL KB_SET_ALT
 NOT_KB_SET_ALT
                 CMP #$B8                ; Left ALT Unpressed
-                BNE KB_UNPRESSED
+                BNE NOT_KB_CLR_ALT
                 BRL KB_CLR_ALT
 
+NOT_KB_CLR_ALT  CMP #$E0                ; Prefixed scan code
+                BNE KB_UNPRESSED
+                BRL KB_SET_PREFIX
 
 KB_UNPRESSED    AND #$80                ; See if the Scan Code is press or Depressed
                 CMP #$80                ; Depress Status - We will not do anything at this point
@@ -155,15 +158,29 @@ KB_NORM_SC      LDA KEYBOARD_SC_TMP       ;
                 CMP #$40
                 BEQ ALT_KEY_ON
 
+                LDA KEYBOARD_SC_FLG     ; Check to See if the Prefix was picked up before
+                AND #$80
+                CMP #$80
+                BEQ PREFIX_ON
+
                 ; Pick and Choose the Right Bank of Character depending if the Shift/Ctrl/Alt or none are chosen
                 LDA @lScanCode_Press_Set1, x
                 BRL KB_WR_2_SCREEN
+
 SHIFT_KEY_ON    LDA @lScanCode_Shift_Set1, x
                 BRL KB_WR_2_SCREEN
+
 CTRL_KEY_ON     LDA @lScanCode_Ctrl_Set1, x
                 BRL KB_WR_2_SCREEN
-ALT_KEY_ON      LDA @lScanCode_Alt_Set1, x
 
+ALT_KEY_ON      LDA @lScanCode_Alt_Set1, x
+                BRL KB_WR_2_SCREEN
+
+PREFIX_ON       LDA KEYBOARD_SC_FLG
+                AND #$7F
+                STA KEYBOARD_SC_FLG
+                
+                LDA @lScanCode_Prefix_Set1, x
                 ; Write Character to Screen (Later in the buffer)
 KB_WR_2_SCREEN
                 PHA
@@ -202,6 +219,14 @@ KB_SET_ALT      LDA KEYBOARD_SC_FLG
 KB_CLR_ALT      LDA KEYBOARD_SC_FLG
                 AND #$BF
                 STA KEYBOARD_SC_FLG
+                JMP KB_CHECK_B_DONE
+
+KB_SET_PREFIX   LDA KEYBOARD_SC_FLG
+                ORA #$80
+                STA KEYBOARD_SC_FLG
+                JMP KB_CHECK_B_DONE
+
+
 
 KB_CHECK_B_DONE .as
                 LDA STATUS_PORT
