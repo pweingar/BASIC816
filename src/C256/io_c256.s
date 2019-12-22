@@ -63,6 +63,10 @@ sp_loop     STA GS_SP_CONTROL,X
 
             JSL INITIRQ         ; Initialize the IRQs
 
+            setas
+            LDA #0                  ; Clear the lock key flags
+            STA @lKEYBOARD_LOCKS
+
 done        RETURN
             .pend
 
@@ -143,8 +147,12 @@ SCREEN_PUTC .proc
             setas
             PHA
 
-            CALL WRITEC     ; TODO: replce with PUTC, once PUTC handles control characters
+            CALL WRITEC             ; TODO: replce with PUTC, once PUTC handles control characters
             
+loop        LDA @lKEYBOARD_LOCKS    ; Check the status of the lock keys
+            AND #KB_SCROLL_LOCK     ; Is Scroll Lock pressed?
+            BNE loop                ; Yes: wait until it's released
+
             PLA
             PLP
             RETURN

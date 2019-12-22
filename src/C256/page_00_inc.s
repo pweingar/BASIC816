@@ -212,7 +212,7 @@ COMMAND_SIZE_STR = $000F84 ; 1 Byte
 COMMAND_COMP_TMP = $000F86 ; 2 Bytes
 KEYBOARD_SC_FLG  = $000F87 ;1 Bytes that indicate the Status of Left Shift, Left CTRL, Left ALT, Right Shift
 KEYBOARD_SC_TMP  = $000F88 ;1 Byte, Interrupt Save Scan Code while Processing
-
+KEYBOARD_LOCKS   = $000F89 ;1 Byte, status of lock keys 1 = Scroll Lock, 2 = Number Lock, 4 = Caps Lock
 
 
 TEST_BEGIN       = $001000 ;28672 Bytes Test/diagnostic code for prototype.

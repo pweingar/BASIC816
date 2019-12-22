@@ -37,3 +37,8 @@ KB_BREAK		  =	$F0
 KB_FA			    =	$10
 KB_FE			    =	$20
 KB_PR_LED		  =	$40
+
+; Lock Key Flags
+KB_SCROLL_LOCK      = $01
+KB_NUM_LOCK         = $02
+KB_CAPS_LOCK        = $04

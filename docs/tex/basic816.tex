@@ -44,9 +44,11 @@
         \item[Insert] The insert key inserts a space at the cursor (pushing the character that was under the cursor to the right).    
     \end{itemize}
 
-    Although not an edit key, the Scroll Lock key is currently assigned as a ``programmer's key'' and will interrupt
+    Although not an edit key, the SysRq key is currently assigned as a ``programmer's key'' and will interrupt
     the currently running BASIC program and open the monitor. It should work for any program (even machine language), so
-    long as the keyboard interrupt logic has not been intercepted.
+    long as the keyboard interrupt logic has not been intercepted. Likewise, the Scroll Lock key will pause any screen
+    output from the interpreter while it is on. This includes output from a program that is producing a lot of text and
+    even program listings.
 
     \section*{Data Types}
 

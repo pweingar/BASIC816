@@ -91,11 +91,6 @@ IRQ_HANDLER_FETCH
                 LDA KBD_INPT_BUF        ; Get Scan Code from KeyBoard
                 STA KEYBOARD_SC_TMP     ; Save Code Immediately
 
-                ; Check for the programmer key
-                CMP #$46                ; Check for scroll lock
-                BNE NOT_SCROLLLOCK
-                JMP programmerKey       ; Otherwise: handle the programmer keypress
-
                 ; Check for Shift Press or Unpressed
 NOT_SCROLLLOCK  CMP #$2A                ; Left Shift Pressed
                 BNE NOT_KB_SET_LSHIFT
@@ -133,8 +128,20 @@ NOT_KB_SET_ALT
                 BRL KB_CLR_ALT
 
 NOT_KB_CLR_ALT  CMP #$E0                ; Prefixed scan code
-                BNE KB_UNPRESSED
+                BNE NOT_PREFIXED
                 BRL KB_SET_PREFIX
+
+NOT_PREFIXED    CMP #$45                ; Numlock Pressed
+                BNE NOT_KB_SET_NUM
+                BRL KB_TOG_NUMLOCK
+
+NOT_KB_SET_NUM  CMP #$46                ; Scroll Lock Pressed
+                BNE NOT_KB_SET_SCR
+                BRL KB_TOG_SCRLOCK
+
+NOT_KB_SET_SCR  CMP #$3A                ; Caps Lock Pressed
+                BNE KB_UNPRESSED
+                BRL KB_TOG_CAPLOCK
 
 KB_UNPRESSED    AND #$80                ; See if the Scan Code is press or Depressed
                 CMP #$80                ; Depress Status - We will not do anything at this point
@@ -182,8 +189,11 @@ PREFIX_ON       LDA KEYBOARD_SC_FLG
                 
                 LDA @lScanCode_Prefix_Set1, x
                 ; Write Character to Screen (Later in the buffer)
-KB_WR_2_SCREEN
-                PHA
+KB_WR_2_SCREEN  CMP #$18                ; Is it SysRq?
+                BNE savechar
+                JMP programmerKey       ; Yes: trigger the programmer key
+
+savechar        PHA
                 setxl
                 JSL SAVECHAR2CMDLINE
                 setas
@@ -226,24 +236,58 @@ KB_SET_PREFIX   LDA KEYBOARD_SC_FLG
                 STA KEYBOARD_SC_FLG
                 JMP KB_CHECK_B_DONE
 
+KB_TOG_SCRLOCK  LDA KEYBOARD_LOCKS
+                EOR #KB_SCROLL_LOCK         ; toggle the Scroll Lock flag
+                STA KEYBOARD_LOCKS
+                JMP KB_CHECK_B_DONE
 
+KB_TOG_NUMLOCK  LDA KEYBOARD_LOCKS
+                EOR #KB_NUM_LOCK            ; toggle the Num Lock flag
+                STA KEYBOARD_LOCKS
+                JMP KB_CHECK_B_DONE
+
+KB_TOG_CAPLOCK  LDA KEYBOARD_LOCKS
+                EOR #KB_CAPS_LOCK           ; toggle the Caps Lock flag
+                STA KEYBOARD_LOCKS
 
 KB_CHECK_B_DONE .as
                 LDA STATUS_PORT
-                AND #OUT_BUF_FULL ; Test bit $01 (if 1, Full)
-                CMP #OUT_BUF_FULL ; if Still Byte in the Buffer, fetch it out
-                BNE KB_DONE
+                AND #OUT_BUF_FULL           ; Test bit $01 (if 1, Full)
+                CMP #OUT_BUF_FULL           ; if Still Byte in the Buffer, fetch it out
+                BNE SET_LED
                 JMP IRQ_HANDLER_FETCH
 
-KB_DONE
-                setaxl
+SET_LED         ; LDA #$ED                    ; Command to set LEDs
+;                 STA KBD_CMD_BUF             ; Send the command
+;                 JSR Poll_Inbuf              ; Wait for the keyboard to be ready
+;                 LDA KEYBOARD_LOCKS          ; Get the current lock status
+;                 STA KBD_DATA_BUF            ; And send it to the keyboard
+;                 JSR Poll_Inbuf              ; Wait for the keyboard to be ready
+
+KB_DONE         setaxl
                 RTS
 
 SAVECHAR2CMDLINE
                 PHD
                 setas
 
-                CMP #0
+                PHA                     ; Save the character
+                LDA KEYBOARD_LOCKS      ; Check the keyboard lock flags
+                AND #KB_CAPS_LOCK       ; Is CAPS lock on?
+                BEQ no_caps             ; No... just use the character as-is
+
+                PLA                     ; Get the character back
+                CMP #'a'                ; Is it < 'a'
+                BLT check_break         ; Yes: just use as-is
+                CMP #'z'+1              ; Is it > 'z'
+                BGE check_break         ; Yes: just us as-is
+
+                AND #%11011111          ; Conver to upper case
+                BRA check_break
+
+no_caps         PLA                     ; Restore the character
+
+check_break     CMP #0
                 BEQ done
                 CMP #CHAR_CTRL_C        ; Is it CTRL-C?
                 BEQ flag_break          ; Yes: flag a break
@@ -279,5 +323,12 @@ flag_break      setas
                 LDA #$80                ; Flag that an interrupt key has been pressed
                 STA @lKEYFLAG           ; The interpreter should see this soon and throw a BREAK
                 BRA done
+
+Poll_Inbuf	    .as
+                LDA STATUS_PORT		; Load Status Byte
+                AND	#<INPT_BUF_FULL	; Test bit $02 (if 0, Empty)
+                CMP #<INPT_BUF_FULL
+                BEQ Poll_Inbuf
+                RTS
 
 .send
