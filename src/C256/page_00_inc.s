@@ -46,8 +46,6 @@ CMD_LIST_PTR     = $000044 ; <<< Command Parser 3 Bytes
 CMD_PARSER_PTR   = $000048 ; <<< Command Parser 3 Bytes
 CMD_ATTRIBUTE    = $00004B ; <<< Command Parser 2 Bytes (16bits Attribute Field)
 CMD_EXEC_ADDY    = $00004D ; <<< Command Parser 3 Bytes 24 Bits Address Jump to execute the Command
-KEY_BUFFER_RPOS  = $000050 ;
-KEY_BUFFER_WPOS  = $000052 ;
 CMD_VARIABLE_TMP = $000054 ;
 CMD_ARG_DEV      = $000056 ;
 CMD_ARG_SA       = $000057 ;
@@ -212,8 +210,10 @@ COMMAND_SIZE_STR = $000F84 ; 1 Byte
 COMMAND_COMP_TMP = $000F86 ; 2 Bytes
 KEYBOARD_SC_FLG  = $000F87 ;1 Bytes that indicate the Status of Left Shift, Left CTRL, Left ALT, Right Shift
 KEYBOARD_SC_TMP  = $000F88 ;1 Byte, Interrupt Save Scan Code while Processing
-KEYBOARD_LOCKS   = $000F89 ;1 Byte, status of lock keys 1 = Scroll Lock, 2 = Number Lock, 4 = Caps Lock
-
+KEYBOARD_LOCKS   = $000F89 ;1 Byte, the status of the various lock keys
+KEYFLAG          = $000F8A ;1 Byte, flag to indicate if CTRL-C has been pressed
+KEY_BUFFER_RPOS  = $000F8B ;2 Byte, position of the character to read from the KEY_BUFFER
+KEY_BUFFER_WPOS  = $000F8D ;2 Byte, position of the character to write to the KEY_BUFFER
 
 TEST_BEGIN       = $001000 ;28672 Bytes Test/diagnostic code for prototype.
 TEST_END         = $007FFF ;0 Byte

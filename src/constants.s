@@ -60,3 +60,4 @@ ERR_STACKUNDER = 7      ; Stack underflow error
 ERR_STACKOVER = 8       ; Stack overflow error
 ERR_RANGE = 9           ; Out-of-range error
 ERR_ARGUMENT = 10       ; Bad argument error
+ERR_NOFILE = 11         ; File not found error

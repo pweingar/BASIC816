@@ -167,11 +167,13 @@ done_name       setaxl
                 STA IBUFFER+2
                 STA MARG2+2
 
+                setal
                 STZ IBUFFIDX                ; Reset the input cursor to position 0
 
                 CALL CMD_NEW                ; Erase any program we already had
 
                 CALL FS_LOAD                ; Load the file into memory
+                BCC not_found               ; Throw error if not found
 
                 setal
                 LDX #FS_FILEREC.SIZE
@@ -184,10 +186,18 @@ read_line       CALL IBUFF_EMPTY            ; Check to see if the buffer is empt
 
                 CALL IBUFF_READLINE         ; Read the line
                 CALL PROCESS                ; Process the line
+
+                setas
+                LDA #'.'
+                CALL PRINTC
+                setal
+
                 BRA read_line
 
 end_of_file     PLP
                 RETURN
+
+not_found       THROW ERR_NOFILE
                 .pend
 
 ;

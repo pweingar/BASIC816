@@ -23,7 +23,6 @@
 ;Monitor.asm
 ;Jump Table
 ;* = $195000
-MONITOR         JML IMONITOR
 ;MSTATUS         JML IMSTATUS
 MRETURN         JML IMRETURN
 MPARSE          JML IMPARSE

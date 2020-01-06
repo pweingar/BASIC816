@@ -113,6 +113,7 @@ ERRORMSG    .word <>MSG_OK
             .word <>MSG_OVRFLOW
             .word <>MSG_RANGE
             .word <>MSG_ARG
+            .word <>MSG_NOFILE
 
 MSG_AT      .null " at"
 
@@ -127,6 +128,7 @@ MSG_UNDFLOW .null "Stack underflow"
 MSG_OVRFLOW .null "Stack overflow"
 MSG_RANGE   .null "Out of range"
 MSG_ARG     .null "Illegal argument"
+MSG_NOFILE  .null "File not found"
             .pend
 
 ;

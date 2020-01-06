@@ -39,7 +39,6 @@ FS_FILE         .dstruct FS_FILEREC ; A record of file information
 ;
 FS_DIRFIRST     .proc
                 PHP
-                setdp GLOBAL_VARS
                 setxl
                 setas
 
@@ -68,15 +67,16 @@ copy_loop       LDA @lVFS,X                 ; Copy the first file record
 ;
 FS_DIRNEXT      .proc
                 PHP
+                PHD
                 setdp GLOBAL_VARS
 
                 setaxl
                 LDX #FS_FILEREC.NEXT        ; Copy the internal NEXT pointer to INDEX
-                LDA @lVFS,X
+                LDA @lFS_FILE,X
                 STA INDEX
                 INX
                 INX
-                LDA @lVFS,X
+                LDA @lFS_FILE,X
                 STA INDEX+2
 
                 LDA INDEX                   ; Check to see if there is anything there
@@ -84,7 +84,8 @@ FS_DIRNEXT      .proc
                 LDA INDEX+2
                 BNE copy_next
 
-ret_false       PLP                         ; No: return FALSE (carry clear)
+ret_false       PLD
+                PLP                         ; No: return FALSE (carry clear)
                 CLC
                 RETURN
 
@@ -98,7 +99,8 @@ copy_loop       LDA [INDEX],Y               ; Copy the next file record to the F
                 CPX #24                     ; Length of FS_FILEREC
                 BNE copy_loop
 
-ret_true        PLP                         ; And return TRUE (carry set)
+ret_true        PLD
+                PLP                         ; And return TRUE (carry set)
                 SEC
                 RETURN
                 .pend
@@ -126,7 +128,7 @@ FS_FINDFILE     .proc
 check_names     setas
                 LDY #0
                 LDX #FS_FILEREC.NAME
-chk_name_loop   LDA FS_FILE,X           ; Get the character in the record
+chk_name_loop   LDA @lFS_FILE,X         ; Get the character in the record
                 BEQ check_dot           ; If it's 0, check for a dot in the search path
                 CMP FS_PATH,Y           ; Compare it to the source name
                 BNE not_matched         ; If not equal, try the next entry
@@ -138,7 +140,7 @@ chk_name_loop   LDA FS_FILE,X           ; Get the character in the record
 
 check_ext       INY                     ; Skip over the dot
 check_ext2      LDX #FS_FILEREC.EXTENSION
-chk_ext_loop    LDA FS_FILE,X           ; Get the extension character in the file record
+chk_ext_loop    LDA @lFS_FILE,X         ; Get the extension character in the file record
                 BEQ check_done          ; If NUL, check that the path has a NULL too
                 CMP FS_PATH,Y           ; Compare it to the source extension
                 BNE not_matched         ; If not equal, try the next entry
@@ -182,6 +184,8 @@ ret_false       PLB
 ; Outputs:
 ;   C is set if successful, clear otherwise
 FS_LOAD         .proc
+                PHD
+                PHB
                 PHP
                 setdp GLOBAL_VARS
 
@@ -190,9 +194,9 @@ FS_LOAD         .proc
                 BCC ret_false           ; If failure: return false
 
                 LDX #FS_FILEREC.HANDLE
-                LDA FS_FILE,X
+                LDA @lFS_FILE,X
                 STA INDEX
-                LDA FS_FILE+2,X
+                LDA @lFS_FILE+2,X
                 STA INDEX+2
 
                 setas
@@ -211,10 +215,14 @@ inc_MARG2       INC MARG2               ; Point to the next destination address
                 BRA copy_loop
 
 ret_true        PLP                     ; Return success
+                PLB
+                PLD
                 SEC
                 RETURN
 
-ret_false       PLP                     ; Return failure
+ret_false       PLP                     ; Return failure    
+                PLB
+                PLD
                 CLC
                 RETURN
                 .pend
@@ -234,28 +242,28 @@ FS_SAVE         .proc
                 RETURN
                 .pend
 
-.section vfs_block
-                ; Sample Hello, World program
-HELLO_RECORD    .text "hello", 0, 0, 0
-                .text "bas"
-                .byte 0
-                .dword HELLO_END - HELLO_START
-                .dword HELLO_START
-                .dword BYE_RECORD
-HELLO_START     .text "10 PRINT ",CHAR_DQUOTE,"Hello, world!",CHAR_DQUOTE,13
-                .text "20 GOTO 10",13
-                .text "30 END",13
-HELLO_END       .byte 0
+; .section vfs_block
+;                 ; Sample Hello, World program
+; HELLO_RECORD    .text "hello", 0, 0, 0
+;                 .text "bas"
+;                 .byte 0
+;                 .dword HELLO_END - HELLO_START
+;                 .dword HELLO_START
+;                 .dword BYE_RECORD
+; HELLO_START     .text "10 PRINT ",CHAR_DQUOTE,"Hello, world!",CHAR_DQUOTE,13
+;                 .text "20 GOTO 10",13
+;                 .text "30 END",13
+; HELLO_END       .byte 0
 
-                ; Sample Goodbye, World program
-BYE_RECORD      .text "goodbye", 0
-                .text "bas"
-                .byte 0
-                .dword BYE_END - BYE_START
-                .dword BYE_START
-                .dword 0
-BYE_START       .text "10 PRINT ",CHAR_DQUOTE,"Goodbye, cruel world!",CHAR_DQUOTE,13
-                .text "20 GOTO 10",13
-                .text "30 END",13
-BYE_END         .byte 0
-.send
+;                 ; Sample Goodbye, World program
+; BYE_RECORD      .text "goodbye", 0
+;                 .text "bas"
+;                 .byte 0
+;                 .dword BYE_END - BYE_START
+;                 .dword BYE_START
+;                 .dword 0
+; BYE_START       .text "10 PRINT ",CHAR_DQUOTE,"Goodbye, cruel world!",CHAR_DQUOTE,13
+;                 .text "20 GOTO 10",13
+;                 .text "30 END",13
+; BYE_END         .byte 0
+; .send

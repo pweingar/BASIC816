@@ -42,8 +42,6 @@ loop            CALL IBUFF_GETC
                 BEQ end_of_line         ; Yes: treat it as end of line
 
                 STA @lINPUTBUF,X        ; Save the character
-                CMP #0                  ; Is it a NULL?
-                BEQ end_of_line         ; Yes: treat it as an end of buffer
                 INX
                 BRA loop
 

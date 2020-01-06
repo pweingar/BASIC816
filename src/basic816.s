@@ -13,26 +13,27 @@
 ;;
 ;; Jump table 
 
-COLDBOOT        JMP START
+COLDBOOT        JML START               ; Entry point to boot up BASIC from scratch
+MONITOR         JML IMONITOR            ; Entry point to the machine language monitor
 
 ;;
 ;; I/O hooks... these could be replaced by an external system
 ;;
 
-READLINE        JMP IREADLINE           ; Wait for the user to enter a line of text (for programming input)
-SCRCOPYLINE     JMP ISCRCPYLINE         ; Copy the line on the screen the user just input to INPUTBUF
-INPUTLINE       JMP IINPUTLINE          ; Read a single line of text from the user, and copy it to TEMPBUF (for INPUT statement)
-GETKEY          JMP IGETKEY             ; Wait for a keypress by the user and return the ASCII code in A
-PRINTC          JMP IPRINTC             ; Print the character in A to the console
-SHOWCURSOR      JMP ISHOWCURSOR         ; Set cursor visibility: A=0, hide... A<>0, show.
-CURSORXY        JMP ICURSORXY           ; Set the position of the cursor to (X, Y)
-CLSCREEN        JMP ICLSCREEN           ; Clear the screen
+READLINE        JML IREADLINE           ; Wait for the user to enter a line of text (for programming input)
+SCRCOPYLINE     JML ISCRCPYLINE         ; Copy the line on the screen the user just input to INPUTBUF
+INPUTLINE       JML IINPUTLINE          ; Read a single line of text from the user, and copy it to TEMPBUF (for INPUT statement)
+GETKEY          JML IGETKEY             ; Wait for a keypress by the user and return the ASCII code in A
+PRINTC          JML IPRINTC             ; Print the character in A to the console
+SHOWCURSOR      JML ISHOWCURSOR         ; Set cursor visibility: A=0, hide... A<>0, show.
+CURSORXY        JML ICURSORXY           ; Set the position of the cursor to (X, Y)
+CLSCREEN        JML ICLSCREEN           ; Clear the screen
 
 ;;
 ;; A mess o' includes...
 ;;
 
-.include "bootstrap.s"
+;.include "bootstrap.s"
 
 .include "bios.s"
 .include "utilities.s"
@@ -72,16 +73,16 @@ START       CLC                 ; Go to native mode
             TCS
 
             ; Clear the screen and print the welcome message
-            CALL CLSCREEN
+            ; CALL CLSCREEN
 
             setdbr `GREET
             LDX #<>GREET
             CALL PRINTS
             setdbr BASIC_BANK
 
-            setaxl
-            LDA #<>WAIT         ; Send subsquent restarts to the WAIT loop
-            STA RESTART
+            ; setaxl
+            ; LDA #<>WAIT         ; Send subsquent restarts to the WAIT loop
+            ; STA RESTART
 
 .if UNITTEST
             CALL TST_BASIC      ; Run the BASIC816 unit tests
@@ -96,10 +97,6 @@ WAIT        JMP WAIT
 INITBASIC   .proc
             PHP
 
-            setal
-            LDA #<>HBREAK       ; Register the monitor's BRK handler
-            STA VBRK
-
             CALL INITIO         ; Initialize I/O system
             CALL CMD_NEW        ; Clear the program
 
@@ -109,7 +106,7 @@ INITBASIC   .proc
 .send
 
 .section data
-GREET       .text "Welcome to BASIC816 "
+GREET       .text "C256 Foenix BASIC816 "
             .include "version.s"
-            .null " for the C256 Foenix",13
+            .byte 13,0
 .send

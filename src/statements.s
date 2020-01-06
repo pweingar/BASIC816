@@ -1258,6 +1258,12 @@ notfound_err    THROW ERR_NOTFOUND  ; Throw variable name not found
 S_PRINT         .proc
                 PHP
                 TRACE "S_PRINT"
+
+                setas
+                CALL PEEK_TOK       ; Look ahead to the next non-whitespace character
+                CMP #0              ; Is it EOL or :?
+                BEQ pr_nl_exit      ; Yes: just print return
+
 pr_loop         CALL EVALEXPR       ; Attempt to evaluate the expression following
                 setas
                 LDA ARGTYPE1        ; Get the type of the result

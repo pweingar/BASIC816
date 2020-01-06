@@ -13,7 +13,6 @@
 .endif
 .include "keyboard.s"
 .include "screen.s"
-.include "font.s"
 .include "files.s"
 
 BORDER_WIDTH = 32               ; The width of the border (when it is on)
@@ -25,7 +24,7 @@ TEXT_ROWS_WOB = 60              ; Number of rows of text with no border enabled
 INITIO      .proc
             setas
 
-            CALL INITFONT       ; Set up the BASIC font
+            ; CALL INITFONT       ; Set up the BASIC font
 
             LDA #TEXT_COLS_WB   ; Make sure the screen size is right
             STA @lCOLS_VISIBLE  ; TODO: remove this when the kernel is correct
@@ -51,17 +50,12 @@ sp_loop     STA GS_SP_CONTROL,X
 .endif
             STA @lBCONSOLE
 
-            LDA #$F0
-            STA @lCURCOLOR
-
 .if UARTSUPPORT = 1
             setal
             LDA #1              ; Select COM1
             JSL UART_SELECT
             JSL UART_INIT       ; And initialize it
 .endif
-
-            JSL INITIRQ         ; Initialize the IRQs
 
             setas
             LDA #0                  ; Clear the lock key flags
@@ -147,7 +141,7 @@ SCREEN_PUTC .proc
             setas
             PHA
 
-            CALL WRITEC             ; TODO: replce with PUTC, once PUTC handles control characters
+            JSL FK_PUTC
             
 loop        LDA @lKEYBOARD_LOCKS    ; Check the status of the lock keys
             AND #KB_SCROLL_LOCK     ; Is Scroll Lock pressed?

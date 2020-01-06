@@ -25,5 +25,7 @@ set TRACE_LEVEL=0
 set OPTS=-D SYSTEM=%SYSTEM% -D UARTSUPPORT=%UART% -D UNITTEST=%UNITTEST% -D TRACE_LEVEL=%TRACE_LEVEL% --long-address --flat -b
 set DEST=--m65816 --intel-hex -o %SOURCE%.hex
 set AUXFILES=--list=%SOURCE%.lst --labels=%SOURCE%.lbl
+set DESTBIN=--m65816  -b -o %SOURCE%.bin
 
+%TASSHOME%\64tass %OPTS% %DESTBIN% %AUXFILES% src\%SOURCE%.s
 %TASSHOME%\64tass %OPTS% %DEST% %AUXFILES% src\%SOURCE%.s
