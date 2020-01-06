@@ -676,4 +676,39 @@ struct {
         \label{char_codes}
     \end{table}
     
+    \section*{Temporary RAM Disk}
+
+    Until a full file I/O system is ready, there is temporary support for a read-only RAM disk.
+    Only two commands are implemented to support it: \keyword{DIR} to print a directory listing,
+    and \keyword{LOAD} to load a BASIC program.
+
+    The RAM disk is implemented as a section of memory from 0x360000 to 0x37FFFF, so it is only 128KB.
+    Each file is preceded by a 24 byte header which describes the file and links to the next file:
+
+    \begin{verbatim}
+NAME        .fill 8  ; The 8-character name of the file
+EXTENSION   .fill 3  ; The 3 character extenion of the file
+ATTRIBUTES  .fill 1  ; Reserved/unused
+SIZE        .fill 4  ; The size of the file in bytes
+HANDLE      .fill 4  ; Address of the file contents in the RAM disk
+NEXT        .fill 4  ; Address of the next file header in the RAM disk
+    \end{verbatim}
+
+    Included with the source code for the BASIC interpreter is a Python script, \keyword{mkvfs.py} which
+    will read the contents of a directory and pack them in the correct format into a binary file that
+    can be uploaded by the FoenixIDE into the RAM disk memory location.
+    The script is very simple, however, and does not check if the resulting file is too big, so
+    use it at your own risk! If it is too big, it will over-write the kernel.
+
+    \subsection*{\keyword{DIR}}
+
+    Prints the names of all the files in the RAM disk.
+    If no RAM disk image has been loaded, this command will behave unpredictably.
+
+    \subsection*{\keyword{LOAD} \param{filename}}
+
+    Reads the BASIC program with the given \param{filename} as if you had typed it manually.
+    Prints a series of dots as a simple progress indicator with one dot per line read.
+    The files must be in simple ASCII text format.
+
 \end{document}

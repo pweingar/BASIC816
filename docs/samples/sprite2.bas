@@ -10,6 +10,7 @@
 100 x=32:y=32:dx=1:dy=1
 110 SPRITEAT 0,x,y
 120 x = x + dx:y = y + dy
+125 print x,y,dx,dy
 130 IF x > 32 AND x < 576 THEN 150
 140 dx = 0 - dx
 150 IF y > 32 AND y < 416 THEN 170
