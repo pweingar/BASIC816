@@ -259,7 +259,7 @@ S_TEXTCOLOR     .proc
                 .rept 4
                 ASL A
                 .next
-                STA SCRATCH
+                STA @lMARG1
 
                 LDA #','
                 CALL EXPECT_TOK     ; Try to find the comma
@@ -270,7 +270,7 @@ S_TEXTCOLOR     .proc
                 LDA ARGUMENT1       ; Covert the color number to the background position
                 AND #$0F
 
-                ORA SCRATCH         ; Add in the foreground
+                ORA @lMARG1         ; Add in the foreground
                 STA @lCURCOLOR      ; And save the new color combination
 
                 PLP
