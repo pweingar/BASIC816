@@ -1,4 +1,5 @@
 \documentclass{report}
+\usepackage[margin=0.75in]{geometry}
 \usepackage{ccfonts}
 \begin{document}
     \newcommand{\BASIC}[0]{{\sc Basic816}}
@@ -112,18 +113,20 @@
     before addition. This precendence can be altered by using parentheses to enclose a sub-expression that should be evaluated
     as a unit.
 
-    \begin{table}
-        \begin{tabular}{|l|l|} \hline
-            Operators & Purpose \\ \hline\hline
-            \verb+^+ & Exponent \\ \hline
-            \verb+*+, \verb+/+, \verb+MOD+ & Multiply, Divide, modulo \\ \hline
-            \verb-+-, \verb+-+ & Addition, Subtraction \\ \hline
-            \verb+<+, \verb+>+, \verb+=+ , \verb+<=+, \verb+>=+, \verb+<>+ & Comparison operators \\ \hline
-            \verb+NOT+ & Bitwise Negation \\ \hline
-            \verb+AND+ & Bitwise AND \\ \hline
-            \verb+OR+ & Bitwise OR \\ \hline
-        \end{tabular}
-        \caption{Operators in order of descending precedence.}
+    \begin{table}[!htb]
+        \begin{center}
+            \begin{tabular}{|l|l|} \hline
+                Operators & Purpose \\ \hline\hline
+                \verb+^+ & Exponent \\ \hline
+                \verb+*+, \verb+/+, \verb+MOD+ & Multiply, Divide, modulo \\ \hline
+                \verb-+-, \verb+-+ & Addition, Subtraction \\ \hline
+                \verb+<+, \verb+>+, \verb+=+ , \verb+<=+, \verb+>=+, \verb+<>+ & Comparison operators \\ \hline
+                \verb+NOT+ & Bitwise Negation \\ \hline
+                \verb+AND+ & Bitwise AND \\ \hline
+                \verb+OR+ & Bitwise OR \\ \hline
+            \end{tabular}
+            \caption{Operators in order of descending precedence.}
+        \end{center}
     \end{table}
 
     \section*{Commands}
@@ -428,20 +431,22 @@
 
     The bits of the master control register can be seen described in Table~\ref{vicky_mcr}.
 
-    \begin{table}
-        \begin{tabular}{|l|l|l|} \hline
-            Bit & Purpose \\ \hline\hline
-            7 & Global disable: If set, this disables all Vicky output. \\ \hline
-            6 & Gamma Correction: If set, this enables gamma correction. \\ \hline
-            5 & Sprites: If set, this enables the sprite engine. \\ \hline
-            4 & Tiles: If set, this enables the tile engine. \\ \hline
-            3 & Bitmap: If set, this enables the bitmap engine. \\ \hline
-            2 & Graphics: If set, this enables the graphics blocks. \\ \hline
-            1 & Text Overlay: If set, text will be displayed over graphics. \\ \hline
-            0 & Text: If set, this enables the text display engine. \\ \hline
-        \end{tabular}
-        \caption{Vicky Master Control Regiser}
-        \label{vicky_mcr}
+    \begin{table}[!htb]
+        \begin{center}
+            \begin{tabular}{|l|l|l|} \hline
+                Bit & Purpose \\ \hline\hline
+                7 & Global disable: If set, this disables all Vicky output. \\ \hline
+                6 & Gamma Correction: If set, this enables gamma correction. \\ \hline
+                5 & Sprites: If set, this enables the sprite engine. \\ \hline
+                4 & Tiles: If set, this enables the tile engine. \\ \hline
+                3 & Bitmap: If set, this enables the bitmap engine. \\ \hline
+                2 & Graphics: If set, this enables the graphics blocks. \\ \hline
+                1 & Text Overlay: If set, text will be displayed over graphics. \\ \hline
+                0 & Text: If set, this enables the text display engine. \\ \hline
+            \end{tabular}
+            \caption{Vicky Master Control Regiser}
+            \label{vicky_mcr}
+        \end{center}
     \end{table}
 
     \subsection*{\keyword{LINE} \param{x0}, \param{y0}, \param{x1}, \param{y1}, \param{color}}
@@ -514,20 +519,22 @@
     The association of \param{lut} number to the color lookup table in Vicky
     is shown in Table~\ref{luts}.
 
-    \begin{table}
-        \begin{tabular}{|l|l|l|} \hline
-            LUT & Lookup Table & Max Color \\ \hline\hline
-            0 & Graphics LUT 0 & 255 \\ \hline
-            1 & Graphics LUT 1 & 255 \\ \hline
-            2 & Graphics LUT 2 & 255 \\ \hline
-            3 & Graphics LUT 3 & 255 \\ \hline
-            4 & Graphics LUT 4 & 255 \\ \hline
-            5 & Graphics LUT 5 & 255 \\ \hline
-            6 & Graphics LUT 6 & 255 \\ \hline
-            7 & Graphics LUT 7 & 255 \\ \hline
-            8 & Text Foreground LUT & 15 \\ \hline
-            9 & Text Background LUT & 15 \\ \hline
-        \end{tabular}
+    \begin{table}[!htb]
+        \begin{center}
+            \begin{tabular}{|l|l|l|} \hline
+                LUT & Lookup Table & Max Color \\ \hline\hline
+                0 & Graphics LUT 0 & 255 \\ \hline
+                1 & Graphics LUT 1 & 255 \\ \hline
+                2 & Graphics LUT 2 & 255 \\ \hline
+                3 & Graphics LUT 3 & 255 \\ \hline
+                4 & Graphics LUT 4 & 255 \\ \hline
+                5 & Graphics LUT 5 & 255 \\ \hline
+                6 & Graphics LUT 6 & 255 \\ \hline
+                7 & Graphics LUT 7 & 255 \\ \hline
+                8 & Text Foreground LUT & 15 \\ \hline
+                9 & Text Background LUT & 15 \\ \hline
+            \end{tabular}
+        \end{center}
         \caption{Color lookup table numbers}
         \label{luts}
     \end{table}
@@ -660,21 +667,25 @@ struct {
     The character set for BASIC816 on the C256 is assummed to be ASCII, with each character taking a full 8-bit byte.
     There are a number of special characters the system supports, shown in Table~\ref{char_codes}.
 
-    \begin{table}
-        \begin{tabular}{|l|l|} \hline
-            Code & Purpose \\ \hline\hline
-            0x08 & Delete character to the left and move cursor left \\ \hline
-            0x09 & Move cursor to next tab \\ \hline
-            0x0A & Line Feed \\ \hline
-            0x0D & Carriage Return \\ \hline
-            0x11 & Move cursor up a line \\ \hline
-            0x1D & Move cursor right one column \\ \hline
-            0x91 & Move cursor down a line \\ \hline
-            0x9D & Move the cursor left one column \\ \hline
-        \end{tabular}
-        \caption{Special Character Codes}
-        \label{char_codes}
+
+    \begin{table}[!htb]
+        \begin{center}
+            \begin{tabular}{|l|l|} \hline
+                Code & Purpose \\ \hline\hline
+                0x08 & Delete character to the left and move cursor left \\ \hline
+                0x09 & Move cursor to next tab \\ \hline
+                0x0A & Line Feed \\ \hline
+                0x0D & Carriage Return \\ \hline
+                0x11 & Move cursor up a line \\ \hline
+                0x1D & Move cursor right one column \\ \hline
+                0x91 & Move cursor down a line \\ \hline
+                0x9D & Move the cursor left one column \\ \hline
+            \end{tabular}
+            \caption{Special Character Codes}
+            \label{char_codes}
+        \end{center}
     \end{table}
+    
     
     \section*{Temporary RAM Disk}
 
