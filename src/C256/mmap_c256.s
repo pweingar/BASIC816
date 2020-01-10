@@ -18,14 +18,14 @@
 .dsection code
 
 ; Section of memory for all constant data
-* = $3A7000
+* = $3AD000
 .dsection data
-.cerror * > $3A8FFF, "Too many string constants"
+.cerror * > $3AEFFF, "Too many string constants"
 
 ; Section for global variables that don't need to reside in direct page memory
-* = $3A9000
+* = $3AF000
 .dsection variables
-.cerror * > $3A9FFF, "Too many system variables"
+.cerror * > $3AFFFF, "Too many system variables"
 
 ; A block of memory for the virtul file system (jetison this when there is a real one)
 * = VFS

@@ -8,9 +8,6 @@
 
 .include "kernel_c256.s"
 .include "RTC_inc.s"
-.if UARTSUPPORT = 1
-.include "uart.s"
-.endif
 .include "keyboard.s"
 .include "screen.s"
 .include "files.s"
@@ -49,13 +46,6 @@ sp_loop     STA GS_SP_CONTROL,X
             LDA #DEV_SCREEN
 .endif
             STA @lBCONSOLE
-
-.if UARTSUPPORT = 1
-            setal
-            LDA #1              ; Select COM1
-            JSL UART_SELECT
-            JSL UART_INIT       ; And initialize it
-.endif
 
             setas
             LDA #0                  ; Clear the lock key flags
@@ -141,6 +131,11 @@ SCREEN_PUTC .proc
             setas
             PHA
 
+            PHA
+            LDA #CHAN_CONSOLE       ; Switch to the console device
+            JSL FK_SETOUT
+            PLA
+
             JSL FK_PUTC
             
 loop        LDA @lKEYBOARD_LOCKS    ; Check the status of the lock keys
@@ -153,21 +148,28 @@ loop        LDA @lKEYBOARD_LOCKS    ; Check the status of the lock keys
             .pend
 
 ;
-; Send a string to the screen
+; Send the character in A to COM1
 ;
 ; Inputs:
-;   B = bank of the string to print
-;   X = pointer to the string to print
+;   A = the character to print
 ;
-SCREEN_PUTS .proc
+UART_PUTC   .proc
             PHP
-            setaxl
-            PHX
+            setas
+            PHA
 
-            JSL FK_PUTS
+            PHA
+            LDA #CHAN_COM1          ; Switch to COM1
+            JSL FK_SETOUT
+            PLA
 
-done        setaxl
-            PLX
+            JSL FK_PUTC
+            
+loop        LDA @lKEYBOARD_LOCKS    ; Check the status of the lock keys
+            AND #KB_SCROLL_LOCK     ; Is Scroll Lock pressed?
+            BNE loop                ; Yes: wait until it's released
+
+            PLA
             PLP
             RETURN
             .pend

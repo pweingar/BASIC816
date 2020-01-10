@@ -12,10 +12,6 @@ set TASSHOME=d:\c64\64tass
 REM 1 = C64 with SuperCPU, 2 = C256
 set SYSTEM=2
 
-REM 0 = No UART-specific code, 1 = UART-specific support code included
-REM Should be set to 1 if UNITTEST is set to 1
-set UART=1
-
 REM 0 = Interactive, 1 = Generate Unit Tests
 set UNITTEST=1
 

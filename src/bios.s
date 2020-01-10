@@ -44,27 +44,21 @@ IPRINTC     .proc
 
 check_scrn  LDA @lBCONSOLE
             AND #DEV_SCREEN     ; Check to see if the screen is selected
-.if UARTSUPPORT = 1
             BEQ send_uart
-.else
-            BEQ done
-.endif
             LDA @lSAVE_A
             CALL SCREEN_PUTC    ; Yes... Send the character to the screen
 
-.if UARTSUPPORT = 1
 send_uart   LDA @lBCONSOLE
             AND #DEV_UART       ; Check to see if the UART is active
             BEQ done
             LDA @lSAVE_A
-            JSL UART_PUTC       ; Yes... send the character to the UART
+            CALL UART_PUTC      ; Yes... send the character to the UART
 
             LDA @lSAVE_A        ; If sending a CR to the serial port
             CMP #CHAR_CR
             BNE done
             LDA #CHAR_LF        ; Send a linefeed after
-            JSL UART_PUTC
-.endif
+            CALL UART_PUTC
 
 done        PLY
             PLX
