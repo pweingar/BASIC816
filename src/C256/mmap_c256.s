@@ -18,14 +18,14 @@
 .dsection code
 
 ; Section of memory for all constant data
-* = $3A6000
+* = $3A7000
 .dsection data
-.cerror * > $3A6FFF, "Too many string constants"
+.cerror * > $3A8FFF, "Too many string constants"
 
 ; Section for global variables that don't need to reside in direct page memory
-* = $3A7000
+* = $3A9000
 .dsection variables
-.cerror * > $3A7FFF, "Too many system variables"
+.cerror * > $3A9FFF, "Too many system variables"
 
 ; A block of memory for the virtul file system (jetison this when there is a real one)
 * = VFS
@@ -55,7 +55,7 @@ ARGUMENT_BOT = $006000      ; Starting address of the argument stack
 ARGUMENT_TOP = $006FFF      ; Ending address of the argument stack
 OPERATOR_BOT = $007000      ; Starting address of the operator stack
 OPERATOR_TOP = $007FFF      ; Ending address of the operator stack
-HEAP_TOP = $35FFFF          ; Starting point of the heap
+HEAP_TOP = $34FFFF          ; Starting point of the heap
 BASIC_BOT = $010000         ; Starting point for BASIC programs
 VRAM = $B00000              ; Start of video RAM
 VFS = $360000               ; Start of the "virtual file system"

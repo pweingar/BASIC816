@@ -512,7 +512,7 @@ HEAP_REMREF .proc
             setas
             LDA CURRHEADER+2
             BEQ chk_null
-            CMP #$17
+            CMP #`(HEAP_TOP + 1)
             BGE out_of_bnds
 
 chk_null    setal

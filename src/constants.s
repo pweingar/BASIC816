@@ -61,3 +61,7 @@ ERR_STACKOVER = 8       ; Stack overflow error
 ERR_RANGE = 9           ; Out-of-range error
 ERR_ARGUMENT = 10       ; Bad argument error
 ERR_NOFILE = 11         ; File not found error
+ERR_NAN = 12            ; Floating point math resulted in something that is not a number
+ERR_OVERFLOW = 13       ; Math operation overflowed
+ERR_UNDERFLOW = 14      ; Math operation underflowed
+ERR_DIV0 = 15           ; Math operation involved a division by zero
