@@ -39,7 +39,7 @@ ARGTYPE1    .byte ?     ; Type code for argument 1 (integer, float, string)
 SIGN1       .byte ?     ; Temporary sign marker for argument 1
 ARGUMENT2   .dword ?    ; Argument 2 for expression calculations
 ARGTYPE2    .byte ?     ; Type code for argument 2 (integer, float, string)
-SIGN2       .byte ?     ; Temporary sign marker for argument 1
+SIGN2       .byte ?     ; Temporary sign marker for argument 2
 JMP16PTR    .word ?     ; Pointer for 16-bit indirect jumps (within BASIC816's code base)
 GOSUBDEPTH  .word ?     ; Number of GOSUBs on the stack
 RETURNSP    .word ?     ; Pointer to the top of the return stack

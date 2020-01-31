@@ -1,181 +1,416 @@
 ;;;
 ;;; Implement floating point numbers for the 65816
 ;;;
-;;; Representation:
+;;; Floating point number format
+;;; This is the layout in memory and is compatible with the C256's coprocessor
+;;; 
+;;;      Sign   Exponent   Mantissa 
+;;;      0      00000000   00000000000000000000000
+;;; Bit: 31     [30 - 23]  [22        -         0]
+
 ;;;
-;;;  7 MSB  0 7      0 7      0 7  LSB  0
-;;; +--------+--------+--------+---------+
-;;; |EEEEEEEE|SMMMMMMM|MMMMMMMM|MMMMMMMMM|
-;;; +--------+--------+--------+---------+
-;;;
-;;; Where:
-;;;     E = exponent bit
-;;;     S = sign bit (1 = negative, 0 = positive)
-;;;     M = mantissa bit
-;;;
-;;; Special cases:
-;;;     00000000 x0000000 00000000 00000000 = 0.0
-;;;     11111111 x0000000 00000000 00000000 = +/- infinity
-;;;     11111111 x1111111 11111111 11111111 = Not-a-Number (NaN)
+;;; Set up variables for floating point operations
 ;;;
 
+FFLG_NEGATIVE = $80
+FFLG_DP = $40
+FFLG_EXPSGN = $20
+
 ;
-; Check to see if the float in ARGUMENT1 is zero
+; Layout of floating point accumulator
+;
+; EEEEEEEE OOOOOOOO OMMMMMMM MMMMMMMM UUUUUUUU
+; E = exponent
+; O = mantissa overflow bits (guard)
+; M = mantissa bits
+; U = mantissa underflow bits (guard)
+;
+
+.section globals
+FMANTGUARDL .byte ?     ; Low end guard byte for the accumulator bytes
+FMANT       .long ?     ; 23-bit Mantissa (bit 23 is part of overflow space)
+FMANTGUARDH .byte ?     ; High end guard byte for the accumulator bytes
+FEXP        .byte ?     ; Binary exponent
+FDEXP       .byte ?     ; Decimal exponent
+FFLAGS      .byte ?     ; Flags for floating point operations:
+                        ;   $80 = negative
+                        ;   $40 = decimal point seen
+                        ;   $20 = exponent sign
+.send
+
+.include "C256/floats.s"
+
+;
+; Multiply the floating point accumulator mantissa by 10
 ;
 ; Inputs:
-;   ARGUMENT1 = a float
+;   FMANT = the mantissa to multiple
+;   FMANTGUARDH = the high guard byte for overflowing bits
 ;
-; Outputs:
-;   C is set if ARGUMENT1 is 0, clear otherwise
+; Affects:
+;   SCRATCH2 = temporary storage
 ;
-FARG1EQ0        .proc
-                PHP
+FACCMUL10   .proc
+            PHP
+            TRACE "FACCMUL10"
 
-                setal
-                LDA ARGUMENT1
-                BNE return_false
-                LDA ARGUMENT1+2
-                AND #$FF7F              ; Mask off the sign bit
-                BNE return_false
+            setal
+            ASL FMANT
+            ROL FMANT+2
+            LDA FMANT           ; SCRATCH := FMANT * 2
+            STA SCRATCH2
+            LDA FMANT+2
+            STA SCRATCH2+2
 
-return_true     PLP
-                SEC
-                RETURN
+            ASL FMANT           ; FMANT *= 8
+            ROL FMANT+2
+            ASL FMANT
+            ROL FMANT+2
 
-return_false    PLP
-                CLC
-                RETURN
-                .pend
+            CLC                 ; FMANT := FMANT*8 + FMANT*2
+            LDA FMANT
+            ADC SCRATCH2
+            STA FMANT
+            LDA FMANT+2
+            ADC SCRATCH2+2
+            STA FMANT+2
+
+            PLP
+            RETURN
+            .pend
 
 ;
-; Convert a 16-bit integer to a float
+; Load the floating point accumulator with the floating point number in ARG1 and unpack it.
+;
+ARG1TOACC   .proc
+            PHP
+            TRACE "ARG1TOACC"
+
+            setas
+            STZ FMANTGUARDL         ; Clear the registers we're not setting yet
+            STZ FMANTGUARDH
+            STZ FDEXP
+
+            LDA ARGUMENT1           ; Copy the mantissa to FMANT (mask off the LSB of the exponent)
+            STA FMANT
+            LDA ARGUMENT1+1
+            STA FMANT+1
+            LDA ARGUMENT1+2
+            AND #$7F
+            STA FMANT+2
+
+            LDA ARGUMENT1+2         ; Shift and copy the exponent
+            ASL A
+            LDA ARGUMENT1+3
+            ROL A
+            STA FEXP
+
+            LDA #0                  ; And move the carry (which has the sign) into FFLAGS
+            ROR A
+            STA FFLAGS
+
+            PLP
+            RETURN
+            .pend
+
+;
+; Pack the floating point number in the floating point accumulator into ARGUMENT1
+;
+ACCTOARG1   .proc
+            PHP
+            TRACE "ACCTOARG1"
+
+            setas
+
+            LDA FMANT+2             ; Make sure bit 24 is clear
+            AND #$7F
+            STA FMANT+2
+
+            LDA FFLAGS              ; Get the sign into the carry bit
+            ASL A
+            LDA FEXP                ; Get the sign and exponent into ARGUMENT1
+            ROR A
+            STA ARGUMENT1+3
+
+            LDA #0                  ; Get the LSB of the exponent into the MSB of FMANT+2
+            ROR A
+            ORA FMANT+2             ; Get the MSB of the mantissa
+            STA ARGUMENT1+2
+
+            LDA FMANT+1             ; Get the next byte of the mantissa
+            STA ARGUMENT1+1
+            LDA FMANT               ; Get the last byte of the mantissa
+            STA ARGUMENT1
+
+            LDA #TYPE_FLOAT         ; Set the type of ARGUMENT1
+            STA ARGTYPE1
+
+            PLP
+            RETURN
+            .pend
+
+;
+; Normalize the floating point number in the accumulator
 ;
 ; Inputs:
-;   ARGUMENT1 = the integer to convert
+;   FMANT, FEXP, FFLAGS: the floating point number to normalize
 ;
 ; Outputs:
-;   ARGUMENT1 = the floating point number
+;   FMANT, FEXP, FFLAGS: the normalized form of the number
+;   Y = number of left shifts
 ;
-ITOF            ;.proc
+FMANTNORM   .proc
+            PHP
+            TRACE "FMANTNORM"
 
-                setdp GLOBAL_VARS
+            LDY #0
 
-                setal
-                LDA ARGUMENT1           ; Copy the argument to SCRATCH
-                STA SCRATCH
-                LDA ARGUMENT1+2
-                STZ SCRATCH+2
-                 
-                STZ ARGUMENT1           ; Clear the result
-                STZ ARGUMENT1+2
-                
-                setas
-                STZ SIGN1               ; Mark as positive by default
+            setas
+loop        LDA FMANT+3             ; Check the guard
+            BEQ check_msb           ; If zero, we may need to shift left
 
-                LDA #TYPE_FLOAT         ; And list it as a float
-                STA ARGTYPE1
+            LSR FMANT+3             ; Shift the mantissa right one bit
+            ROR FMANT+2
+            ROR FMANT+1
+            ROR FMANT
+            ROR FMANTGUARDL
 
-                setal
-                LDA SCRATCH             ; Is the integer 0?
-                BEQ itof_done           ; Yes: we're already done.
-                BPL shift               ; If positive: start shifting
+            INC FEXP                ; Adjust exponent to match
+            BRA loop                ; And check again
 
-                setas
-                LDA #$80                ; Flag the result as negative
-                STA SIGN1
+check_msb   LDA FMANT+2             ; Is bit 23 = 0?
+            BMI round               ; No: round up
 
-                setal
-                EOR #$FFFF              ; SCRATCH := -SCRATCH
-                INC A         
-                STA SCRATCH
+            ASL FMANT               ; Multiply mantissa by two
+            ROL FMANT+1
+            ROL FMANT+2
 
-shift           setas
-                INC EXPONENT1           ; Bump up the exponent
+            DEC FEXP                ; Adjust the exponent to match
+            INY                     ; Count the shift
+            BNE check_msb           ; If not underflow: repeat
 
-                setal                   ; And shift a bit into the mantissa
-                LSR SCRATCH+2
-                ROR SCRATCH
-                
-                setas
-                ROR MANTISSA1+2
-                ROR MANTISSA1+1
-                ROR MANTISSA1
+            LDA #0                  ; Clear the accumulator            
+            STA FMANT
+            STA FMANT+1
+            STA FMANT+2
+            STA FEXP
+            STA FFLAGS
 
-                setal
-                LDA SCRATCH             ; Is the MSB in SCRATCH's bit 0 position?
-                CMP #1
-                BNE shift               ; No: keep shifting until it is
+done        PLP                     ; Return to caller
+            RETURN
 
-                setas
-                ASL SIGN1               ; Yes: shift in the sign bit
-                ROR MANTISSA1+2
-                ROR MANTISSA1+1
-                ROR MANTISSA1
+round       LDA FMANTGUARDL         ; Is the first bit outside the accumulator 1?
+            BPL done                ; No: just return
 
-itof_done       RETURN
-                ;.pend
+            CLC                     ; Increment the mantissa
+            LDA FMANT
+            ADC #1
+            STA FMANT
+            LDA FMANT+1
+            ADC #0
+            STA FMANT+1
+            LDA FMANT+2
+            ADC #0
+            STA FMANT+2
+
+            BCC done                ; If no carry, just return
+
+            ROR FMANT+2             ; Divide the mantissa by two
+            ROR FMANT+1
+            ROR FMANT+0
+
+            INC FEXP                ; And adjust the exponent to match
+            BNE done                ; If not overflow, we're done
+
+            THROW ERR_OVERFLOW      ; If so, throw the overflow error
+            .pend
 
 ;
-; Convert a floating point number to an integer
+; Parse a string into a number... either INTEGER or FLOAT
+;
+; Input string formats:
+;   INTEGER: "[+/-]d+"
+;   FLOAT: "[+/-]d+.d*[E[-]d+]"
 ;
 ; Inputs:
-;   ARGUMENT1 = the floating point number to convert
+;   BIP = pointer to the first character to try to parse
 ;
 ; Outputs:
-;   ARGUMENT1 = the integer portion of the float
+;   ARGUMENT1 = the number parsed (can be either TYPE_INTEGER or TYPE_FLOAT)
 ;
-FTOI            .proc
-                setal
-                CALL FARG1EQ0
-                BCC not_zero
+; Modifies:
+;   SCRATCH, SCRATCH2
+;
+STON        .proc
+            PHP
+            TRACE "STON"
 
-                setas
-                LDA #TYPE_INTEGER       ; If so, return 0 as the result
-                STA ARGTYPE1
-                STZ SIGN1               ; Set sign to positive as a default
-                BRA done
+            ; Clear the accumulator
+            setas
+            LDA #0
+            LDX #7
+clr_loop    STA FMANTGUARDL,X
+            DEX
+            BPL clr_loop
 
-                ; TODO: recognize infinities and NaN and throw an error
+            LDA [BIP]               ; Get the character
+            CMP #'+'                ; Is it a "+"
+            BEQ fetch               ; Yes: skip it and look for a numeral
 
-                ; Has a number... so start shifting it into SCRATCH
-not_zero        setal
-                LDA #1
-                STA SCRATCH
-                STZ SCRATCH+2
+            CMP #'-'                ; Is it a "-"?
+            BNE chk_digit           ; No: look for a numeral
 
-                setas                  
-                ASL MANTISSA1           ; Shift out the sign bit
-                ROL MANTISSA1+1
-                ROL MANTISSA1+2
+            LDA #$80                ; Yes:...
+            STA FFLAGS              ; Set the sign flag for negative
 
-                LDA #$80
-                STA SIGN1               ; Remember that the number was negative
+fetch       CALL INCBIP             ; Move to the next character
+            LDA [BIP]               ; And fetch it
 
-shift_loop      setas
-                LDA EXPONENT1           ; Check to see if the exponent is 0
-                BEQ shift_done          ; If so: we're done and can package the result
+            CMP #'.'                ; Is it a decimal point?
+            BNE chk_digit           ; No: check to see if it is a digit
 
-                DEC EXPONENT1           ; If not: decrement the exponent and
+            LDA FFLAGS              ; Have we already seen the decimal point?
+            CMP #FFLG_DP
+            BEQ finish              ; Yes: we've finished reading the number
 
-                seta2                   ; ... shift a bit into SCRATCH
-                ASL MANTISSA1
-                ROL MANTISSA1+1
-                ROL MANTISSA1+2
-                setal
-                ROL SCRATCH
-                ROL SCRATCH+2
+            ORA #FFLG_DP            ; No: Set the DP flag
+            STA FFLAGS
+            BRA fetch               ; And go back to fetch the next character
 
-                BRA shift_loop          ; and try again
+            ; Finish processing the number and return it
+finish      LDA FDEXP               ; Check the decimal exponent
+            BEQ norm                ; If it's zero... normalize
 
-shift_done      setas
-                LDA #TYPE_INTEGER       ; If so, return 0 as the result
-                STA ARGTYPE1
-                
-                setal
-                LDA SCRATCH             ; SCRATCH contains the integer
-                STA ARGUMENT1           ; Copy it to ARGUMENT1
-                LDA SCRATCH+2
-                STA ARGUMENT1+2
+            ; TODO: adjust the exponent and value to account for the decimal exponent
+            
+norm        CALL FMANTNORM          ; Normalize the value in the floating point accumulator
 
-done            RETURN
-                .pend
+            setas
+            STY SCRATCH2
+            SEC
+            LDA #23
+            SBC SCRATCH2
+            
+            CLC
+            ADC #127
+            STA FEXP
+
+
+            CALL ACCTOARG1          ; And pack it into ARGUMENT1
+
+done        PLP
+            RETURN
+
+chk_digit   CMP #'0'                ; Is it a digit (0 - 9)?
+            BLT not_digit           ; No: check for exponent or end of number
+            CMP #'9'+1
+            BGE not_digit
+
+            CALL FACCMUL10          ; ACC := ACC * 10
+
+            LDA [BIP]               ; Convert digit to a number
+            SEC
+            SBC #'0'
+
+            setal
+            AND #$00FF
+
+            CLC                     ; ACC := ACC + digit (including high guard byte)
+            ADC FMANT
+            STA FMANT
+            LDA FMANT+2
+            ADC #0
+            STA FMANT+2
+
+            setas
+            LDA FFLAGS              ; Is DP set?
+            BIT #FFLG_DP
+            BEQ fetch               ; No: just fetch the next digit
+
+            DEC FDEXP               ; DEXP -= DEXP
+            BRA fetch               ; And fetch the next digit
+
+not_digit   CMP #'e'                ; Is it e/E?
+            BNE finish              ; No: finish processing the number
+            CMP #'E'
+            BNE finish
+
+            CALL INCBIP             ; Fetch the next character
+            LDA [BIP]
+            
+            CMP #'+'                ; Is it a plus sign?
+            BEQ exp_fetch           ; Yes: just read the digits
+
+            CMP #'-'                ; Is it a minus sign?
+            BNE exp_digit           ; No: just read the exponent digits
+
+            LDA FFLAGS              ; Set the EXPSGN flag to indicate the exponent is negative
+            ORA #FFLG_EXPSGN
+            STA FFLAGS
+
+exp_fetch   CALL INCBIP             ; Get the next character for the exponent
+            LDA [BIP]
+
+exp_digit   CMP #'0'                ; Is it a digit? (0 - 9)
+            BLT finish              ; No: finish processing the number
+            CMP #'9'+1
+            BGE finish
+
+            SEC                     ; Convert it to a number
+            SBC #'0'
+
+            STA SCRATCH             ; SCRATCH := the digit
+
+            CALL INCBIP             ; Get what could be the second digit
+            LDA [BIP]
+
+            CMP #'0'                ; Is it a digit? (0 - 9)
+            BLT exp_sgn             ; No: set the sign of the exponent
+            CMP #'9'+1
+            BGE exp_sgn
+
+            PHA
+            ASL SCRATCH             ; SCRATCH := SCRATCH * 10
+            LDA SCRATCH
+            ASL SCRATCH
+            ASL SCRATCH
+            CLC
+            ADC SCRATCH
+            STA SCRATCH
+            PLA
+
+            CLC
+            ADC SCRATCH             ; SCRATCH += digit
+            STA SCRATCH
+
+exp_sgn     LDA FFLAGS              ; Is the exponent negative?
+            BIT #FFLG_EXPSGN
+            BEQ exp_pos             ; No: treat the exponent as positive
+
+            LDA SCRATCH             ; SCRATCH := 0 - SCRATCH
+            EOR #$FF
+            INC A
+            STA SCRATCH
+
+exp_pos     CLC                     ; FDEXP += SCRATCH
+            LDA SCRATCH
+            ADC FDEXP
+            STA FDEXP
+
+            JMP finish              ; And finish processing the number
+            .pend
+
+;
+; Convert a floating point number into a string
+;
+; Inputs:
+;   ARGUMENT1 = floating point number to convert
+;
+; Outputs:
+;   ARGUMENT1 = pointer to the (perhaps temporary) string representation of the float
+;
+FTOS        .proc
+            PHP
+            PLP
+            RETURN
+            .pend

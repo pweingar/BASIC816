@@ -722,4 +722,161 @@ NEXT        .fill 4  ; Address of the next file header in the RAM disk
     Prints a series of dots as a simple progress indicator with one dot per line read.
     The files must be in simple ASCII text format.
 
+    \section*{The Monitor}
+
+    \BASIC includes a simple, built-in machine language monitor.
+    The monitor can be summoned using the \keyword{MONITOR} command, but it will also be
+    activated if a machine language program uses the \keyword{BRK} instruction.
+
+    The monitor works like a lot of other monitors.
+    Commands are entered as single lines of text, with a single character command code
+    as the first character and arguments following on the rest of the line.
+
+    \subsection*{Monitor Commands}
+
+    \begin{itemize}
+        \item \verb+A <address> <assembly>+---Assemble a line of 65816 assembly code\
+        given a starting address.
+
+        \item \verb+C <address1> <address2> [<length>]+---Compare two blocks of memory,
+        and lists addresses that differ. The third argument \param{length} is optional,
+        and is the number of bytes in the blocks to compare. If no \param{length} is provided,
+        only one byte will be compared at the two addresses.
+
+        \item \verb+D <start> [<end>]+---Attempt to disassemble the memory starting at
+        the address \param{start} and continuing until the address \param{end} (if no
+        \param{end} address is provided, it will attempt to disassemble 256 bytes).
+
+        \item \verb+F <start> <end> <byte>+---Fill a block of memory with a value.
+        The block of memory is specified by the \param{start} and \param{end} addresses,
+        and the value to store is specified by the \param{byte} argument.
+
+        \item \verb+G [address]+---Start executing the code at the provided \param{address}.
+            The \verb+G+ command starts executing the code with a \keyword{JSL} instruction,
+            so the code can return to the monitor with either the \keyword{RTL} or the
+            \keyword{BRK} instruction.
+
+        \item \verb+J [address]+---Start executing the code at the provided \param{address}.
+            The \verb+J+ command starts executing the code with a \keyword{JML} instruction,
+            so the code can return to the monitor only with the \keyword{BRK} instruction. 
+
+        \item \verb+H <start> <end> <byte> [byte]...+---Hunt through a block of memory for
+            a sequence of \param{byte}s. The block of memory is specified byte the addresses
+            \param{start} and \param{end}. Up to eight \param{byte}s may be provided, and
+            a matching address will be printed only if that exact sequence of bytes starts
+            at that address.
+
+        \item \verb+M <start> [end]+---Display the values stored in the memory block specified
+            the addresses \param{start} and \param{end}. If no \param{end} is provided,
+            a block of 256 bytes will be displayed. The memory dump contains both the
+            hexadecimal values and an ASCII interpretation of the data.
+
+        \item \verb+R+---Display the values of the CPU registers at the point the monitor
+            was invoked.
+
+        \item \verb+; <PC> <A> <X> <Y> <SP> <DBR> <DP> <NVMXDIZC>+---Update the values of
+            of the CPU registers. These new values will take effect when the monitor starts
+            executing other code or returns to the code that invoked it originally. All register
+            values are expressed in hexadecimal except the status flags, which are binary values
+            and must be either \verb+0+ or \verb+1+.
+
+            {\sc Note}: The output of the \verb+R+ command is in the format of the \verb+;+
+            command. This allows registers to be edited simply using the built in screen
+            editing functions of \BASIC\ and the monitor.
+
+        \item \verb+T <start> <end> <destination>+---``Transfer'' or copy a block of data
+            from one area of memory to another.
+            The source of the data to copy is the block of memory specified by \param{start}
+            and \param{end}.
+            The destination block starts at \param{destination}.
+
+        \item \verb+W <byte>+---Sets a control value to specify what value the assembler and
+            disassembler should assume is in the CPU status register at the start of the code.
+            This allows you to specify what the assembler and disassembler should assume for
+            the \verb+M+ and \verb+X+ flags in the processor status register, as these flags
+            affect the sizes of the operands for immediate mode instructions.
+
+        \item \verb+X+---Attempt to return to the program that invoked the monitor. This will
+            usually return to \BASIC, but it could also return to another program, if that
+            program used a \keyword{BRK} instruction. This command will not work if the stack
+            has been modified too much, or if the calling program is not written assuming a BRK
+            can return (and leaves a byte of ``data'' immediately after the \keyword{BRK} itself).
+
+        \item \verb+> <start> <byte> [byte]...+---Write \param{byte}s of data to a block of memory.
+            The block starts at the address \param{start}.
+            Up to eight \param{byte}s of data can be provided to the command.
+
+            {\sc Note:} the \verb+M+ command returns memory in this format (the ASCII preview is
+            ignored by \verb+>+). This allows memory to be edited easily using the built-in
+            screen editing features of \BASIC\ and the monitor.
+
+        \item \verb+?+---Prints a brief help message to remind you how to use the commands.
+    \end{itemize}
+
+    \subsection*{Assembly and Disassembly Details}
+
+    The assembler and disassembler use the standard mnemonics for the 65816 CPU, and will
+    assemble or disassemble one instruction per line.
+    All addresses are listed as full 24-bit addresses, even if they are 16 or 8 bit offsets.
+    There is no support in the monitor for labels, so all addresses must be hard coded.
+
+    In many respects, the monitor works like most other simple, 6502-based monitors you may
+    have encountered, but there are two key differences that come from the architecture of the
+    65816.
+
+    \subsubsection*{The M and X Flags}
+
+    The \verb+M+ and \verb+X+ flags can change the length of immediate mode instructions.
+    If thge \verb+M+ flag is set, an immediate \keyword{LDA} instruction will take a single
+    byte operand, but if \verb+M+ is clear, the instruction requires a two byte operand.
+    Similarly, the \verb+X+ flag will control the length of \keyword{LDX} and \keyword{LDY}
+    instructions.
+
+    This being the case, both the assembler and the disassembler need to be told what the 
+    flags will be for a given section of code in order to either generate the correct byte
+    sequence or to correctly interpret a sequence of bytes into an instruction.
+
+    To support this, the monitor includes a \verb+W+ command, which lets you tell the monitor
+    what values to assume for the flags. Furthermore, both the assembler and disassembler will
+    watch for \keyword{REP} and \keyword{SEP} instructions, and track changes to the flags to
+    try to be intelligent about the the lengths of those instructions.
+
+    \subsubsection*{Addressing Modes}
+
+    Addressing modes on the 65816 can be ambiguous.
+    An instruction \verb+LDA $26+ could resolve to any of three different addressing modes!
+    The table below lists the address
+    mode syntax and the associated addressing modes and operand sizes (\verb+d+ stands for a
+    hexadecimal digit).
+
+    \begin{table}[!htb]
+        \begin{center}
+            \begin{tabular}{|l|l|l|} \hline
+                Syntax & Address Mode & Operand Size (bits) \\ \hline\hline
+                \verb+A+ & Accumulator addressing mode & N/A \\ \hline
+                \verb+dd:dddd,X+ & Absolute Indexed X Long & 24 \\ \hline
+                \verb+dd:dddd+ & Absolute Long & 24 \\ \hline
+                \verb+dddd,X+ & Absolute Indexed X & 16 \\ \hline
+                \verb+dddd,Y+ & Absolute Indexed Y & 16 \\ \hline
+                \verb+dddd+ & Absolute & 16 \\ \hline
+                \verb+dd,X+ & Direct Page Indexed X & 8 \\ \hline
+                \verb+dd,Y+ & Direct Page Indexed Y & 8 \\ \hline
+                \verb+dd,S+ & Stack Relative & 8 \\ \hline
+                \verb+dd+ & Direct Page & 8 \\ \hline
+                \verb+#dddd+ & Immediate & 8 or 16\footnote{Size depends on the M and X flags.} \\ \hline
+                \verb+#dd,#dd+ & MVN/MVP special & 16 \\ \hline
+                \verb+#dd+ & Immediate & 8 \\ \hline
+                \verb+(dd,S),Y+ & Stack Relative Indexed Y & 8 \\ \hline
+                \verb+(dddd,X)+ & Absolute Indexed X Indirect & 16 \\ \hline
+                \verb+(dddd)+ & Absolute Indexed & 16 \\ \hline
+                \verb+(dddd),Y+ & Absolute Indexed X & 16 \\ \hline
+                \verb+(dd,X)+ & Direct Page Indexed X Indirect & 8 \\ \hline
+                \verb+(dd),Y+ & Direct Page Indirect Indexed Y & 8 \\ \hline
+                \verb+(dd)+ & Direct Page Indirect & 8 \\ \hline
+                \verb+[dddd]+ & Absolute Indirect Long & 16 \\ \hline
+                \verb+[dd],Y+ & Direct Page Indirect Indexed Y Long & 8 \\ \hline
+                \verb+[dd]+ & Direct Page Indirect Long & 8 \\ \hline
+            \end{tabular}
+        \end{center}
+    \end{table}
 \end{document}

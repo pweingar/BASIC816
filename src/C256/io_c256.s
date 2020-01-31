@@ -41,7 +41,7 @@ sp_loop     STA GS_SP_CONTROL,X
 
             ; DEV_SCREEN | DEV_UART
 .if UNITTEST = 1
-            LDA #DEV_UART
+            LDA #DEV_SCREEN         ; DEV_UART
 .else
             LDA #DEV_SCREEN
 .endif

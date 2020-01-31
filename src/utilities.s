@@ -392,6 +392,27 @@ TYPE_ERR        THROW ERR_TYPE
                 .pend
 
 ;
+; Assert that ARGUMENT1 contains a float. Throw a type mismatch error.
+;
+; Inputs:
+;   ARGUMENT1
+;
+ASS_ARG1_FLOAT  .proc
+                PHP
+                TRACE "ASS_ARG1_FLOAT"
+
+                setas
+                LDA ARGTYPE1            ; Verify that the type is FLOAT
+                CMP #TYPE_FLOAT
+                BNE TYPE_ERR
+
+                PLP
+                RETURN
+
+TYPE_ERR        THROW ERR_TYPE
+                .pend
+
+;
 ; Assert that ARGUMENT1 contains a string. Throw a type mismatch error.
 ;
 ; Inputs:

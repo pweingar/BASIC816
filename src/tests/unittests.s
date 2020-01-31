@@ -301,6 +301,38 @@ continue        PLP
                 .endm
 
 ;
+; Assert that a memory location contains a literal value (32 bit)
+;
+; Be sure to call this with the correct accumulator width!
+;
+UT_M_EQ_LIT_D   .macro  ; address,literal,message
+                PHP
+                setal
+                LDA \1
+                CMP #<>\2
+                BNE fail
+                LDA \1+2
+                CMP #\2 >> 16
+                BEQ continue
+
+fail            setxl
+                LDX #<>MESSAGE
+                PHB
+                setdbr `DATA_BLOCK
+                LDA \1
+                TAY
+                setas
+                LDA \1+2
+                CALL UT_FAIL_AL
+                PLB
+                BRA continue
+.section data
+MESSAGE         .null \3
+.send
+continue        PLP
+                .endm
+
+;
 ; Assert that a memory location does not contain a literal value (long)
 ;
 ; Be sure to call this with the correct accumulator width!

@@ -18,14 +18,15 @@
 .dsection code
 
 ; Section of memory for all constant data
-* = $3AD000
+* = $3AE000
 .dsection data
-.cerror * > $3AEFFF, "Too many string constants"
+.cerror * > $3AFFFF, "Too many string constants"
 
 ; Section for global variables that don't need to reside in direct page memory
-* = $3AF000
+; TODO: find a better place for variables
+* = $3B0000
 .dsection variables
-.cerror * > $3AFFFF, "Too many system variables"
+.cerror * > $3BFFFF, "Too many system variables"
 
 ; A block of memory for the virtul file system (jetison this when there is a real one)
 * = VFS
@@ -43,7 +44,7 @@
 .include "vicky_def.s"
 
 BASIC_BANK = $00            ; Memory bank for default purposes
-CODE_BANK = $17             ; Memory bank for the BASIC816 code
+CODE_BANK = $3A             ; Memory bank for the BASIC816 code
 
 IOBUF = $004C00             ; A buffer for I/O operations
 ARRIDXBUF = $004D00         ; The array index buffer used for array references

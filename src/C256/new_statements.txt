@@ -165,3 +165,50 @@ USE <STRING> path
                         .word 0
 
       ; Hereafter, the binary contains the code for the extensions, laid out however the coder wants it.
+
+
+      ;
+      ; File Commands
+      ;
+
+      LOAD <path> -- Load a BASIC program from disk and tokenize it
+      BLOAD <path> [,<address>] -- Load the binary data in a file to memory (attempt to figure out right address from file,
+            if address provided load image straight to memory)
+      SAVE <path> -- Saves the curent BASIC program as an ASCII file
+      BSAVE <path>, <start>, <end> -- Saves data in memory straight to a file
+      RUN [<path>] -- Attempt to load a BASIC program from disk and run it (may be used in another program)
+      BRUN <path> [, <address>] -- Attempt to load and execute a binary image from disk
+            BRUN should try to process file formats like FNX, PRG, etc.
+      DELETE <path> -- Delete the file at path
+      COPY <path1> <path2> -- Copy the data at path1 to a new file at path2 (over-write if existing)
+      RENAME <path1> <filename2> -- Rename the file at path1 to filename2 in the same directory
+      DIR [<path>] -- List the contents of the directory
+      CD <path> -- change current path. CD "." removes the bottom most directory. CD "a" adds "/a" to CURRENTPATH$,
+            if "a" exists as a subdirectory of CURRENTPATH$
+
+      INIT <device> -- Attempt to initialize/format the specified device as FAT32 storage
+
+      ;
+      ; File Variables
+      ;
+
+      CURRENTPATH$ --- current base directory path
+      CURRENTDEVICE$ --- current file I/O device ("Hn" = Hard drive partition #n, "S" = SD Card, "F" = floppy)
+      
+      ;
+      ; Paths
+      ;
+
+      @<device>:/dir0/dir1/.... or...
+      "@" + CURRENTDEVICE$ + ":" + CURRENTPATH$
+
+      e.g.:
+            @S:/BOOT.FNX
+            @S:/images/teapot.bmp
+            @H:/sys/vm.bin
+
+      ;
+      ; Special Files
+      ;
+
+      AUTORUN.BAS --- Expected in root of @F,@S,@H (in order or precedence). BASIC program to load and run automatically
