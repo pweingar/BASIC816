@@ -375,3 +375,94 @@ check_under     BIT #FP_MULT_STAT_UDF       ; Is there an underflow condition?
 
 done            RETURN
                 .pend
+
+;
+; Divide the floating point number in ARGUMENT1 by 10 to the power of the number in the accumulator (8-bit)
+;
+; Inputs:
+;   ARGUMENT1 = a floating point number
+;   A = the exponent (0 - 127)
+;
+; Outputs:
+;   ARGUMENT1 := ARGUMENT1 / 10^A
+;
+FP_DIV10N       PHP
+                TRACE "FP_DIV10N"
+
+                setas
+                STA MCOUNT                  ; Save the exponent in MCOUNT
+
+                ; We will divide two numbers in floating point format
+                LDA #FP_MATH_CTRL0_ADD | FP_ADD_IN0_MULT | FP_ADD_IN1_MULT | FP_CTRL0_CONV_1
+                STA @lFP_MATH_CTRL0
+
+                ; We will take the output from the multiplier
+                LDA #FP_OUT_DIV
+                STA @lFP_MATH_CTRL1
+                BRA FP_MULDIV10N
+
+;
+; Multiply the floating point number in ARGUMENT1 by 10 to the power of the number in the accumulator (8-bit)
+;
+; Inputs:
+;   ARGUMENT1 = a floating point number
+;   A = the exponent (0 - 127)
+;
+; Outputs:
+;   ARGUMENT1 := ARGUMENT1 * 10^A
+;
+FP_MUL10N       PHP
+                TRACE "FP_MUL10N"
+
+                setas
+                STA MCOUNT                  ; Save the exponent in MCOUNT
+
+                ; We will add two numbers in floating point format
+                LDA #FP_MATH_CTRL0_ADD | FP_ADD_IN0_MULT | FP_ADD_IN1_MULT | FP_CTRL0_CONV_1
+                STA @lFP_MATH_CTRL0
+
+                ; We will take the output from the multiplier
+                LDA #FP_OUT_MULT
+                STA @lFP_MATH_CTRL1
+
+FP_MULDIV10N    setal
+                LDA ARGUMENT1               ; Send ARGUMENT1 to the math coprocessor
+                STA @lFP_MATH_INPUT0_LL
+                LDA ARGUMENT1+2
+                STA @lFP_MATH_INPUT0_HL
+
+                LDA #$A000                  ; We'll multiply it by 10 repeatedly
+                STA @lFP_MATH_INPUT1_LL
+                LDA #0
+                STA @lFP_MATH_INPUT1_HL
+
+_fm10_loop      NOP
+                NOP
+                NOP
+
+                setas
+                LDA @lFP_MATH_MULT_STAT     ; Check the status of the multiplier
+                AND #%00000111              ; Filter out the ZERO status
+                BEQ _fm10_count             ; If an issue was raise, process the math error
+
+                CALL FP_MUL_ERROR           ; Call the handler for math error flags
+
+_fm10_count     DEC MCOUNT                  ; Count down
+                BEQ _fm10_result            ; If we reach the end, return the result
+
+                setal
+                LDA @lFP_MATH_OUTPUT_FP_LL  ; Otherwise, Feed the results back into the multiplier
+                STA @lFP_MATH_INPUT0_LL
+                LDA @lFP_MATH_OUTPUT_FP_HL
+                STA @lFP_MATH_INPUT0_HL
+
+                BRA _fm10_loop              ; And try again
+
+_fm10_result    setal
+                LDA @lFP_MATH_OUTPUT_FP_LL  ; Retrieve the results into ARGUMENT1
+                STA ARGUMENT1
+                LDA @lFP_MATH_OUTPUT_FP_HL
+                STA ARGUMENT1+2
+
+_fm10_done      PLP
+                RETURN

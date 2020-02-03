@@ -278,12 +278,7 @@ fetch       CALL INCBIP             ; Move to the next character
             BRA fetch               ; And go back to fetch the next character
 
             ; Finish processing the number and return it
-finish      LDA FDEXP               ; Check the decimal exponent
-            BEQ norm                ; If it's zero... normalize
-
-            ; TODO: adjust the exponent and value to account for the decimal exponent
-            
-norm        CALL FMANTNORM          ; Normalize the value in the floating point accumulator
+finish      CALL FMANTNORM          ; Normalize the value in the floating point accumulator
 
             setas
             STY SCRATCH2
@@ -295,8 +290,20 @@ norm        CALL FMANTNORM          ; Normalize the value in the floating point 
             ADC #127
             STA FEXP
 
-
             CALL ACCTOARG1          ; And pack it into ARGUMENT1
+
+            ; Adjust the floating point value by the decimal exponent
+
+            setas
+            LDA FDEXP               ; Check the decimal exponent
+            BEQ done                ; If it's zero... we're done
+            BMI div10               ; If it's negative, we want to divide the number
+            CALL FP_MUL10N          ; Multiply the value by 10^FDEXP
+            BRA done
+
+div10       EOR #$FF
+            INC A
+            CALL FP_DIV10N          ; Divide the value by 10^FDEXP
 
 done        PLP
             RETURN
@@ -401,6 +408,33 @@ exp_pos     CLC                     ; FDEXP += SCRATCH
             .pend
 
 ;
+; Check to see if the floating point number in ARGUMENT1 is 0.0
+;
+; Inputs:
+;   ARGUMENT1 = the floating point number to check (assumed to be a float)
+;
+; Outputs:
+;   C = set if ARGUMENT1 = 0.0, clear otherwise
+;
+FARG1EQ0    .proc
+            PHP
+            setal
+            LDA ARGUMENT1
+            BNE ret_false
+            LDA ARGUMENT1+2
+            AND #$7FFF              ; Ignore the sign bit +0.0 and -0.0 are both 0.0
+            BNE ret_false
+
+ret_true    PLP
+            SEC
+            RETURN
+
+ret_false   PLP
+            CLC
+            RETURN            
+            .pend
+
+;
 ; Convert a floating point number into a string
 ;
 ; Inputs:
@@ -411,6 +445,81 @@ exp_pos     CLC                     ; FDEXP += SCRATCH
 ;
 FTOS        .proc
             PHP
-            PLP
+
+            CALL FARG1EQ0           ; Check to see if it's 0.0
+            BCC not_zero            ; No: go ahead and process it
+
+            setal                   ; Yes: return "0"
+            LDA #<>fp_zero
+            STA ARGUMENT1
+            LDA #`fp_zero
+            STA ARGUMENT1+2
+
+            setas
+            LDA #TYPE_STRING
+            STA ARGTYPE1
+            BRA done
+
+            ; Otherwise, we need to unpack and process the number the hard way.
+not_zero    STZ FDEXP
+            STZ FFLAGS
+
+            setal
+neg_loop    LDA ARGUMENT1+2
+            AND #$7F80              ; Mask out all but the exponent
+            CMP #$3F80              ; Is it >= 127?
+            BGE brz                 ; 
+
+            LDA #1                  ; ARGUMENT1 *= 10
+            CALL FP_MUL10N
+            DEC FDEXP               ; Decimal Exponent --
+            BRA neg_loop
+
+brz         LDA ARGUMENT1+2
+            AND #$7F80              ; Mask out all but the exponent
+            CMP #$3F80              ; And check the exponent
+            BEQ bcd                 ; If =127, start processing digits
+            BLT brx
+
+            LDA #1                  ; ARGUMENT1 /= 10
+            CALL FP_DIV10N
+            INC FDEXP               ; Decimal Exponent ++
+            BRA brz
+
+brx         NOP                     ; Not sure what is needed here
+
+bcd         CALL ARG1TOACC          ; Unpack the float
+
+            STZ MLINEBUF            ; We'll use MLINEBUF as the BCD buffer
+            STZ MLINEBUF+2          ; So clear it to zeros
+            STZ MLINEBUF+4
+
+            LDY #23                 ; We'll process 23 bits
+
+shift_add   setas
+            ASL FMANT               ; Shift mantissa into carry
+            ROL FMANT+1
+            ROL FMANT+2
+            setal
+
+            BCC skip_bcdadd
+
+            SED                     ; BCD := BCD * 2 + 1
+            LDA MLINEBUF
+            ADC MLINEBUF
+            STA MLINEBUF
+            LDA MLINEBUF+2
+            ADC MLINEBUF+2
+            STA MLINEBUF+2
+            LDA MLINEBUF+4
+            ADC MLINEBUF+4
+            STA MLINEBUF+4
+            CLD
+
+skip_bcdadd DEY
+            BNE shift_add
+
+done        PLP
             RETURN
+fp_zero     .null "0"
             .pend

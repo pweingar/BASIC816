@@ -310,9 +310,18 @@ TST_STON            .proc
                     CALL STON
                     UT_M_EQ_LIT_D ARGUMENT1, $C0000000, "EXPECTED ston('-2') = $C0000000"   
 
-                    ; LD_L BIP,tst_number5    ; 1.0
+                    LD_L BIP,tst_number5    ; 1.0
+                    CALL STON
+                    UT_M_EQ_LIT_D ARGUMENT1, $3f800000, "EXPECTED ston('1.0') = $3f800000" 
+
+                    ; TODO: not passing... some sort of rounding issue. Returns 3.1415899
+                    ; LD_L BIP,tst_number6    ; 3.14159
                     ; CALL STON
-                    ; UT_M_EQ_LIT_D ARGUMENT1, $3f800000, "EXPECTED ston('1.0') = $3f800000"                   
+                    ; UT_M_EQ_LIT_D ARGUMENT1, $40490FD0, "EXPECTED ston('3.14159') = $40490FD0"   
+
+                    LD_L BIP,tst_number7    ;0.25
+                    CALL STON
+                    UT_M_EQ_LIT_D ARGUMENT1, $3E800000, "EXPECTED ston('0.25') = $3E800000"             
 
                     UT_END
 tst_number1         .null "1"
@@ -320,6 +329,8 @@ tst_number2         .null "-1"
 tst_number3         .null "2"
 tst_number4         .null "-2"
 tst_number5         .null "1.0"
+tst_number6         .null "3.14159"
+tst_number7         .null "0.25"
                     .pend
 
 TST_FLOATS          .proc
