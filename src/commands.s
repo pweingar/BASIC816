@@ -203,7 +203,7 @@ not_found       THROW ERR_NOFILE
 ;
 ; Print a directory listing
 ;
-CMD_DIR         .proc
+CMD_DIROLD      .proc
                 PHP
                 TRACE "CMD_DIR"
 
