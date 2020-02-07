@@ -508,9 +508,13 @@ IMMEMORY        .proc
                 ; Made the direct page coincide with our variables
                 setdp <>MONITOR_VARS
 
-                ; Check the number of arguments
                 setas
-                LDA MARG_LEN
+
+                LDA #0              ; Clear the pagination line counter
+                STA @lLINECOUNT
+
+
+                LDA MARG_LEN        ; Check the number of arguments
                 CMP #2
                 BGE set_cursor      ; 2>= arguments? Use them as-is
                 
@@ -635,6 +639,7 @@ check_line      setas
                 CALL PRINTS
 
                 CALL PRINTCR            ; new line
+                CALL PAGINATE           ; Pause if we've printed out a page of lines
 
                 ; Check to see if we've printed the last byte
                 LDA MCURSOR+2           ; Are the banks the same?
