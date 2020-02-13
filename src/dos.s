@@ -40,6 +40,162 @@ DIR_DATE        .macro year, month, day
                 .endm
 
 ;
+; Load a file directly into memory from storage
+;
+; Inputs:
+;   MARG1 = pointer to the path to load
+;   MARG2 = destination address
+;
+DOS_RAWLOAD     .proc
+                PHP
+                PHB
+
+                setxl
+                setas
+                LDA MARG1+2             ; Set B to the path's bank
+                PHA
+                PLB
+                LDX MARG1               ; Set X to the path's address
+
+                setal
+                LDA #0                  ; TODO: set the access to READ
+
+                CALL FD_OPEN
+                BCC err_open
+                STA MTEMP               ; Save file descriptor to MTEMP
+
+loop            setas
+                LDA MARG2+2             ; Set B to the destination bank
+                PHA
+                PLB
+                LDX MARG2               ; Set X to the destination address
+                LDY #DOS_BLOCK_SIZE     ; Set the size to read
+
+                setal
+                LDA MTEMP               ; Set the file handle to read
+
+                CALL FD_READ            ; Try to read a block
+                BCC err_read            ; Handle any read error
+
+                CMP #0                  ; Did we read anything?
+                BEQ close_fd            ; No: we're finished
+
+                CLC                     ; Advance the destination address by the amount read
+                ADC MARG2
+                STA MARG2
+                LDA MARG2+2
+                ADC #0
+                STA MARG2+2
+
+                BRA loop                ; And try again
+
+close_fd        LDA MTEMP               ; Set the file handle to close
+                CALL FD_CLOSE           ; And attempt to close it
+                BCC err_close           ; Handle any error on closing
+
+                PLB
+                PLP
+                RETURN
+
+err_open        PLB
+                THROW ERR_OPEN
+
+err_close       PLB
+                THROW ERR_CLOSE
+
+err_read        PLB
+                THROW ERR_READ
+                .pend
+
+;
+; Save a file directly frpm memory to storage
+;
+; Inputs:
+;   MARG1 = pointer to the path to load
+;   MARG2 = address of first byte to write
+;   MARG3 = address of last byte to write
+;
+; Affects:
+;   MARG4 = amount to write on any particular cycle
+;
+DOS_RAWSAVE     .proc
+                PHP
+                PHB
+
+                setxl
+                setas
+                LDA MARG1+2             ; Set B to the path's bank
+                PHA
+                PLB
+                LDX MARG1               ; Set X to the path's address
+
+                setal
+                LDA #0                  ; TODO: set the access to WRITE
+
+                CALL FD_OPEN
+                BCC err_open
+                STA MTEMP               ; Save file descriptor to MTEMP
+
+                LDA #0
+                STA MARG4+2
+
+loop            SEC
+                LDA MARG3               ; compute END - START
+                SBC MARG2
+                AND #$01FF              ; Make sure it is in [0, 511]
+                STA MARG4               ; put it in MARG4
+
+                LDA MARG4               ; If count is 0, we're finished
+                BEQ close_fd
+
+                setas
+                LDA MARG2+2             ; Set B to the source bank
+                PHA
+                PLB
+                LDX MARG2               ; Set X to the source address
+                LDY MARG4               ; Set the size to write
+
+                setal
+                LDA MTEMP               ; Set the file handle to write
+
+                CALL FD_WRITE           ; Try to read a block
+                BCC err_read            ; Handle any read error
+
+                CMP #0                  ; Did we read anything?
+                BEQ close_fd            ; No: we're finished
+
+                CLC                     ; Advance the destination address by the amount read
+                ADC MARG2
+                STA MARG2
+                LDA MARG2+2
+                ADC #0
+                STA MARG2+2
+
+                BRA loop                ; And try again
+
+close_fd        LDA MTEMP               ; Set the file handle to close
+                CALL FD_CLOSE           ; And attempt to close it
+                BCC err_close           ; Handle any error on closing
+
+                PLB
+                PLP
+                RETURN
+
+err_open        PLB
+                THROW ERR_OPEN
+
+err_close       PLB
+                THROW ERR_CLOSE
+
+err_read        PLB
+                THROW ERR_READ
+
+                PLB
+                PLP
+                RETURN
+                .pend
+
+;
 ; Print a FAT file size
 ;
 ; Inputs:
@@ -308,6 +464,9 @@ CMD_DIR         .proc
                 PHP
                 TRACE "CMD_DIR"
 
+                setas
+                STZ LINECOUNT           ; Clear the pagination line counter
+
                 setaxl
                 CALL DIR_OPEN
 
@@ -324,6 +483,8 @@ CMD_DIR         .proc
 
 loop            CALL DIR_PRENTRY
                 BCC pr_cr               ; If at the end of the directory, wrap up
+
+                CALL PAGINATE           ; If we're not done, check to see if we've printed a full page
 
                 LDA MCURSOR             ; If we're not finished with the block...
                 CMP MTEMP   

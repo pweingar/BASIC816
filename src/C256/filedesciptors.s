@@ -19,22 +19,25 @@
 FD_BLOCK_SIZE = 512
 
 ;
-; File descriptor offsets
+; File descriptors
 ;
 
-FD_SIZE = 32                ; Size allocated for file descriptors (32 bytes)
-FD_DEVICE = $00             ; Offset to the device code (1 byte)
-FD_ATTR = $01               ; Offset to the attribute for the file descriptor (1 byte)
-FD_PATH = $02               ; Offset to the pointer to the path string (4 bytes)
-FD_NEXT_BLK = $06           ; Offset to the number of the next block for reading (4 bytes)
-FD_FILE_SIZE = $0A          ; Offset to the size of the file in bytes (4 bytes)
-FD_CURSOR = $0E             ; Offset to the current position in the file (4 byte)
+S_FILEDESC      .struct
+DEVICE          .byte ?     ; Device number (0 = screen/keyboard, 1 = COM1, etc. )
+FLAGS           .byte ?     ; 
+BUFFADDR        .long ?     ; Pointer to the buffer for this file descriptor (if relevant)
+PATH            .long ?     ; Pointer to the path for the file (if relevant)
+CURRENTBLOCK    .dword ?    ; The current block being read
+CURSOR          .dword ?    ; The file pointer (number of the byte to be read)
+                            ; BBBBBBBB BBBBBBBB BBBBBBBc cccccccc
+                            ; where B = the block index, and c = the index to the byte within the current block
+                .send
 
-FD_ATTR_R = $01             ; FD Attribute: system can read from the file
-FD_ATTR_W = $02             ; FD Attribute: system can write to the file
-FD_ATTR_EOF = $04           ; FD Attribute: end of file has been reached (for read)
-FD_ATTR_BLOCK = $08         ; FD Attribute: device is block based
-FD_ATTR_OPEN = $80          ; FD Attribute: file is open for reading/writing
+FD_FLG_OPEN = $80           ; The file descriptor is open
+FD_FLG_READ = $01           ; The file descriptor may be read
+FD_FLG_WRITE = $02          ; The file descriptor may be written
+FD_FLG_BUFFERED = $04       ; The file descriptor is buffered
+FD_FLG_FILE = $06           ; THe file descriptor has a path
 
 ;
 ; File descriptor storage
@@ -52,10 +55,12 @@ FILE_BLOCKS     .fill 8 * FD_BLOCK_SIZE ; R/W buffers, one per file descriptor
 ; When reading from a block type devices, fill the FD's buffer with the first block
 ;
 ; Inputs:
-;   File Descriptor to open
-;   Device to open
-;   path to the file to read/write
-;   code for read or write
+;   A = mode (e.g. read, write)
+;   B:X = ASCII-Z string containing the path to the file to open
+;
+; Returns:
+;   A = file descriptor ID (error code on error)
+;   C is set on success, clear on error
 ;
 FD_OPEN         .proc
                 PHP
@@ -71,6 +76,10 @@ FD_OPEN         .proc
 ; Inputs:
 ;   A = The file descriptor to close
 ;
+; Returns:
+;   A = error code (if there was an error)
+;   C is set on success, clear on error
+;
 FD_CLOSE        .proc
                 PHP
                 PLP
@@ -78,164 +87,38 @@ FD_CLOSE        .proc
                 .pend
 
 ;
-; Fetch the next block from a block type device
-;
-; This does nothing for for character based devices or when we have read the last block already
+; Read a block of data from a file descriptor
 ;
 ; Inputs:
-;   A = the number of the file descriptor
+;   A = the file handle to read from
+;   B:X = the address to write to
+;   Y = the number of bytes to read
 ;
-FD_FILL_BLK     .proc
+; Returns:
+;   A = number of bytes read on success, error code on failure
+;   C is set on success, clear on error
+;
+FD_READ         .proc
                 PHP
                 PLP
                 RETURN
                 .pend
 
 ;
-; Read the entire block from the file descriptor to an arbitrary address in memory
+; Write a block of data to a file descriptor
 ;
 ; Inputs:
-;   A = the file descriptor to read
-;   MARG1 = the destination address
+;   A = the file handle to write to
+;   B:X = the address to read the data from
+;   Y = the number of bytes to write
 ;
-FD_READ_BLK     .proc
-                PHA
-                PHX
-                PHY
+; Returns:
+;   A = error code (if there was an error)
+;   C is set on success, clear on error
+;
+FD_WRITE        .proc
                 PHP
-                PHB
-
-                setaxl
-                LDX #9
-mult_loop       ASL A               ; Convert FD number to block offset
-                DEX
-                BNE mult_loop
+                PLP
+                RETURN
+                .pend
                 
-                CLC                 ; Compute the starting address
-                ADC #<>FILE_BLOCKS
-                TAX                 ; And set as the source
-
-                LDY MARG1           ; Set the destination address
-
-                setas
-                LDA #$54            ; MVN
-                STA MTEMP
-                LDA #`FILE_BLOCKS   ; Source bank: `FILE_BLOCKS
-                STA MTEMP+1
-                LDA MARG1+2         ; Destination bank: from MARG1
-                STA MTEMP+2
-
-                LDA #$6B            ; RTL
-                STA MTEMP+3
-
-                setal
-                LDA #FD_BLOCK_SIZE  ; Set the size to the block size
-
-                JSL MTEMP           ; Call the MVN subroutine we just created
-
-                PLB
-                PLP
-                PLY
-                PLX
-                PLA
-                RETURN
-                .pend
-
-;
-; Write the current block to the block device
-;
-; This does nothing for a character based device
-;
-; Inputs
-;   A = The file descriptor to write
-;
-FD_FLUSH_BLK    .proc
-                PHP
-                PLP
-                RETURN
-                .pend
-
-;
-; Write the entire block to the file descriptor from an arbitrary address in memory
-;
-; Inputs:
-;   A = the file descriptor to write
-;   MARG1 = the source address
-;
-FD_WRITE_BLK    .proc
-                PHA
-                PHX
-                PHY
-                PHP
-                PHB
-
-                setaxl
-                LDX #9
-mult_loop       ASL A               ; Convert FD number to block offset
-                DEX
-                BNE mult_loop
-                
-                CLC                 ; Compute the starting address
-                ADC #<>FILE_BLOCKS
-                TAY                 ; And set as the destination
-
-                LDX MARG1           ; Set the source address
-
-                setas
-                LDA #$54            ; MVN
-                STA MTEMP+1
-                LDA MARG1+2         ; Source bank: from MARG1
-                STA MTEMP
-                LDA #`FILE_BLOCKS   ; Destination bank: `FILE_BLOCKS
-                STA MTEMP+2
-
-                LDA #$6B            ; RTL
-                STA MTEMP+3
-
-                setal
-                LDA #FD_BLOCK_SIZE  ; Set the size to the block size
-
-                JSL MTEMP           ; Call the MVN subroutine we just created
-
-                PLB
-                PLP
-                PLY
-                PLX
-                PLA
-                RETURN
-                .pend
-
-;
-; Read a character from the file descriptor
-;
-; For character devices, just read the character
-; For block devices, manage reading in blocks as needed.
-;
-; Inputs:
-;   A = The file descriptor to read
-;
-; Outputs:
-;   A = The character read (0 if EOF)
-;
-FD_RD_CHAR      .proc
-                PHP
-                PLP
-                RETURN
-                .pend
-
-;
-; Write a charactger to the file descriptor
-;
-; For character devices, just write to the device
-; For block devices, manage writing to the current block and
-; writing blocks to the device as needed.
-;
-; Inputs:
-;   The character to write
-;   The file descriptor
-;
-FD_WR_CHAR      .proc
-                PHP
-                PLP
-                RETURN
-                .pend
