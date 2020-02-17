@@ -47,48 +47,6 @@ ICURSORXY   .proc
 ;
 
 ;
-; Scroll the screen up by one line
-; (Stefany's hand coded version)
-;
-SCROLLUP    .proc
-            ; Scroll the screen up by one row
-            ; Place an empty line at the bottom of the screen.
-            ; TODO: use DMA to move the data
-            PHA
-            PHX
-            PHY
-            PHP
-
-            setxl
-            setas
-            LDX #$0000
-SCROLLUPTEXTLOOP
-
-            LDA @lCS_TEXT_MEM_PTR + 128, X
-            STA @lCS_TEXT_MEM_PTR, X
-            LDA @lCS_COLOR_MEM_PTR + 128, X
-            STA @lCS_COLOR_MEM_PTR, X
-            INX
-            CPX #$1F80
-            BNE SCROLLUPTEXTLOOP
-            LDX #$0000
-SCROLLUPLINELASTLINE
-            LDA #$20
-            STA @lCS_TEXT_MEM_PTR + $1F80, X
-            LDA @lCS_COLOR_MEM_PTR + $1F00, X
-            STA @lCS_COLOR_MEM_PTR + $1F80, X
-            INX
-            CPX #$80
-            BNE SCROLLUPLINELASTLINE
-
-            PLP
-            PLY
-            PLX
-            PLA
-            RETURN
-            .pend
-
-;
 ; Clear the screen and move the cursor to the home position
 ;
 ICLSCREEN   .proc
@@ -148,7 +106,7 @@ ISCRCPYLINE .proc
             AND #$00FF
             STA INDEX+2
 
-            LDA #128                ; Calculate the offset to the current line
+            LDA @lCOLS_PER_LINE     ; Calculate the offset to the current line
             STA @lM1_OPERAND_A
             LDA @lCURSORY
             DEC A
@@ -163,13 +121,15 @@ ISCRCPYLINE .proc
             STA INDEX+2
 
             setas
+            LDA @lCOLS_VISIBLE
+            STA MCOUNT
             LDY #0
             LDX #0
 copy_loop   LDA [INDEX],Y           ; Copy a byte from the screen to the input buffer
             STA @lINPUTBUF,X
             INX
             INY
-            CPY #128
+            CPY MCOUNT
             BNE copy_loop
 
             DEX

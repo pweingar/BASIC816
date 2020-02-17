@@ -10,7 +10,11 @@ Mstr_Ctrl_TileMap_En    = $10       ; Enable the Tile Module in Vicky
 Mstr_Ctrl_Sprite_En     = $20       ; Enable the Sprite Module in Vicky
 Mstr_Ctrl_GAMMA_En      = $40       ; this Enable the GAMMA correction - The Analog and DVI have different color value, the GAMMA is great to correct the difference
 Mstr_Ctrl_Disable_Vid   = $80       ; This will disable the Scanning of the Video hence giving 100% bandwith to the CPU
-MASTER_CTRL_REG_H	    = $AF0001
+
+MASTER_CTRL_REG_H       = $AF0001
+Mstr_Ctrl_Video_Mode0   = $01       ; 0 - 640x480 (Clock @ 25.175Mhz), 1 - 800x600 (Clock @ 40Mhz)
+Mstr_Ctrl_Video_Mode1   = $02       ; 0 - No Pixel Doubling, 1- Pixel Doubling (Reduce the Pixel Resolution by 2)
+
 
 ; Reserved - TBD
 VKY_RESERVED_00         = $AF0002

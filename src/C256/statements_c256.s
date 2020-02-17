@@ -340,9 +340,14 @@ S_SETBORDER     .proc
                 STA BORDER_X_SIZE
                 STA BORDER_Y_SIZE
 
-                LDA #TEXT_COLS_WB           ; Make sure the screen size is right
+                SEC
+                LDA @lCOLS_PER_LINE         ; Make sure the screen size is right
+                SBC #8
                 STA @lCOLS_VISIBLE
-                LDA #TEXT_ROWS_WB
+
+                SEC
+                LDA @lLINES_MAX
+                SBC #8
                 STA @lLINES_VISIBLE
 
                 BRA get_color
@@ -350,9 +355,9 @@ S_SETBORDER     .proc
 hide_border     LDA #0                      ; Hide the border
                 STA @lBORDER_CTRL_REG
 
-                LDA #TEXT_COLS_WOB          ; Make sure the screen size is right
+                LDA @lCOLS_PER_LINE         ; Make sure the screen size is right
                 STA @lCOLS_VISIBLE
-                LDA #TEXT_ROWS_WOB
+                LDA @lLINES_MAX
                 STA @lLINES_VISIBLE
 
 get_color       LDA #','
@@ -508,22 +513,31 @@ lut_address     .word <>GRPH_LUT0_PTR
 ; GRAPHICS mode
 ; TODO: allow for variable screen sizes: GRAPHICS mode [, width, height]
 S_GRAPHICS      .proc
+                PHX
+                PHY
                 PHP
                 TRACE "S_GRAPHICS"
 
                 CALL EVALEXPR               ; Get the red component
-                CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+                CALL ASS_ARG1_INT           ; Assert that the result is a byte value
 
                 LDA ARGUMENT1
                 STA @lMASTER_CTRL_REG_L     ; Set the border color
 
+                .rept 7
+                LSR A
+                .next
+                AND #$00FF
+                ASL A
+                TAX                         ; X is index into the size tables
+
                 ; Set the screen size
 
                 setal
-                LDA #GR_DEFAULT_COLS        ; Set the columns
+                LDA gr_columns,X            ; Set the columns
                 STA @lGR_MAX_COLS
 
-                LDA #GR_DEFAULT_ROWS        ; Set the rows
+                LDA gr_rows,X               ; Set the rows
                 STA @lGR_MAX_ROWS
 
                 LDA @lGR_MAX_COLS           ; Get the current columns
@@ -538,9 +552,46 @@ S_GRAPHICS      .proc
                 LDA @lM1_RESULT+2
                 STA @lGR_TOTAL_PIXELS+2
 
+                setal
+                LDA col_count,X             ; Get the number of columns in the text mode
+                STA @lCOLS_PER_LINE
+                STA @lCOLS_VISIBLE
+
+                LDA row_count,X             ; Get the number of columns in the text mode
+                STA @lLINES_MAX
+                STA @lLINES_VISIBLE
+
+                setas
+                LDA @lBORDER_CTRL_REG
+                BIT #Border_Ctrl_Enable
+                BEQ reset_cursor
+
+with_border     setal
+                LDA colb_count,X            ; Get the number of columns in the text mode
+                STA @lCOLS_VISIBLE
+
+                LDA rowb_count,X            ; Get the number of columns in the text mode
+                STA @lLINES_VISIBLE
+
+reset_cursor    setal
+                LDA @lCURSORX
+                TAX
+                LDA @lCURSORY
+                TAY
+                CALL CURSORXY
+
                 PLP
+                PLY
+                PLX
                 RETURN
+gr_columns      .word 640,800,320,400
+gr_rows         .word 480,600,240,300
+col_count       .word 80,100,40,50
+row_count       .word 60,75,30,50
+colb_count      .word 72,92,32,42
+rowb_count      .word 52,67,22,52
                 .pend
+
 
 ; Set the pixmap base address
 ; PIXMAP visible, lut, address

@@ -13,7 +13,7 @@ REM 1 = C64 with SuperCPU, 2 = C256
 set SYSTEM=2
 
 REM 0 = Interactive, 1 = Generate Unit Tests
-set UNITTEST=1
+set UNITTEST=0
 
 REM 0 = No tracing information, 1 = Include subroutine names, 2 = Generate trace messages
 set TRACE_LEVEL=0
