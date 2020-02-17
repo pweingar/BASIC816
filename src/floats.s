@@ -97,6 +97,7 @@ ARG1TOACC   .proc
             STA FMANT+1
             LDA ARGUMENT1+2
             AND #$7F
+            ORA #$80
             STA FMANT+2
 
             LDA ARGUMENT1+2         ; Shift and copy the exponent
@@ -519,7 +520,86 @@ shift_add   setas
 skip_bcdadd DEY
             BNE shift_add
 
+            CALL BCDTOS
+
 done        PLP
             RETURN
 fp_zero     .null "0"
+            .pend
+
+;
+; Convert a Binary Coded Decimal number at MLINEBUF to a temporary string
+;
+BCDTOS      .proc
+            PHP
+
+            BRK
+
+            CALL TEMPSTRING         ; Get a temporary string
+
+            setaxl
+            LDA STRPTR
+            STA ARGUMENT1
+            LDA STRPTR+2
+            STA ARGUMENT1+2
+
+            LDX #12                  ; We'll convert at most 8 digits
+
+skip_0      setas
+            LDA MLINEBUF+5
+            AND #$F0                ; Mask off the upper nibble
+            BNE printable           ; If not zero: it's printable
+
+            setal
+            .rept 4
+            ASL MLINEBUF            ; Shift over a nibble
+            ROL MLINEBUF+2
+            ROL MLINEBUF+4
+            .next
+
+            DEX                     ; Have we done all the digits?
+            BNE skip_0              ; No: keep trying
+
+            setas
+            LDA #'0'                ; Otherwise: just return "0"
+            STA [STRPTR]
+
+done        setal
+            INC STRPTR
+            
+            setas
+            LDA #0
+            STA [STRPTR]
+            
+            LDA #TYPE_STRING
+            STA ARGTYPE1
+
+            PLP
+            RETURN
+
+printable   LSR A                   ; Shift the nibble right
+            LSR A
+            LSR A
+            LSR A
+
+            CLC
+            ADC #'0'                ; Convert it to ASCII
+            STA [STRPTR]            ; Put it in the string
+
+            DEX                     ; Have we done all the digits?
+            BEQ done                ; Yes: return the result
+
+            setal
+            INC STRPTR              ; Move the string pointer
+
+            .rept 4
+            ASL MLINEBUF            ; No: Shift the BCD over a nibble
+            ROL MLINEBUF+2
+            ROL MLINEBUF+4
+            .next
+
+            setas
+            LDA MLINEBUF+5          ; Get the next nibble
+            AND #$F0
+            BRA printable           ; And print it
             .pend

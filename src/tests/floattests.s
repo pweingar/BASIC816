@@ -321,7 +321,11 @@ TST_STON            .proc
 
                     LD_L BIP,tst_number7    ;0.25
                     CALL STON
-                    UT_M_EQ_LIT_D ARGUMENT1, $3E800000, "EXPECTED ston('0.25') = $3E800000"             
+                    UT_M_EQ_LIT_D ARGUMENT1, $3E800000, "EXPECTED ston('0.25') = $3E800000"      
+
+                    LD_L BIP,tst_number8    ;123.0
+                    CALL STON
+                    UT_M_EQ_LIT_D ARGUMENT1, $42f60000, "EXPECTED ston('123') = $42f60000"         
 
                     UT_END
 tst_number1         .null "1"
@@ -331,6 +335,63 @@ tst_number4         .null "-2"
 tst_number5         .null "1.0"
 tst_number6         .null "3.14159"
 tst_number7         .null "0.25"
+tst_number8         .null "123"
+                    .pend
+
+; Verify that we can convert a floating point number to a string
+TST_FTOS            .proc
+                    UT_BEGIN "TST_FTOS"
+
+                    ; Try 0.0
+                    setal
+                    STZ ARGUMENT1
+                    STZ ARGUMENT1+2
+                    setas
+                    LDA #TYPE_FLOAT
+                    STA ARGTYPE1
+                    setal
+
+                    CALL FTOS
+
+                    UT_M_EQ_LIT_B ARGTYPE1,TYPE_STRING,"Expected a string"
+                    UT_ARG1STR_EQ expected0,"Expected that 0.0 => '0'"
+
+                    ; ; Try 1.0
+                    ; setal
+                    ; STZ ARGUMENT1
+                    ; LDA #$3f80
+                    ; STA ARGUMENT1+2
+                    ; setas
+                    ; LDA #TYPE_FLOAT
+                    ; STA ARGTYPE1
+                    ; setal
+
+                    ; CALL FTOS
+
+                    ; UT_M_EQ_LIT_B ARGTYPE1,TYPE_STRING,"Expected a string"
+                    ; UT_ARG1STR_EQ expected1,"Expected that 1.0 => '1'"
+
+                    ; Try 123
+                    setal
+                    STZ ARGUMENT1
+                    LDA #$42f6
+                    STA ARGUMENT1+2
+                    setas
+                    LDA #TYPE_FLOAT
+                    STA ARGTYPE1
+                    setal
+
+                    CALL FTOS
+
+                    BRK
+
+                    UT_M_EQ_LIT_B ARGTYPE1,TYPE_STRING,"Expected a string"
+                    UT_ARG1STR_EQ expected123,"Expected that 123.0 => '123'"                    
+
+                    UT_END
+expected0           .null "0"
+expected1           .null "1"
+expected123         .null "123"
                     .pend
 
 TST_FLOATS          .proc
@@ -339,8 +400,9 @@ TST_FLOATS          .proc
                     CALL TST_FSUB_INT
                     CALL TST_FMUL_INT
                     CALL TST_FDIV_INT
-                    CALL TST_PACKING
+                    ; CALL TST_PACKING
                     CALL TST_STON
+                    CALL TST_FTOS
 
                     UT_LOG "TST_FLOATS: PASSED"
                     RETURN

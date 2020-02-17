@@ -492,6 +492,37 @@ continue
                 .endm      
 
 ;
+; Assert that ARGUMENT1 has an expected string value
+;
+UT_ARG1STR_EQ   .macro ; expected, message
+                setal
+                LDA #<>\1           ; Point ARGUMENT2 to expected
+                STA ARGUMENT2
+                LDA #`\1
+                STA ARGUMENT2+2   
+
+                setas               ; Set their types to string
+                LDA #TYPE_STRING
+                STA ARGTYPE2
+
+                CALL STRCMP
+
+                LDA ARGUMENT1       ; Check to see if the result is 0 (they are equal)
+                BEQ continue
+
+                LDX #<>MESSAGE      ; No, print the error message
+                PHB
+                setdbr `DATA_BLOCK
+                CALL UT_FAIL
+                PLB
+                BRA continue
+.section data
+MESSAGE         .null \2
+.send
+continue             
+                .endm  
+
+;
 ; Assert that two null-terminated strings are equal
 ;
 UT_STR_EQ       .macro ; actual, expected, message
