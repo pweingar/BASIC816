@@ -176,29 +176,26 @@ CPUFLAGS         = $00024F ;1 Byte  Flags (P)
 ; MJUMPINST        = $0002AB ;1 Byte JSL opcode
 ; MJUMPADDR        = $0002AC ;3 Byte address for JSL 
 
-LOADFILE_VARS    = $000300 ; Byte
-LOADFILE_NAME    = $000300 ;3 Bytes (addr) Name of file to load. Address in Data Page
-LOADFILE_LEN     = $000303 ;1 Byte  Length of filename. 0=Null Terminated
-LOADPBR          = $000304 ;1 Byte  First Program Bank of loaded file ($05 segment)
-LOADPC           = $000305 ;2 Bytes Start address of loaded file ($05 segment)
-LOADDBR          = $000307 ;1 Byte  First data bank of loaded file ($06 segment)
-LOADADDR         = $000308 ;2 Bytes FIrst data address of loaded file ($06 segment)
-LOADFILE_TYPE    = $00030A ;3 Bytes (addr) File type string in loaded data file. Actual string data will be in Bank 1. Valid values are BIN, PRG, P16
-BLOCK_LEN        = $00030D ;2 Bytes Length of block being loaded
-BLOCK_ADDR       = $00030F ;2 Bytes (temp) Address of block being loaded
-BLOCK_BANK       = $000311 ;1 Byte  (temp) Bank of block being loaded
-BLOCK_COUNT      = $000312 ;2 Bytes (temp) Counter of bytes read as file is loaded
+; Low-level (BIOS) sector access variables
+SDOS_VARIABLES   = $000320
+BIOS_STATUS      = $000320      ; 1 byte - Status of any BIOS operation
+BIOS_DEV         = $000321      ; 1 byte - Block device number for block operations
+BIOS_LBA         = $000322      ; 4 bytes - Address of block to read/write (this is the physical block, w/o reference to partition)
+BIOS_BUFF_PTR    = $000326      ; 4 bytes - 24-bit pointer to memory for read/write operations
+BIOS_FIFO_COUNT  = $00032A      ; 2 bytes - The number of bytes read on the last block read
 
-; $00:0320 to $00:06FF - Reserved for CH376S SDCard Controller
-SDOS_BLOCK_BEGIN = $000320 ;
-SDOS_LOAD_ADDY   = $000324 ; 4 Bytes (Uses 3 Only)
-SDOS_FILE_SIZE   = $000328 ;
-SDOS_BYTE_NUMBER = $00032C ; Number of Byte to Read or Write before changing the Pointer
-SDOS_REG_WR32_AD = $000330 ; 4 Bytes (Used to read and Write Values in/from CH376S)
-SDOS_BYTE_PTR    = $000334
-SDOS_FILE_NAME   = $000380 ; // Max of 128 Chars
-SDOS_BLK_BEGIN   = $000400 ; 512 Bytes to Store SD Card Incoming or Outcoming Block
-SDOS_BLK_END     = $0006FF ;
+; FAT (cluster level) access
+DOS_STATUS       = $00032E      ; 1 byte - The error code describing any error with file access
+DOS_CLUS_ID      = $000330      ; 4 bytes - The cluster desired for a DOS operation
+DOS_DIR_PTR      = $000338      ; 4 bytes - Pointer to a directory entry (assumed to be within DOS_SECTOR)
+DOS_BUFF_PTR     = $00033C      ; 4 bytes - A pointer for DOS cluster read/write operations
+DOS_FD_PTR       = $000340      ; 4 bytes - A pointer to a file descriptor
+DOS_FAT_LBA      = $000344      ; 4 bytes - The LBA for a sector of the FAT we need to read/write
+DOS_TEMP         = $000348      ; 4 bytes - Temporary storage for DOS operations
+DOS_FILE_SIZE    = $00034C      ; 4 bytes - The size of a file
+DOS_SRC_PTR      = $000350      ; 4 bytes - Pointer for transferring data
+DOS_DST_PTR      = $000354      ; 4 bytes - Pointer for transferring data
+DOS_RUN_PTR      = $000358      ; 4 bytes - Pointer for starting a loaded program
 
 ; COMMAND PARSER Variables
 ; Command Parser Stuff between $000F00 -> $000F84 (see CMD_Parser.asm)

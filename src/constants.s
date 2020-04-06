@@ -65,3 +65,5 @@ ERR_NAN = 12            ; Floating point math resulted in something that is not 
 ERR_OVERFLOW = 13       ; Math operation overflowed
 ERR_UNDERFLOW = 14      ; Math operation underflowed
 ERR_DIV0 = 15           ; Math operation involved a division by zero
+ERR_DIRECTORY = 16      ; Error reading the directory
+ERR_LOAD = 17           ; Could not load file

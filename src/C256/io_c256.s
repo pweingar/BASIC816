@@ -10,7 +10,6 @@
 .include "RTC_inc.s"
 .include "keyboard.s"
 .include "screen.s"
-.include "files.s"
 
 BORDER_WIDTH = 32               ; The width of the border (when it is on)
 TEXT_COLS_WB = 72               ; Number of columns of text with the border enabled

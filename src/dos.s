@@ -1,35 +1,70 @@
 ;;;
-;;; Disk Operating System Commands and support routines
+;;; Commands and statements for the FAT file system
+;;;
+;;; Commands:
+;;; LOAD <path> -- load the BASIC file (ASCII text) into memory, replacing th current program
+;;; BLOAD <path> [, <address>] -- Load a binary file into memory. If provided, <address> will
+;;;     determine where the file loads. However, certain file types will contain their own destination
+;;;     address data, and BLOAD will honor that.
+;;; BRUN <path> -- loads a binary file into memory and starts executing the code
+;;;     starting at the first byte loaded. Note that his only works for executable types. Currently,
+;;;     that means only PGX
+;;; SAVE <path> -- Save the current BASIC program as an ASCII text file.
+;;; BSAVE <path>, <start address>, <end address> -- Save the memory from <start address>
+;;;     to <end address> (inclusive) to a file.
+;;; DIR -- List the directory (currently only works with the root directory of the SDC)
+;;; DEL <path> -- delete a file
 ;;;
 
-;
-; Offsets and constants for directory entries
-;
+; Directory entry
+DIRENTRY                .struct
+SHORTNAME               .fill 11        ; $00 - The short name of the file (8 name, 3 extension)
+ATTRIBUTE               .byte ?         ; $0B - The attribute bits
+IGNORED1                .word ?         ; $0C - Unused (by us) bytes
+CREATE_TIME             .word ?         ; $0E - Creation time
+CREATE_DATE             .word ?         ; $10 - Creation date
+ACCESS_DATE             .word ?         ; $12 - Last access date
+CLUSTER_H               .word ?         ; $14 - High word of the first cluster #
+MODIFIED_TIME           .word ?         ; $16 - Last modified time
+MODIFIED_DATE           .word ?         ; $18 - Last modified date
+CLUSTER_L               .word ?         ; $1A - Low word of the first cluster #
+SIZE                    .dword ?        ; $1C - The size of the file (in bytes)
+                        .ends
 
-DOS_BLOCK_SIZE = 512        ; Size of a block transfered from DOS
-DIR_ENTRY_SIZE = $20        ; Size of a FAT32 directory entry
+; Directory entry attribute flags
 
-DIR_FILENAME = $00          ; Offset to the short file name (8 bytes)
-DIR_FILEEXT = $08           ; Offset to the file extension (3 bytes)
-DIR_FILEATTR = $0B          ; Offset to the file attributes (1 byte)
-DIR_CLUSTER_H = $14         ; Offset to the high word of the starting cluster number (2 bytes)
-DIR_MOD_TIME = $16          ; Offset to the last modified time (2 bytes)
-DIR_MOD_DATE = $18          ; Offset to the last modified date (2 bytes)
-DIR_CLUSTER_L = $1A         ; Offset to the low word of the starting cluster number (2 bytes)
-DIR_FILE_SIZE = $1C         ; Offset to the file size in bytes (4 bytes)
+DOS_ATTR_RO = $01                       ; File is read-only
+DOS_ATTR_HIDDEN = $02                   ; File is hidden
+DOS_ATTR_SYSTEM = $04                   ; File is a system file
+DOS_ATTR_VOLUME = $08                   ; Entry is the volume label
+DOS_ATTR_DIR = $10                      ; Entry is a directory
+DOS_ATTR_ARCH = $20                     ; Entry has changed since last backup
+DOS_ATTR_LONGNAME = $0F                 ; Entry is the long file name
 
-; Special initial bytes for the file name
-DIR_FILE_EOD = $00          ; Filename initial character: end of directory table
-DIR_FILE_DEL = $E5          ; Filename initial character: entry was erased
+DOS_DIR_ENT_UNUSED = $E5                ; Marker for an unused directory entry 
 
-; File attribute flags
-DIR_ATTR_RO = $01           ; File attribute read-only
-DIR_ATTR_HIDE = $02         ; File attribute hidden
-DIR_ATTR_SYS = $04          ; File attribute system file
-DIR_ATTR_VOL = $08          ; File attribute volume name
-DIR_ATTR_DIR = $10          ; File attribute subdirectory
-DIR_ATTR_ARC = $20          ; File attribute archive needed
-DIR_ADDR_DEV = $40          ; File attribute character device
+; File Descriptor -- Used as parameter for higher level DOS functions
+FILEDESC            .struct
+STATUS              .byte ?             ; The status flags of the file descriptor (open, closed, error, EOF, etc.)
+DEV                 .byte ?             ; The ID of the device holding the file
+PATH                .dword ?            ; Pointer to a NULL terminated path string
+CLUSTER             .dword ?            ; The current cluster of the file.
+FIRST_CLUSTER       .dword ?            ; The ID of the first cluster in the file
+BUFFER              .dword ?            ; Pointer to a cluster-sized buffer
+FILESIZE            .dword ?            ; The size of the file
+CREATE_DATE         .word ?             ; The creation date of the file
+CREATE_TIME         .word ?             ; The creation time of the file
+MODIFIED_DATE       .word ?             ; The modification date of the file
+MODIFIED_TIME       .word ?             ; The modification time of the file
+                    .ends
+
+; File descriptor status flags
+
+FD_STAT_READ = $01                      ; The file is readable
+FD_STAT_WRITE = $02                     ; The file is writable
+FD_STAT_OPEN = $40                      ; The file is open
+FD_STAT_ERROR = $60                     ; The file is in an error condition
+FD_STAT_EOF = $80                       ; The file cursor is at the end of the file
 
 DIR_TIME        .macro hour, minute, second
                 .word \hour << 11 | \minute << 5 | \second
@@ -40,160 +75,12 @@ DIR_DATE        .macro year, month, day
                 .endm
 
 ;
-; Load a file directly into memory from storage
+; DOS High Memory Variables
 ;
-; Inputs:
-;   MARG1 = pointer to the path to load
-;   MARG2 = destination address
-;
-DOS_RAWLOAD     .proc
-                PHP
-                PHB
-
-                setxl
-                setas
-                LDA MARG1+2             ; Set B to the path's bank
-                PHA
-                PLB
-                LDX MARG1               ; Set X to the path's address
-
-                setal
-                LDA #0                  ; TODO: set the access to READ
-
-                CALL FD_OPEN
-                BCC err_open
-                STA MTEMP               ; Save file descriptor to MTEMP
-
-loop            setas
-                LDA MARG2+2             ; Set B to the destination bank
-                PHA
-                PLB
-                LDX MARG2               ; Set X to the destination address
-                LDY #DOS_BLOCK_SIZE     ; Set the size to read
-
-                setal
-                LDA MTEMP               ; Set the file handle to read
-
-                CALL FD_READ            ; Try to read a block
-                BCC err_read            ; Handle any read error
-
-                CMP #0                  ; Did we read anything?
-                BEQ close_fd            ; No: we're finished
-
-                CLC                     ; Advance the destination address by the amount read
-                ADC MARG2
-                STA MARG2
-                LDA MARG2+2
-                ADC #0
-                STA MARG2+2
-
-                BRA loop                ; And try again
-
-close_fd        LDA MTEMP               ; Set the file handle to close
-                CALL FD_CLOSE           ; And attempt to close it
-                BCC err_close           ; Handle any error on closing
-
-                PLB
-                PLP
-                RETURN
-
-err_open        PLB
-                THROW ERR_OPEN
-
-err_close       PLB
-                THROW ERR_CLOSE
-
-err_read        PLB
-                THROW ERR_READ
-                .pend
-
-;
-; Save a file directly frpm memory to storage
-;
-; Inputs:
-;   MARG1 = pointer to the path to load
-;   MARG2 = address of first byte to write
-;   MARG3 = address of last byte to write
-;
-; Affects:
-;   MARG4 = amount to write on any particular cycle
-;
-DOS_RAWSAVE     .proc
-                PHP
-                PHB
-
-                setxl
-                setas
-                LDA MARG1+2             ; Set B to the path's bank
-                PHA
-                PLB
-                LDX MARG1               ; Set X to the path's address
-
-                setal
-                LDA #0                  ; TODO: set the access to WRITE
-
-                CALL FD_OPEN
-                BCC err_open
-                STA MTEMP               ; Save file descriptor to MTEMP
-
-                LDA #0
-                STA MARG4+2
-
-loop            SEC
-                LDA MARG3               ; compute END - START
-                SBC MARG2
-                AND #$01FF              ; Make sure it is in [0, 511]
-                STA MARG4               ; put it in MARG4
-
-                LDA MARG4               ; If count is 0, we're finished
-                BEQ close_fd
-
-                setas
-                LDA MARG2+2             ; Set B to the source bank
-                PHA
-                PLB
-                LDX MARG2               ; Set X to the source address
-                LDY MARG4               ; Set the size to write
-
-                setal
-                LDA MTEMP               ; Set the file handle to write
-
-                CALL FD_WRITE           ; Try to read a block
-                BCC err_read            ; Handle any read error
-
-                CMP #0                  ; Did we read anything?
-                BEQ close_fd            ; No: we're finished
-
-                CLC                     ; Advance the destination address by the amount read
-                ADC MARG2
-                STA MARG2
-                LDA MARG2+2
-                ADC #0
-                STA MARG2+2
-
-                BRA loop                ; And try again
-
-close_fd        LDA MTEMP               ; Set the file handle to close
-                CALL FD_CLOSE           ; And attempt to close it
-                BCC err_close           ; Handle any error on closing
-
-                PLB
-                PLP
-                RETURN
-
-err_open        PLB
-                THROW ERR_OPEN
-
-err_close       PLB
-                THROW ERR_CLOSE
-
-err_read        PLB
-                THROW ERR_READ
-
-                PLB
-                PLP
-                RETURN
-                .pend
+.section high_variables
+CLUSTER_BUFF    .fill 512           ; A buffer for cluster read/write operations
+FD_IN           .dstruct FILEDESC   ; A file descriptor for input operations
+.send
 
 ;
 ; Print a FAT file size
@@ -203,7 +90,10 @@ err_read        PLB
 ;
 PR_FILESIZE     .proc
                 PHX
+                PHD
                 PHP
+
+                setdp GLOBAL_VARS
 
                 setaxl
                 LDA ARGUMENT1+2
@@ -245,6 +135,7 @@ mb_shift        LSR ARGUMENT1+2
                 setal
 
 done            PLP
+                PLD
                 PLX
                 RETURN
                 .pend
@@ -256,7 +147,11 @@ done            PLP
 ;   ARGUMENT1 = the number to print
 ;
 PR_INTPAD2      .proc
+                PHD
                 PHP
+
+                setdp GLOBAL_VARS
+
                 setal
 
                 CALL ITOS
@@ -268,6 +163,7 @@ PR_INTPAD2      .proc
                 CALL PR_STRING      ; And print it
                 
                 PLP
+                PLD
                 RETURN
                 .pend
 
@@ -281,7 +177,10 @@ PR_INTPAD2      .proc
 ;
 S_PAD2          .proc
                 PHY
+                PHD
                 PHP
+
+                setdp GLOBAL_VARS
 
                 setas
                 LDA [STRPTR]
@@ -306,6 +205,7 @@ shift           LDY #1
                 INC STRPTR+2
 
 done            PLP
+                PLD
                 PLY
                 RETURN
                 .pend
@@ -319,7 +219,10 @@ done            PLP
 ;   A = the date code (YYYYYYYYMMMMDDDDD, where year is since 1980)
 ;
 PR_DATE         .proc
+                PHD
                 PHP
+
+                setdp GLOBAL_VARS
 
                 setal
 
@@ -380,6 +283,7 @@ pr_min_loop     LSR A
                 CALL PR_INTPAD2
 
                 PLP
+                PLD
                 RETURN
                 .pend
 
@@ -392,7 +296,10 @@ pr_min_loop     LSR A
 ;   A = the date code (YYYYYYYYMMMMDDDDD, where year is since 1980)
 ;
 PR_TIME         .proc
+                PHD
                 PHP
+
+                setdp GLOBAL_VARS
 
                 setal
 
@@ -451,285 +358,336 @@ pr_month_loop   LSR A
                 CALL PR_INTPAD2
 
                 PLP
+                PLD
                 RETURN
                 .pend
 
 ;
-; Command to print the directory
-;
-; DIR <path>
+; Print out a directory listing
 ;
 CMD_DIR         .proc
-                PHY
+                PHD
                 PHP
                 TRACE "CMD_DIR"
 
-                setas
-                STZ LINECOUNT           ; Clear the pagination line counter
+                setdp SDOS_VARIABLES
 
                 setaxl
-                CALL DIR_OPEN
-
-                LDA #CHAR_CR
-                CALL PRINTC
-
-                CLC
-                LDA MCURSOR             ; Save the end of the block to MTEMP
-                ADC #<>DOS_BLOCK_SIZE
-                STA MTEMP
-                LDA MCURSOR+2
-                ADC #`DOS_BLOCK_SIZE
-                STA MTEMP+2
-
-loop            CALL DIR_PRENTRY
-                BCC pr_cr               ; If at the end of the directory, wrap up
-
-                CALL PAGINATE           ; If we're not done, check to see if we've printed a full page
-
-                LDA MCURSOR             ; If we're not finished with the block...
-                CMP MTEMP   
-                BNE loop                ; Keep printing entries
-                LDA MCURSOR+2
-                CMP MTEMP+2
-                BNE loop
-
-                CALL DIR_NEXT_BLOCK     ; Get the next directory block
-                BCS loop                ; If we got something, start over with this block
-
-pr_cr           LDA #CHAR_CR
-                CALL PRINTC
-
-done            PLP
-                PLY
-                RETURN
-                .pend
-
-;
-; Open a directory for listing, and load the first block
-;
-; Inputs:
-;   the path to the directory (or maybe the file descriptor)
-;
-; Outputs:
-;   MCURSOR = pointer to the first entry in the loaded block
-;
-DIR_OPEN        .proc
-                PHP
-                TRACE "DIR_OPEN"
-
-                ; TODO: actually load the first block
-                
-                setal
-                LDA #<>DIR_SAMPLE
-                STA MCURSOR
-                LDA #`DIR_SAMPLE
-                STA MCURSOR+2
-
-                PLP
-                RETURN
-                .pend
-
-;
-; Read the next block of the directory from the file system
-;
-; Inputs:
-;   It's a mystery!... something to point to the directory and track how to load it.
-;
-; Outputs:
-;   C is set if loaded successfully, clear if we're done.
-;
-DIR_NEXT_BLOCK  .proc
-                PHP
-                TRACE "DIR_NEXT_BLOCK"
-
-ret_false       PLP
-                CLC
-                RETURN
-                .pend
-
-;
-; Print the current directory entry and move to the next entry
-;
-; Inputs:
-;   MCURSOR = pointer to the beginning of the entry
-;
-; Outputs:
-;   C is set if the directory is not finished, clear otherwise
-;
-DIR_PRENTRY     .proc
-                PHY
-                PHP
-                TRACE "DIR_PRENTRY"
+                LDA #0                      ; Zero out the pagination line count
+                STA @l LINECOUNT
+                STA @l LINECOUNT+2
 
                 setas
 
-                ; Check that we should print the entry
+                CALL PRINTCR
 
-                LDY #0
-                LDA [MCURSOR],Y     
-                BNE chk_del         ; If the first character is 0, finish listing the directory
+                ; TODO: add in support for a path
 
-                PLP                 ; Return false
-                CLC
-                PLY
-                RETURN
+                JSL FK_DIROPEN              ; Open up the directory
+                BCS pr_entry
 
-chk_del         CMP #DIR_FILE_DEL   ; Is the entry deleted?
-                BNE chk_hide        ; No: check if the entry is hidden
-                BRL done            ; Yes: skip the entry... don't print anything
+                THROW ERR_DIRECTORY         ; Throw a directory error
 
-chk_hide        LDY #DIR_FILEATTR
-                LDA [MCURSOR],Y     ; Get the attributes
-                BIT #DIR_ATTR_HIDE  ; Is it hidden
-                BEQ start_pr_name   ; No: go to print the name
-                BRL done            ; Yes: just skip the entry
+                .dpage <>SDOS_VARIABLES
 
-                ; Print the 8 character file name
+pr_entry        setas
+                LDY #DIRENTRY.SHORTNAME     ; Start with the file name
+                LDA [DOS_DIR_PTR],Y         ; Get the initial character of the name
+                BNE chk_unused
+                BRL done                    ; If it's NULL, we're done
 
-start_pr_name   LDY #0
-pr_name         LDA [MCURSOR],Y     ; Get the character
-                BEQ pr_dot          ; If blank, just print the dot
-                CALL PRINTC         ; Print the 8 character file name
-                INY
-                CPY #DIR_FILEEXT    ; End of the name?
-                BNE pr_name         ; No: keep printing characters
+chk_unused      CMP #DOS_DIR_ENT_UNUSED     ; Is it the unusued code?
+                BNE chk_attributes
+                BRL next_entry              ; Yes: go to the next entry
 
-pr_dot          LDY #DIR_FILEEXT    ; Check the first character of the extension
-                LDA [MCURSOR],Y
-                BEQ pr_tab1         ; If it's NULL, skip printing the dot
-                CMP #CHAR_SP        ; Also if it's a space
-                BEQ pr_tab1         ; If it's NULL, skip printing the dot
+chk_attributes  LDY #DIRENTRY.ATTRIBUTE     
+                LDA [DOS_DIR_PTR],Y         ; Get the attribute byte
 
-                LDA #'.'            ; Print a dot
+                BIT #DOS_ATTR_VOLUME        ; Is it a volume?
+                BEQ chk_hidden
+                BRL pr_volume               ; Print the volume label
+
+chk_hidden      BIT #DOS_ATTR_HIDDEN        ; Is it a hidden file?
+                BEQ chk_long
+                BRL next_entry              ; Yes: go to the next entry
+
+chk_long        AND #DOS_ATTR_LONGNAME      ; Is it a long file name entry?
+                CMP #DOS_ATTR_LONGNAME
+                BNE get_short_name
+                BRL next_entry              ; Yes: go to the next entry
+
+get_short_name  LDY #DIRENTRY.SHORTNAME     ; Starting with the first character of the file...
+pr_name_loop    LDA [DOS_DIR_PTR],Y         ; Get a character of the name
+                CMP #CHAR_SP                ; Is it a blank?
+                BEQ pr_dot                  ; Yes: end the name and print the dot
+                CALL PRINTC                 ; Otherwise: print it.
+                INY                         ; Move to the next character
+                CPY #DIRENTRY.SHORTNAME+8   ; Are we at the end of the name portion?
+                BNE pr_name_loop            ; No: print this new character
+
+pr_dot          LDY #DIRENTRY.SHORTNAME+8
+                LDA [DOS_DIR_PTR],Y         ; Get the first characater of the extension
+                CMP #CHAR_SP                ; Is it a space
+                BEQ pr_tab1                 ; Yes: skip to the next field
+
+                LDA #'.'                    ; Print the dot separator
                 CALL PRINTC
 
-                ; Print the 3 character file extension
+                LDY #DIRENTRY.SHORTNAME+8   ; Move to the first of the extension characters
+pr_ext_loop     LDA [DOS_DIR_PTR],Y         ; Get a character of the name
+                CMP #CHAR_SP                ; Is it a blank?
+                BEQ pr_tab1                 ; Yes: print a tab
+                JSR PRINTC                  ; Otherwise: print it.
+                INY                         ; Move to the next character
+                CPY #DIRENTRY.SHORTNAME+11  ; Are we at the end of the extension portion?
+                BNE pr_ext_loop             ; No: print this new character
 
-pr_ext          LDA [MCURSOR],Y     ; Print the 3 character file extension
-                BEQ pr_tab1         ; If blank, just go to process the attributes
+pr_tab1         LDA #CHAR_TAB               ; Print a TAB
                 CALL PRINTC
-                INY
-                CPY #DIR_FILEATTR
-                BNE pr_ext
 
-pr_tab1         LDA #CHAR_TAB       ; Print a TAB
+                ; Print type flag
+
+                LDY #DIRENTRY.ATTRIBUTE
+                LDA [DOS_DIR_PTR],Y         ; Get the attribute
+
+                BIT #DOS_ATTR_VOLUME        ; Is it a volume?
+                BNE end_entry               ; Yes: we're done printing this entry
+
+chk_read        BIT #DOS_ATTR_RO            ; Is it a read-only file?
+                BEQ chk_system
+                LDA #'R'                    ; Yes: print an R
                 CALL PRINTC
 
-                ; Print the attributes field
-
-                LDY #DIR_FILEATTR
-                LDA [MCURSOR],Y     ; Get the attribute
-                BIT #DIR_ATTR_DIR   ; Is it a directory?
-                BEQ chk_sys         ; No: skip and check the system flag
-
-                LDA #'D'            ; Yes: print a D
+chk_system      BIT #DOS_ATTR_SYSTEM        ; Is it System file?
+                BEQ chk_directory
+                LDA #'S'                    ; Yes: print an S
                 CALL PRINTC
-                LDA [MCURSOR],Y     ; Get the attribute
 
-chk_sys         BIT #DIR_ATTR_SYS   ; Is it a system file?
-                BEQ chk_ro
-
-                LDA #'S'            ; Yes: print a S
-                CALL PRINTC
-                LDA [MCURSOR],Y     ; Get the attribute
-
-chk_ro          BIT #DIR_ATTR_RO    ; Check if it's read-only
+chk_directory   BIT #DOS_ATTR_DIR           ; Is it a directory?
                 BEQ pr_tab2
-
-                LDA #'R'            ; Yes: Print an R
-                CALL PRINTC
-                LDA [MCURSOR],Y     ; Get the attribute
-
-pr_tab2         BIT #DIR_ATTR_DIR   ; Check again if it's a directory
-                BNE pr_cr           ; If so: don't print size and date
-
-                LDA #CHAR_TAB       ; Print a tab before the size
+                LDA #'D'                    ; Yes: print a D
                 CALL PRINTC
 
-                ; Print the size
+pr_tab2         LDA #CHAR_TAB               ; Print a TAB
+                CALL PRINTC
+
+                ; Print the file size   
+                setal
+                LDY #DIRENTRY.SIZE
+                LDA [DOS_DIR_PTR],Y         ; Get the file size
+                STA @l ARGUMENT1
+                INY
+                INY
+                LDA [DOS_DIR_PTR],Y
+                STA @l ARGUMENT1+2
+
                 setas
                 LDA #TYPE_INTEGER
-                STA ARGUMENT1
+                STA @l ARGTYPE1
+
+                CALL PR_FILESIZE            ; ... and print it       
+
+                setas
+                LDA #CHAR_TAB               ; Print a TAB
+                CALL PRINTC    
+
+                ; Print date-time
+
+pr_date_time    setal
+                LDY #DIRENTRY.CREATE_DATE
+                LDA [DOS_DIR_PTR],Y         ; Get the creation date
+                CALL PR_DATE                ; ... and print it
+
+                setas
+                LDA #' '
+                CALL PRINTC
+
                 setal
-                LDY #DIR_FILE_SIZE
-                LDA [MCURSOR],Y
-                STA ARGUMENT1
-                INY
-                INY
-                LDA [MCURSOR],Y
-                STA ARGUMENT1+2
-                CALL PR_FILESIZE
+                LDY #DIRENTRY.CREATE_TIME
+                LDA [DOS_DIR_PTR],Y         ; Get the creation time
+                CALL PR_TIME                ; ... and print it 
 
-                LDA #CHAR_TAB       ; Print a tab before the time/date
-                CALL PRINTC
+end_entry       CALL PRINTCR
+next_entry      CALL PAGINATE               ; Pause the listing, if necessary
+                JSL FK_DIRNEXT
+                BCC done
+                BRL pr_entry
 
-                ; Print the date
-                LDY #DIR_MOD_DATE
-                LDA [MCURSOR],Y
-                CALL PR_DATE
-
-                ; Print the time
-                LDY #DIR_MOD_TIME
-                LDA [MCURSOR],Y
-                CALL PR_TIME
-
-pr_cr           setas
-                LDA #CHAR_CR        ; Print a new line at the end of the entry
-                CALL PRINTC
-
-done            CLC                 ; Advance MCURSOR to the next entry (might be outside the block)
-                LDA MCURSOR
-                ADC #DIR_ENTRY_SIZE
-                STA MCURSOR
-                LDA MCURSOR+2
-                ADC #0
-                STA MCURSOR+2
+done            CALL PRINTC
+                CALL PRINTCR
 
                 PLP
-                SEC
-                PLY
+                PLD
+                RETURN
+
+pr_volume       setas
+                AND #DOS_ATTR_LONGNAME      ; Is it a long file name entry?
+                CMP #DOS_ATTR_LONGNAME
+                BEQ next_entry              ; Yes: skip it
+                
+pr_lbracket     LDA #'['
+                CALL PRINTC
+
+                LDY #DIRENTRY.SHORTNAME     ; Starting with the first character of the file...
+pr_vol_loop     LDA [DOS_DIR_PTR],Y         ; Get a character of the name
+                CMP #CHAR_SP                ; Is it a blank?
+                BEQ pr_rbracket             ; Yes: end the name and print the dot
+                CALL PRINTC                 ; Otherwise: print it.
+                INY                         ; Move to the next character
+                CPY #DIRENTRY.SHORTNAME+8   ; Are we at the end of the name portion?
+                BNE pr_vol_loop             ; No: print this new character
+
+pr_rbracket     LDA #']'                    ; Print a close bracket
+                CALL PRINTC
+                BRA end_entry               ; And try to get the next entry
+
+                .pend
+
+.dpage GLOBAL_VARS
+
+;
+; Load a BASIC program from an ASCII file on the file system
+; LOAD <path>
+;
+CMD_LOAD        .proc
+                PHP
+                TRACE "CMD_LOAD"
+
+                PLP
                 RETURN
                 .pend
 
-.align $100
-DIR_SAMPLE      .text "FILE0001"
-                .text "TXT"
-                .byte 0             ; Attributes
-                .fill 8, 0          ; Reserved
-                .word 0             ; Block High
-                DIR_TIME 10,20,30   ; Modification time
-                DIR_DATE 2020,02,03 ; Modification date
-                .word 0             ; Block Low
-                .dword 123          ; File size
+;
+; Set up a file descriptor
+;
+; Inputs:
+;   ARGUMENT1 = a string containing the path to use
+;
+; Outputs:
+;   DOS_FD_PTR = pointer to a file descriptor with everything zeroed
+;
+SETFILEDESC     .proc
+                PHD
+                PHP
 
-DIR_SAMPLE2     .text "FILE0002"
-                .text "BAT"
-                .byte DIR_ATTR_RO   ; Attributes
-                .fill 8, 0          ; Reserved
-                .word 0             ; Block High
-                DIR_TIME 11,21,31   ; Modification time
-                DIR_DATE 2020,02,14 ; Modification date
-                .word 0             ; Block Low
-                .dword 456 * 1024   ; File size
+                setdp SDOS_VARIABLES
 
-                .text "SYSTEM  "
-                .byte 0, 0, 0
-                .byte DIR_ATTR_DIR  ; Attributes
-                .fill 8, 0          ; Reserved
-                .word 0             ; Block High
-                DIR_TIME 11,21,31   ; Modification time
-                DIR_DATE 2020,02,04 ; Modification date
-                .word 0             ; Block Low
-                .dword 0            ; File size
+                setaxl
+                LDA #<>FD_IN            ; Point to the file descriptor
+                STA DOS_FD_PTR
+                LDA #`FD_IN
+                STA DOS_FD_PTR+2
 
-                .text "BOOT", 0, 0, 0, 0
-                .text "FNX"
-                .byte 0                     ; Attributes
-                .fill 8, 0                  ; Reserved
-                .word 0                     ; Block High
-                DIR_TIME 11,21,31           ; Modification time
-                DIR_DATE 2020,02,14         ; Modification date
-                .word 0                     ; Block Low
-                .dword 789 * 1024 * 1024    ; File size
+                LDY #0                  ; Fille the file descriptor with 0
+                setas
+                LDA #0
+zero_loop       STA [DOS_FD_PTR],Y
+                INY
+                CPY #SIZE(FILEDESC)
+                BNE zero_loop
 
-                .fill $20, 0        ; Blank entry to end the directory
+                setal
+                LDA #<>CLUSTER_BUFF     ; Point to the cluster buffer
+                STA @l FD_IN.BUFFER
+                LDA #`CLUSTER_BUFF
+                STA @l FD_IN.BUFFER+2
+
+                LDA @l ARGUMENT1        ; Point the file desriptor to the path
+                STA @l FD_IN.PATH
+                LDA @l ARGUMENT1+2
+                STA @l FD_IN.PATH+2
+
+                PLP
+                PLD
+                RETURN
+                .pend
+
+.dpage GLOBAL_VARS
+
+;
+; Load a binary file from the file system into memory
+; BLOAD <path> [, <address>]
+;
+S_BLOAD         .proc
+                PHP
+                TRACE "S_BLOAD"
+
+                setaxl
+
+                CALL SKIPWS
+                CALL EVALEXPR               ; Try to evaluate the file path
+                CALL ASS_ARG1_STR           ; Make sure it is a string
+                CALL SETFILEDESC            ; Set up a file descriptor
+                
+                ; Is there a destination address
+                setas
+                LDA #','
+                STA TARGETTOK
+                CALL OPT_TOK
+                BCS get_dest
+
+                setal
+                LDA #$FFFF                  ; Set destination address to something "safe"
+                STA @l DOS_DST_PTR
+                STA @l DOS_DST_PTR+2
+                BRA do_load
+
+get_dest        CALL INCBIP 
+                CALL EVALEXPR               ; Yes: Try to get the destination address
+                CALL ASS_ARG1_INT
+
+                setal
+                LDA ARGUMENT1               ; Set the destination address
+                STA @l DOS_DST_PTR
+                LDA ARGUMENT1+2
+                STA @l DOS_DST_PTR+2
+
+do_load         JSL FK_LOAD                 ; Attempt to load the file
+                BCS done
+
+                THROW ERR_LOAD
+
+done            PLP
+                RETURN
+                .pend
+
+;
+; Load a binary file from the file system into memory and try to execute it
+; BRUN <path>
+;
+CMD_BRUN        .proc
+                PHP
+                TRACE "S_BRUN"
+
+                setaxl
+
+                CALL SKIPWS
+                CALL EVALEXPR               ; Try to evaluate the file path
+                CALL ASS_ARG1_STR           ; Make sure it is a string
+                CALL SETFILEDESC            ; Set up a file descriptor
+
+                LDA #$FFFF
+                STA @l DOS_DST_PTR
+                STA @l DOS_DST_PTR+2
+
+                JSL FK_LOAD                 ; Attempt to load the file
+                BCS execute                 ; If we got it: try to execute it
+
+                THROW ERR_LOAD
+
+execute         setal
+                LDA @l DOS_RUN_PTR          ; Get the execution address
+                STA MJUMPADDR               ; And store it in the jump vector
+                setas
+                LDA @l DOS_RUN_PTR+2
+                STA MJUMPADDR+2
+
+                LDA #$5C                    ; JML opcode
+                STA MJUMPINST               ; Set the JML instruction
+
+                JSL MJUMPINST               ; And call the routine
+
+done            PLP
+                RETURN
+                .pend
+    

@@ -27,9 +27,10 @@
 .dsection variables
 .cerror * > $3AFFFF, "Too many system variables"
 
-; A block of memory for the virtul file system (jetison this when there is a real one)
-* = VFS
-.dsection vfs_block
+; A block of memory for variables that don't need to be in bank 0
+* = $37D000
+.dsection high_variables
+.cerror * > $37DFFF, "Too many high variables"
 
 ; Section of memory for the restart vector
 ; TODO: this will need to be removed once C256 is out of the prototype stage
