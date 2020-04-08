@@ -195,7 +195,9 @@ DOS_TEMP         = $000348      ; 4 bytes - Temporary storage for DOS operations
 DOS_FILE_SIZE    = $00034C      ; 4 bytes - The size of a file
 DOS_SRC_PTR      = $000350      ; 4 bytes - Pointer for transferring data
 DOS_DST_PTR      = $000354      ; 4 bytes - Pointer for transferring data
-DOS_RUN_PTR      = $000358      ; 4 bytes - Pointer for starting a loaded program
+DOS_END_PTR      = $000358      ; 4 bytes - Pointer to the last byte to save
+DOS_RUN_PTR      = $00035C      ; 4 bytes - Pointer for starting a loaded program
+DOS_PATH_BUFF    = $000400      ; 256 bytes - A buffer for path names
 
 ; COMMAND PARSER Variables
 ; Command Parser Stuff between $000F00 -> $000F84 (see CMD_Parser.asm)

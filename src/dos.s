@@ -546,18 +546,6 @@ pr_rbracket     LDA #']'                    ; Print a close bracket
 .dpage GLOBAL_VARS
 
 ;
-; Load a BASIC program from an ASCII file on the file system
-; LOAD <path>
-;
-CMD_LOAD        .proc
-                PHP
-                TRACE "CMD_LOAD"
-
-                PLP
-                RETURN
-                .pend
-
-;
 ; Set up a file descriptor
 ;
 ; Inputs:
@@ -691,3 +679,245 @@ done            PLP
                 RETURN
                 .pend
     
+;
+; Load a BASIC file from the file system into memory
+; LOAD <path>
+;
+CMD_LOAD        .proc
+                PHP
+                TRACE "CMD_LOAD"
+
+                setaxl
+
+                CALL SKIPWS
+                CALL EVALEXPR               ; Try to evaluate the file path
+                CALL ASS_ARG1_STR           ; Make sure it is a string
+                CALL SETFILEDESC            ; Set up a file descriptor
+
+                LDA #<>LOADBLOCK
+                STA @l DOS_DST_PTR
+                LDA #`LOADBLOCK
+                STA @l DOS_DST_PTR+2        ; Set the destination address
+
+                CALL CMD_NEW                ; Call NEW to clear the program area
+
+                JSL FK_LOAD                 ; Attempt to load the file
+                BCS start_tokenize          ; If we got it: start tokenizing
+
+                THROW ERR_LOAD
+
+                ; Put a 0 at the end of the loaded data.
+
+start_tokenize  setal
+                LDX #FILEDESC.FILESIZE
+                CLC                         ; Set MTEMP to point to the byte after the file
+                LDA FD_IN,X
+                ADC #<>LOADBLOCK
+                STA MTEMP
+                LDA FD_IN+2,X
+                ADC #`LOADBLOCK
+                STA MTEMP+2
+
+                setas
+                LDA #0
+                STA [MTEMP]                 ; Write a NULL right after the file
+
+                setal
+                LDA #<>LOADBLOCK            ; Set MCURSOR to the begining of the loaded data
+                STA MCURSOR
+                LDA #`LOADBLOCK
+                STA MCURSOR+2
+
+copy_line       LDX #0
+copy_char       setas
+                LDA [MCURSOR]
+                BEQ clean_up                ; If the character is 0, we're done
+                CMP #CHAR_CR                ; If it is new line...
+                BEQ do_process              ; ... we want to process the line
+                CMP #CHAR_LF                ; If it is a line feed...
+                BEQ next_char               ; ... we want to skip it
+
+                STA INPUTBUF,X              ; Otherwise, copy the character to the input buffer
+                INX
+
+next_char       setal
+                INC MCURSOR                 ; Advance the input cursor
+                BNE copy_char
+                INC MCURSOR+2
+                BRA copy_char
+
+do_process      setas
+                LDA #0                      ; Put a 0 at the end of the input buffer
+                STA INPUTBUF,X
+
+                CALL PROCESS                ; Process the line.
+                
+                INC MCURSOR                 ; Try again with the next line
+                BNE copy_line
+                INC MCURSOR+2
+                BRA copy_line
+
+clean_up        CPX #0                      ; Is there data in the INPUTBUF?
+                BEQ done                    ; No: just return
+
+                setas
+                LDA #0                      ; Make sure there is a trailing NULL
+                STA INPUTBUF,X
+                CALL PROCESS                ; Process the line
+
+done            PLP
+                RETURN
+                .pend
+
+;
+; BSAVE <path>, <start>, <end>
+; Save a block of memory running from <start> through <end> to the file <path>
+;
+S_BSAVE         .proc
+                PHP
+                TRACE "S_BSAVE"
+
+                setaxl
+
+                CALL SKIPWS
+                CALL EVALEXPR               ; Try to evaluate the file path
+                CALL ASS_ARG1_STR           ; Make sure it is a string
+                CALL SETFILEDESC            ; Set up a file descriptor
+
+                setas
+                LDA #','
+                CALL EXPECT_TOK             ; Get the next parameter
+                setal
+                CALL EVALEXPR               ; Try to evaluate the start address
+                CALL ASS_ARG1_INT           ; Make sure it is an integer  
+
+                LDA ARGUMENT1               ; Put that address in DOS_SRC_PTR
+                STA @l DOS_SRC_PTR
+                LDA ARGUMENT1+2
+                STA @l DOS_SRC_PTR+2           
+
+                setas
+                LDA #','
+                setal
+                CALL EXPECT_TOK             ; Get the next parameter
+                CALL EVALEXPR               ; Try to evaluate the end address
+                CALL ASS_ARG1_INT           ; Make sure it is an integer    
+
+                LDA ARGUMENT1               ; Put that address in DOS_END_PTR
+                STA @l DOS_END_PTR
+                LDA ARGUMENT1+2
+                STA @l DOS_END_PTR+2
+
+                JSL FK_SAVE                 ; Attempt to save the memory to file.
+                BCS done
+
+                THROW ERR_SAVE              ; Throw an error that we couldn't save
+
+done            PLP
+                RETURN
+                .pend
+
+;
+; DEL <path>
+; Delete a file
+;
+S_DEL           .proc
+                PHP
+                TRACE "S_DEL"
+
+                setaxl
+
+                CALL SKIPWS
+                CALL EVALEXPR               ; Try to evaluate the file path
+                CALL ASS_ARG1_STR           ; Make sure it is a string
+                CALL SETFILEDESC            ; Set up a file descriptor
+
+                LDX #0
+                LDY #0
+                setas
+loop            LDA [ARGUMENT1],Y           ; Copy the path to the DOS_PATH_BUFF
+                STA DOS_PATH_BUFF,X
+                BEQ path_loaded
+                INX
+                INY
+                BRA loop
+
+path_loaded     JSL FK_DELETE               ; Try to delete the file
+                BCS done
+                THROW ERR_DELETE            ; If error: throw delete error
+
+done            PLP
+                RETURN
+                .pend
+
+;
+; SAVE <path>
+; Saves the current program as an ASCIIZ file
+;
+CMD_SAVE        .proc
+                PHP
+                TRACE "CMD_SAVE"
+
+                setaxl
+
+                CALL SKIPWS
+                CALL EVALEXPR               ; Try to evaluate the file path
+                CALL ASS_ARG1_STR           ; Make sure it is a string
+                CALL SETFILEDESC            ; Set up a file descriptor
+
+                ; Set up the output memory buffer
+                LDA #<>LOADBLOCK
+                STA OBUFFER
+                setas
+                LDA #`LOADBLOCK
+                STA OBUFFER+2
+
+                LDA #DEV_BUFFER             ; Set up output for the buffer
+                STA BCONSOLE
+
+                setal
+                LDA #0
+                STA OBUFFIDX
+
+                LDA #$FFFF
+                STA OBUFFSIZE
+
+                ; List the entire file
+                setal
+                LDA #0                      ; Set start line number to 0
+                STA MARG1
+                STA MARG1+2
+
+                LDA #$FFFF                  ; Set end line number to MAXINT
+                STA MARG2
+                LDA #$7FFF
+                STA MARG2+2
+
+                CALL LISTPROG               ; List the file
+
+                ; Close the memory buffer
+                setas
+                LDA #DEV_SCREEN             ; Restore output to the screen
+                STA BCONSOLE
+
+                ; Save the buffer to the block device
+                setal
+                DEC OBUFFIDX                ; OBUFFIDX points to the next free byte... so pull it in one
+
+                CLC                         ; Set the range of memory to save
+                LDA #<>LOADBLOCK
+                STA @l DOS_SRC_PTR
+                ADC OBUFFIDX
+                STA @l DOS_END_PTR
+                LDA #`LOADBLOCK
+                STA @l DOS_SRC_PTR+2
+                ADC #0
+                STA @l DOS_END_PTR+2
+
+                JSL FK_SAVE                 ; Attempt to save the file
+                BCS done
+                THROW ERR_SAVE              ; Throw an error if there was a problem
+
+done            PLP
+                RETURN
+                .pend

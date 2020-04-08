@@ -67,3 +67,5 @@ ERR_UNDERFLOW = 14      ; Math operation underflowed
 ERR_DIV0 = 15           ; Math operation involved a division by zero
 ERR_DIRECTORY = 16      ; Error reading the directory
 ERR_LOAD = 17           ; Could not load file
+ERR_SAVE = 18           ; Could not save a file
+ERR_DELETE = 19         ; Could not delete a file

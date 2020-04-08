@@ -120,6 +120,8 @@ ERRORMSG    .word <>MSG_OK
             .word <>MSG_DIV0
             .word <>MSG_DIRECTORY
             .word <>MSG_LOAD
+            .word <>MSG_SAVE
+            .word <>MSG_DELETE
 
 MSG_AT          .null " at"
 
@@ -141,7 +143,8 @@ MSG_UNDERFLOW   .null "Math underflow"
 MSG_DIV0        .null "Division by zero"
 MSG_DIRECTORY   .null "Unable to read directory"
 MSG_LOAD        .null "Unable to load file"
-
+MSG_SAVE        .null "Unable to save file"
+MSG_DELETE      .null "Unable to delete file"
             .pend
 
 ;
