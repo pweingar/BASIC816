@@ -122,6 +122,8 @@ ERRORMSG    .word <>MSG_OK
             .word <>MSG_LOAD
             .word <>MSG_SAVE
             .word <>MSG_DELETE
+            .word <>MSG_FILENOTFND
+            .word <>MSG_DIRNOTWRITE
 
 MSG_AT          .null " at"
 
@@ -145,6 +147,8 @@ MSG_DIRECTORY   .null "Unable to read directory"
 MSG_LOAD        .null "Unable to load file"
 MSG_SAVE        .null "Unable to save file"
 MSG_DELETE      .null "Unable to delete file"
+MSG_FILENOTFND  .null "Could not find file"
+MSG_DIRNOTWRITE .null "Could not update directory"
             .pend
 
 ;

@@ -818,35 +818,26 @@ done            PLP
                 .pend
 
 ;
-; DEL <path>
-; Delete a file
+; Copy the string in ARGUMENT1 to DOS_PATH_BUFF
 ;
-S_DEL           .proc
+COPY2PATHBUF    .proc
+                PHX
+                PHY
                 PHP
-                TRACE "S_DEL"
-
-                setaxl
-
-                CALL SKIPWS
-                CALL EVALEXPR               ; Try to evaluate the file path
-                CALL ASS_ARG1_STR           ; Make sure it is a string
-                CALL SETFILEDESC            ; Set up a file descriptor
 
                 LDX #0
                 LDY #0
                 setas
 loop            LDA [ARGUMENT1],Y           ; Copy the path to the DOS_PATH_BUFF
                 STA DOS_PATH_BUFF,X
-                BEQ path_loaded
+                BEQ done
                 INX
                 INY
                 BRA loop
 
-path_loaded     JSL FK_DELETE               ; Try to delete the file
-                BCS done
-                THROW ERR_DELETE            ; If error: throw delete error
-
 done            PLP
+                PLY
+                PLX
                 RETURN
                 .pend
 
@@ -917,6 +908,166 @@ CMD_SAVE        .proc
                 JSL FK_SAVE                 ; Attempt to save the file
                 BCS done
                 THROW ERR_SAVE              ; Throw an error if there was a problem
+
+done            PLP
+                RETURN
+                .pend
+
+;
+; DEL <path>
+; Delete a file
+;
+S_DEL           .proc
+                PHP
+                TRACE "S_DEL"
+
+                setaxl
+
+                CALL SKIPWS
+                CALL EVALEXPR               ; Try to evaluate the file path
+                CALL ASS_ARG1_STR           ; Make sure it is a string
+                CALL COPY2PATHBUF           ; Copy the file name to the path buffer
+
+path_loaded     JSL FK_DELETE               ; Try to delete the file
+                BCS done
+                THROW ERR_DELETE            ; If error: throw delete error
+
+done            PLP
+                RETURN
+                .pend
+
+;
+; Validate that the character in A is valid for a FAT file name
+; Also converts the character to upper case.
+;
+; Inputs:
+;   A = the character to check (assumed to be 8-bits)
+;
+; Outputs:
+;   A = the character
+;   C set if ok, clear if false
+;
+VALIDFILECHAR   .proc
+                PHX
+                PHP
+
+                setas
+                CMP #'a'                    ; Is it lower case?
+                BLT chk_space
+                CMP #'z'+1
+                BGE chk_space
+
+                AND #%11011111              ; Yes: convert to upper case
+                BRA ret_valid
+
+chk_space       CMP #CHAR_SP            ; Is it a control code?
+                BLT is_invalid          ; Yes: it's invalid
+
+                LDX #0                  ; See if it's in the list of invalids
+loop            CMP invalid_chars,X
+                BEQ is_invalid
+                INX
+                CPX #15                 ; # of invalid characters
+                BNE loop
+
+ret_valid       PLP
+                SEC
+                PLX
+                RTL
+
+is_invalid      PLP
+                CLC
+                PLX
+                RTL
+
+invalid_chars   .text "*+,/:;<=>?\[]|",CHAR_DQUOTE
+                .pend
+
+;
+; RENAME <path>, <filename>
+; Renames a file
+;
+S_RENAME        .proc
+                PHP
+                TRACE "S_RENAME"
+
+                setdp GLOBAL_VARS
+
+                setaxl
+                CALL EVALEXPR               ; Try to evaluate the file path
+                CALL ASS_ARG1_STR           ; Make sure it is a string
+                CALL COPY2PATHBUF           ; Copy the file name to the path buffer
+
+                JSL FK_DIRREAD              ; Try to read the file
+                BCS get_new_name            ; If ok: get the new name
+                THROW ERR_FILENOTFOUND      ; Throw a file not found error
+
+get_new_name    setas
+                LDA #','
+                CALL EXPECT_TOK             ; Get the next parameter
+                setal
+                CALL EVALEXPR               ; Try to evaluate the new file name
+                CALL ASS_ARG1_STR           ; Make sure it is a string
+
+                LDA DOS_DIR_PTR
+                STA INDEX
+                LDA DOS_DIR_PTR+2
+                STA INDEX+2
+
+                setas
+                LDX #0
+                LDA #CHAR_SP                ; We'll use MLINEBUFF as temporary name storage
+blank_loop      STA MLINEBUF,X              ; Fill it with blanks
+                INX
+                CPX #11
+                BNE blank_loop
+
+                LDX #0
+                LDY #0
+name_loop       LDA [ARGUMENT1],Y           ; Get the character of the new name
+                BEQ copy_short_name         ; If end-of-string: copy what we have
+                CMP #'.'                    ; Is it a dot?
+                BEQ skip_dot                ; Yes: move on to the extension characters
+
+                JSL VALIDFILECHAR           ; Make sure the character is valid and uppercase
+                BCS save_nm_char
+                THROW ERR_ARGUMENT          ; Otherwise, throw an illegal argument error
+
+save_nm_char    STA MLINEBUF,X              ; Otherwise: copy it
+                INY
+                INX
+                CPY #8
+                BNE name_loop
+                BRA do_ext
+
+skip_dot        INY
+
+do_ext          LDX #8
+ext_loop        LDA [ARGUMENT1],Y           ; Get the character of the new extension
+                BEQ copy_short_name         ; If end-of-string: copy what we have
+
+                JSL VALIDFILECHAR           ; Make sure the character is valid and uppercase
+                BCS save_ext_char
+                THROW ERR_ARGUMENT          ; Otherwise, throw an illegal argument error
+
+save_ext_char   STA MLINEBUF,X              ; Otherwise: copy it
+                INY
+                INX
+                CPY #11
+                BNE ext_loop
+
+copy_short_name LDX #0                      ; Copy the short name we built to the directory entry
+                LDY #DIRENTRY.SHORTNAME
+copy_loop       LDA MLINEBUF,X
+                STA [INDEX],Y
+                INX
+                INY
+                CPY #11
+                BNE copy_loop
+
+                JSL FK_DIRWRITE             ; Write the directory entry back
+                BCS done
+                THROW ERR_DIRNOTWRITE       ; Throw an error
 
 done            PLP
                 RETURN
