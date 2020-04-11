@@ -340,6 +340,50 @@ DIVINT10        .proc
                 .pend
 
 ;
+; Divide ARGUMENT1 by 100
+;
+; Inputs:
+;   ARGUMENT1 = the number to divide
+;
+; Outputs:
+;   ARGUMENT1 = the quotient
+;   ARGUMENT2 = the remainder
+;
+DIVINT100       .proc
+                PHP
+                PHD
+                TRACE "DIVINT100"
+
+                setdp GLOBAL_VARS
+
+                ; TODO: flesh out non-C256 division
+
+.if SYSTEM = SYSTEM_C256
+                setal
+                LDA ARGUMENT1
+                STA @lD1_OPERAND_B
+                LDA #100
+                STA @lD1_OPERAND_A
+
+                LDA @lD1_RESULT
+                STA ARGUMENT1
+                STZ ARGUMENT1+2
+                LDA @lD1_REMAINDER
+                STA ARGUMENT2
+                STZ ARGUMENT2+2
+
+                setas
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+                STA ARGTYPE2
+.endif
+
+                PLD
+                PLP
+                RETURN
+                .pend
+
+;
 ; Check to see if ARGUMENT1 is 0
 ;
 ; Inputs:

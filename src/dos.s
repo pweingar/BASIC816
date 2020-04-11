@@ -303,7 +303,7 @@ PR_TIME         .proc
 
                 setal
 
-                ; Print the year
+                ; Print the time
 
                 STA @lCPUA
                 LDX #11                  ; Extract the hour
