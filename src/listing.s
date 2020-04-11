@@ -142,22 +142,6 @@ is_token    setal
             ADC #0
             STA INDEX+2
 
-;             LDY #TOKEN.print    ; The PRINT address
-;             LDA [INDEX],Y       ; Get the address of the PRINT function
-
-;             BRK
-;             NOP
-
-;             BEQ pr_default      ; If it's 0: print the name
-
-;             STA INDEX           ; Set INDEX to the address of the PRINT function
-;             LDA #`LISTBYTE
-;             STA INDEX+2
-;             CALL call_pr        ; And call the print function
-;             BRA done
-
-; call_pr     JMP [INDEX]
-
 pr_default  setdbr `TOKENS
             LDY #TOKEN.name
             LDA [INDEX],Y

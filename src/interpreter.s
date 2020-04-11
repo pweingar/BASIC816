@@ -114,21 +114,41 @@ ERRORMSG    .word <>MSG_OK
             .word <>MSG_RANGE
             .word <>MSG_ARG
             .word <>MSG_NOFILE
+            .word <>MSG_NAN
+            .word <>MSG_OVERFLOW
+            .word <>MSG_UNDERFLOW
+            .word <>MSG_DIV0
+            .word <>MSG_DIRECTORY
+            .word <>MSG_LOAD
+            .word <>MSG_SAVE
+            .word <>MSG_DELETE
+            .word <>MSG_FILENOTFND
+            .word <>MSG_DIRNOTWRITE
 
-MSG_AT      .null " at"
+MSG_AT          .null " at"
 
-MSG_OK      .null "OK"
-MSG_BREAK   .null "Break"
-MSG_SYNTAX  .null "Syntax error"
-MSG_MEMORY  .null "Out of memory"
-MSG_TYPE    .null "Type mismatch"
-MSG_NOTFND  .null "Variable not found"
-MSG_NOLINE  .null "Line number not found"
-MSG_UNDFLOW .null "Stack underflow"
-MSG_OVRFLOW .null "Stack overflow"
-MSG_RANGE   .null "Out of range"
-MSG_ARG     .null "Illegal argument"
-MSG_NOFILE  .null "File not found"
+MSG_OK          .null "OK"
+MSG_BREAK       .null "Break"
+MSG_SYNTAX      .null "Syntax error"
+MSG_MEMORY      .null "Out of memory"
+MSG_TYPE        .null "Type mismatch"
+MSG_NOTFND      .null "Variable not found"
+MSG_NOLINE      .null "Line number not found"
+MSG_UNDFLOW     .null "Stack underflow"
+MSG_OVRFLOW     .null "Stack overflow"
+MSG_RANGE       .null "Out of range"
+MSG_ARG         .null "Illegal argument"
+MSG_NOFILE      .null "File not found"
+MSG_NAN         .null "Not a number"
+MSG_OVERFLOW    .null "Math overflow"
+MSG_UNDERFLOW   .null "Math underflow"
+MSG_DIV0        .null "Division by zero"
+MSG_DIRECTORY   .null "Unable to read directory"
+MSG_LOAD        .null "Unable to load file"
+MSG_SAVE        .null "Unable to save file"
+MSG_DELETE      .null "Unable to delete file"
+MSG_FILENOTFND  .null "Could not find file"
+MSG_DIRNOTWRITE .null "Could not update directory"
             .pend
 
 ;

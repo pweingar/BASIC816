@@ -10,6 +10,8 @@
 .include "C256/io_c256.s"
 .endif
 
+LINES_PER_PAGE = 10     ; The number of lines to print on a page before pausing
+
 DEV_SCREEN = $80        ; Use the screen and keyboard for the console device
 DEV_UART = $40          ; Use UART for console device
 DEV_BUFFER = $20        ; Use the current text memory buffer for output or input
@@ -17,7 +19,34 @@ DEV_BUFFER = $20        ; Use the current text memory buffer for output or input
 .section globals
 BCONSOLE    .byte ?     ; Device for BASIC console
 SAVE_A      .byte ?     ; Save spot for the A register
+LINECOUNT   .byte ?     ; Counter for new lines to support pagination
 .send
+
+;
+; Count calls to PAGINATE (one per line) and pause if we have printed a screen.
+; Wait for the user to press a key.
+;
+PAGINATE    .proc
+            PHP
+            PHD
+
+            setdp GLOBAL_VARS
+            setas
+
+            LDA LINECOUNT           ; Check the line count
+            INC A
+            STA LINECOUNT
+
+            CMP @lLINES_VISIBLE
+            BLT done                ; If < limit, just return
+
+            CALL GETKEY             ; If >= limit, wait for a keypress
+            STZ LINECOUNT           ; And reset the line count
+
+done        PLD
+            PLP
+            RETURN
+            .pend
 
 ;
 ; Send the character in A to the conole
@@ -35,7 +64,7 @@ IPRINTC     .proc
 
             STA @lSAVE_A
 
-            LDA @lBCONSOLE      ; Check to see if we should send to an output buffer
+chk_out     LDA @lBCONSOLE      ; Check to see if we should send to an output buffer
             AND #DEV_BUFFER
             BEQ check_scrn      ; No... move on to the hardware screen
             

@@ -126,12 +126,13 @@ ret_false       PLP
 ;   OBUFFSIZE = size of the current output buffer
 ;
 OBUFF_PUTC      .proc
-                PHB
+                PHD
+                PHP
+
+                setdp GLOBAL_VARS
 
                 setas
                 STA SAVE_A
-
-                setdp GLOBAL_VARS
 
                 setal               ; Check to make sure a buffer is set
                 LDA OBUFFER
@@ -152,7 +153,8 @@ has_buffer      setxl
                 INY                 ; Increment the index
                 STY OBUFFIDX
 
-done            PLB
+done            PLP
+                PLD
                 RETURN
                 .pend
 

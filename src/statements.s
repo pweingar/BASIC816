@@ -224,7 +224,14 @@ S_CALL          .proc
                 LDY ARGUMENT1
 launch          LDX MARG2
                 LDA MARG1
+
+                PHD
+                PHB
+                PHP
                 JSL MJUMPINST       ; Call the subroutine indicated
+                PLP
+                PLB
+                PLD
 
                 CALL SKIPSTMT       ; Skip to the ending colon or end of line
 
