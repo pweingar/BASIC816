@@ -225,6 +225,9 @@ S_CALL          .proc
 launch          LDX MARG2
                 LDA MARG1
 
+                PHA
+                PHX
+                PHY
                 PHD
                 PHB
                 PHP
@@ -232,6 +235,9 @@ launch          LDX MARG2
                 PLP
                 PLB
                 PLD
+                PLY
+                PLX
+                PLA
 
                 CALL SKIPSTMT       ; Skip to the ending colon or end of line
 

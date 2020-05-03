@@ -1,7 +1,7 @@
 @echo off
 
 REM Generate a version file
-python genver.py > src/version.s
+python genver.py 
 
 REM The name portion of the top source file and all generated files
 set SOURCE=basic816

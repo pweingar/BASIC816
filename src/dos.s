@@ -643,9 +643,9 @@ done            PLP
 ; Load a binary file from the file system into memory and try to execute it
 ; BRUN <path>
 ;
-CMD_BRUN        .proc
+S_BRUN          .proc
                 PHP
-                TRACE "S_BRUN"
+                TRACE "CMD_BRUN"
 
                 setaxl
 
@@ -673,7 +673,19 @@ execute         setal
                 LDA #$5C                    ; JML opcode
                 STA MJUMPINST               ; Set the JML instruction
 
+                PHA
+                PHX
+                PHY
+                PHB
+                PHD
+                PHP
                 JSL MJUMPINST               ; And call the routine
+                PLP
+                PLD
+                PLB
+                PLY
+                PLX
+                PLA
 
 done            PLP
                 RETURN
