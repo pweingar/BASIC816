@@ -29,6 +29,7 @@ BIPPREV     .dword ?    ; Pointer to the previous bytein the current BASIC progr
 INDEX       .dword ?    ; A temporary pointer
 SCRATCH     .dword ?    ; A temporary scratch variable
 SCRATCH2    .dword ?    ; A temporary scratch variable
+            .word  ?	; Need a few more bits for BCD conversion
 STRPTR      .dword ?    ; A temporary pointer for strings
 CURLINE     .dword ?    ; Pointer to the current input line needing tokenization
 CURTOKLEN   .byte ?     ; Length of the text of the current token
