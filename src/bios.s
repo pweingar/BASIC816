@@ -37,7 +37,7 @@ PAGINATE    .proc
             INC A
             STA LINECOUNT
 
-            CMP @lLINES_VISIBLE
+            CMP @l LINES_VISIBLE
             BLT done                ; If < limit, just return
 
             CALL GETKEY             ; If >= limit, wait for a keypress
@@ -56,11 +56,15 @@ done        PLD
 ;   BCONSOLE = the device number for the console
 ;
 IPRINTC     .proc
-            PHP
-            setas
-            setxl
             PHX
             PHY
+            PHD
+            PHP
+
+            setdp GLOBAL_VARS
+
+            setas
+            setxl
 
             STA @lSAVE_A
 
@@ -89,9 +93,10 @@ send_uart   LDA @lBCONSOLE
             LDA #CHAR_LF        ; Send a linefeed after
             CALL UART_PUTC
 
-done        PLY
+done        PLP
+            PLD
+            PLY
             PLX
-            PLP
             RETURN
             .pend
 

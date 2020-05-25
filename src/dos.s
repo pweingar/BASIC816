@@ -370,27 +370,42 @@ CMD_DIR         .proc
                 PHP
                 TRACE "CMD_DIR"
 
-                setdp SDOS_VARIABLES
-
                 setaxl
                 LDA #0                      ; Zero out the pagination line count
                 STA @l LINECOUNT
                 STA @l LINECOUNT+2
 
                 setas
+                CALL PEEK_TOK               ; Check to see what the next token is
+                CMP #0
+                BEQ set_null                ; If none provided, set the path to empty
 
-                CALL PRINTCR
+                ; Set up the file descriptor based on the provided string
 
-                ; TODO: add in support for a path
+                CALL EVALEXPR               ; Try to evaluate the file path
+                CALL ASS_ARG1_STR           ; Make sure it is a string
 
+                BRA set_fd
+
+set_null        ; Set up the file descriptor for the default directory
+
+                setal
+                LDA #0                      ; Set ARGUMENT1 to the NULL string
+                STA ARGUMENT1
+                STA ARGUMENT1+2
+                setas
+                LDA #TYPE_STRING
+                STA ARGTYPE1
+                setal
+
+set_fd          CALL SETFILEDESC            ; Set the file description based on the argument
                 JSL FK_DIROPEN              ; Open up the directory
                 BCS pr_entry
 
                 THROW ERR_DIRECTORY         ; Throw a directory error
 
-                .dpage <>SDOS_VARIABLES
-
-pr_entry        setas
+pr_entry        setdp SDOS_VARIABLES
+                setas
                 LDY #DIRENTRY.SHORTNAME     ; Start with the file name
                 LDA [DOS_DIR_PTR],Y         ; Get the initial character of the name
                 BNE chk_unused
@@ -513,14 +528,17 @@ next_entry      CALL PAGINATE               ; Pause the listing, if necessary
                 BCC done
                 BRL pr_entry
 
-done            CALL PRINTC
+done            setdp GLOBAL_VARS
+                CALL SKIPSTMT
                 CALL PRINTCR
 
                 PLP
                 PLD
                 RETURN
 
-pr_volume       setas
+pr_volume       setdp SDOS_VARIABLES
+
+                setas
                 AND #DOS_ATTR_LONGNAME      ; Is it a long file name entry?
                 CMP #DOS_ATTR_LONGNAME
                 BEQ next_entry              ; Yes: skip it
