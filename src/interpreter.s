@@ -53,8 +53,70 @@ THROW       .macro ; errcode
             setas
             LDA #\1
             STA @lERROR_NUM
+            setal
+            AND #$00FF
+            CALL SET_ERRERL
+            setas
             JMP [HANDLEERR]
             .endm
+
+;
+; Set the variables "ERR" and "ERL"
+;
+; Inputs:
+;   A = value for ERR
+;   LINENUM = the value for ERL
+;
+SET_ERRERL      .proc
+                PHB
+                PHD
+                PHP
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setal
+                STA ARGUMENT1               ; Get any result returned 
+                LDA #0
+                STA ARGUMENT1+2
+                setas
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+
+                STA TOFINDTYPE              ; Indicate what variable to set (BRUN_RESULT)
+                LDA #`err_name
+                STA TOFIND+2
+                setal
+                LDA #<>err_name
+                STA TOFIND
+
+                CALL VAR_SET                ; Set the variable
+
+                setal
+                LDA LINENUM
+                STA ARGUMENT1               ; Get any result returned 
+                LDA LINENUM+2
+                STA ARGUMENT1+2
+                setas
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+
+                STA TOFINDTYPE              ; Indicate what variable to set (BRUN_RESULT)
+                LDA #`erl_name
+                STA TOFIND+2
+                setal
+                LDA #<>erl_name
+                STA TOFIND
+
+                CALL VAR_SET                ; Set the variable
+
+                PLP
+                PLD
+                PLB
+                RETURN
+err_name        .null "ERR"
+erl_name        .null "ERL"
+                .pend
 
 ;
 ; Default error handler.

@@ -21,6 +21,7 @@ FK_DIRREAD          = $001110 ; Read the directory entry for the specified file
 FK_DIRWRITE         = $001114 ; Write any changes in the current directory cluster back to the drive
 FK_LOAD             = $001118 ; load a binary file into memory, supports multiple file formats
 FK_SAVE             = $00111C ; Save memory to a binary file
+FK_RUN              = $001124 ; Load and run an executable binary file
 
 ;;;
 ;;; Kernel Constants

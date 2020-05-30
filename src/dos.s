@@ -77,7 +77,7 @@ DIR_DATE        .macro year, month, day
 ;
 ; DOS High Memory Variables
 ;
-.section high_variables
+.section variables
 CLUSTER_BUFF    .fill 512           ; A buffer for cluster read/write operations
 FD_IN           .dstruct FILEDESC   ; A file descriptor for input operations
 .send
@@ -402,6 +402,7 @@ set_fd          CALL SETFILEDESC            ; Set the file description based on 
                 JSL FK_DIROPEN              ; Open up the directory
                 BCS pr_entry
 
+                CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
                 THROW ERR_DIRECTORY         ; Throw a directory error
 
 pr_entry        setdp SDOS_VARIABLES
@@ -528,7 +529,9 @@ next_entry      CALL PAGINATE               ; Pause the listing, if necessary
                 BCC done
                 BRL pr_entry
 
-done            setdp GLOBAL_VARS
+done            CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
+
+                setdp GLOBAL_VARS
                 CALL SKIPSTMT
                 CALL PRINTCR
 
@@ -658,6 +661,67 @@ done            PLP
                 .pend
 
 ;
+; Set the variables "DOSSTAT", "BIOSSTAT"
+;
+; Inputs:
+;   A = value for ERR
+;   LINENUM = the value for ERL
+;
+SET_DOSSTAT     .proc
+                PHB
+                PHD
+                PHP
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setas
+                LDA @l DOS_STATUS           ; Get the DOS status code
+                STA ARGUMENT1
+                LDA #0
+                STA ARGUMENT1+1
+                STA ARGUMENT1+2
+                STA ARGUMENT1+3
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+
+                STA TOFINDTYPE              ; Indicate what variable to set (DOSSTAT)
+                LDA #`dosstat_name
+                STA TOFIND+2
+                setal
+                LDA #<>dosstat_name
+                STA TOFIND
+
+                CALL VAR_SET                ; Set the variable
+
+                setas
+                LDA @l BIOS_STATUS          ; Get the BIOS status code
+                STA ARGUMENT1
+                LDA #0
+                STA ARGUMENT1+1
+                STA ARGUMENT1+2
+                STA ARGUMENT1+3
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+
+                STA TOFINDTYPE              ; Indicate what variable to set (BIOSSTAT)
+                LDA #`biosstat_name
+                STA TOFIND+2
+                setal
+                LDA #<>biosstat_name
+                STA TOFIND
+
+                CALL VAR_SET                ; Set the variable
+
+                PLP
+                PLD
+                PLB
+                RETURN
+dosstat_name    .null "DOSSTAT"
+biosstat_name   .null "BIOSSTAT"
+                .pend
+
+;
 ; Load a binary file from the file system into memory and try to execute it
 ; BRUN <path>
 ;
@@ -670,30 +734,25 @@ CMD_BRUN        .proc
                 CALL SKIPWS
                 CALL EVALEXPR               ; Try to evaluate the file path
                 CALL ASS_ARG1_STR           ; Make sure it is a string
-                CALL SETFILEDESC            ; Set up a file descriptor
+
+                LDA ARGUMENT1
+                STA @l DOS_RUN_PARAM
+                LDA ARGUMENT1+2
+                STA @l DOS_RUN_PARAM+2
 
                 LDA #$FFFF
                 STA @l DOS_DST_PTR
                 STA @l DOS_DST_PTR+2
 
-                JSL FK_LOAD                 ; Attempt to load the file
-                BCS execute                 ; If we got it: try to execute it
+                JSL FK_RUN                  ; Attempt to run the file
+                BCS done                    ; If we got it: try to execute it
 
+                CALL SET_ERRERL             ; Set the ERR and ERL variables based on the return result
+                CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
                 THROW ERR_LOAD
 
-execute         setal
-                LDA @l DOS_RUN_PTR          ; Get the execution address
-                STA MJUMPADDR               ; And store it in the jump vector
-                setas
-                LDA @l DOS_RUN_PTR+2
-                STA MJUMPADDR+2
-
-                LDA #$5C                    ; JML opcode
-                STA MJUMPINST               ; Set the JML instruction
-
-                JSL MJUMPINST               ; And call the routine
-
-done            PLP
+done            CALL SET_ERRERL             ; Set the ERR and ERL variables based on the return result
+                PLP
                 RETURN
                 .pend
     
@@ -722,11 +781,14 @@ CMD_LOAD        .proc
                 JSL FK_LOAD                 ; Attempt to load the file
                 BCS start_tokenize          ; If we got it: start tokenizing
 
+                CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
                 THROW ERR_LOAD
 
                 ; Put a 0 at the end of the loaded data.
 
-start_tokenize  setal
+start_tokenize  CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
+
+                setal
                 LDX #FILEDESC.FILESIZE
                 CLC                         ; Set MTEMP to point to the byte after the file
                 LDA FD_IN,X
@@ -829,9 +891,12 @@ S_BSAVE         .proc
                 JSL FK_SAVE                 ; Attempt to save the memory to file.
                 BCS done
 
+                CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
                 THROW ERR_SAVE              ; Throw an error that we couldn't save
 
-done            PLP
+done            CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
+
+                PLP
                 RETURN
                 .pend
 
@@ -925,9 +990,12 @@ CMD_SAVE        .proc
 
                 JSL FK_SAVE                 ; Attempt to save the file
                 BCS done
+                CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
                 THROW ERR_SAVE              ; Throw an error if there was a problem
 
-done            PLP
+done            CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
+
+                PLP
                 RETURN
                 .pend
 
@@ -948,9 +1016,12 @@ S_DEL           .proc
 
 path_loaded     JSL FK_DELETE               ; Try to delete the file
                 BCS done
+                CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
                 THROW ERR_DELETE            ; If error: throw delete error
 
-done            PLP
+done            CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
+
+                PLP
                 RETURN
                 .pend
 
@@ -1018,6 +1089,7 @@ S_RENAME        .proc
 
                 JSL FK_DIRREAD              ; Try to read the file
                 BCS get_new_name            ; If ok: get the new name
+                CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
                 THROW ERR_FILENOTFOUND      ; Throw a file not found error
 
 get_new_name    setas
@@ -1066,6 +1138,7 @@ ext_loop        LDA [ARGUMENT1],Y           ; Get the character of the new exten
 
                 JSL VALIDFILECHAR           ; Make sure the character is valid and uppercase
                 BCS save_ext_char
+                CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
                 THROW ERR_ARGUMENT          ; Otherwise, throw an illegal argument error
 
 save_ext_char   STA MLINEBUF,X              ; Otherwise: copy it
@@ -1085,8 +1158,11 @@ copy_loop       LDA MLINEBUF,X
 
                 JSL FK_DIRWRITE             ; Write the directory entry back
                 BCS done
+                CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
                 THROW ERR_DIRNOTWRITE       ; Throw an error
 
-done            PLP
+done            CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
+
+                PLP
                 RETURN
                 .pend
