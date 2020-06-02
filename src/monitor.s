@@ -132,7 +132,7 @@ help_text       .text "A <start> <assembly>",CHAR_CR
                 .text "H <start> <end> <byte> [byte]..",CHAR_CR
                 .text "  Hunt for values in memory",CHAR_CR,CHAR_CR
 
-                ;.text "L     LOAD         ",CHAR_DQUOTE,"File",CHAR_DQUOTE," [Device] [Start]",CHAR_CR
+                .text "L     LOAD         ",CHAR_DQUOTE,"File",CHAR_DQUOTE," [destination]",CHAR_CR
 
                 .text "M <start> [end]",CHAR_CR
                 .text "  Dump the value in memory",CHAR_CR,CHAR_CR
@@ -142,7 +142,7 @@ help_text       .text "A <start> <assembly>",CHAR_CR
                 .text "; <PC> <A> <X> <Y> <SP> <DBR> <DP> <NVMXDIZC>",CHAR_CR
                 .text "  Change the contents of the registers",CHAR_CR,CHAR_CR
 
-                ;.text "S     SAVE         ",CHAR_DQUOTE,"File",CHAR_DQUOTE," Device Start End",CHAR_CR
+                .text "S     SAVE         ",CHAR_DQUOTE,"File",CHAR_DQUOTE," <start> <end>",CHAR_CR
 
                 .text "T <start> <end> <destination>",CHAR_CR
                 .text "  Transfer (copy) data within memory",CHAR_CR,CHAR_CR
@@ -508,9 +508,13 @@ IMMEMORY        .proc
                 ; Made the direct page coincide with our variables
                 setdp <>MONITOR_VARS
 
-                ; Check the number of arguments
                 setas
-                LDA MARG_LEN
+
+                LDA #0              ; Clear the pagination line counter
+                STA @lLINECOUNT
+
+
+                LDA MARG_LEN        ; Check the number of arguments
                 CMP #2
                 BGE set_cursor      ; 2>= arguments? Use them as-is
                 
@@ -635,6 +639,7 @@ check_line      setas
                 CALL PRINTS
 
                 CALL PRINTCR            ; new line
+                CALL PAGINATE           ; Pause if we've printed out a page of lines
 
                 ; Check to see if we've printed the last byte
                 LDA MCURSOR+2           ; Are the banks the same?
@@ -1295,6 +1300,57 @@ done            RTL
                 .pend
 
 ;
+; Parse a string argument
+;
+; Inputs:
+;   MCURSOR = pointer to the current argument value to parse (assumed to point to ")
+;   MARG_LEN = the number of arguments parsed so far
+;
+; Outputs:
+;   MARG_LEN = the number of arguments parsed so far (should be +1)
+;   MCURSOR = pointer to the character right after the argument
+;
+MPARSESTR       .proc
+                PHP
+                setdp <>MONITOR_VARS
+
+                JSL M_INC_CURSOR                ; Point to the first character of the name
+                JSL MSKIPWS                     ; Skip white space
+
+                setaxl
+                LDA MARG_LEN                    ; Get the argument count
+                setal
+                AND #$00FF
+                ASL A                           ; multiply it by forfour
+                ASL A
+                TAX                             ; ... to get the index to the argument                
+
+                LDA MCURSOR                     ; Set the argument to the address of the first byte
+                STA MARG1,X
+                LDA MCURSOR+2
+                STA MARG1+2,X
+
+                setas
+loop            LDA [MCURSOR]                   ; Scan to the closing double quote
+                BEQ done                        ; If NULL... treat it as a closed argument
+                                                ; TODO: handle a carraige return?
+                CMP #CHAR_DQUOTE
+                BEQ close_string
+                JSL M_INC_CURSOR
+                BRA loop
+
+close_string    LDA #0                          ; Write a NULL to close the string
+                STA [MCURSOR]
+
+                JSL M_INC_CURSOR                ; And point to the next byte
+
+                INC MARG_LEN
+
+done            PLP
+                RTL
+                .pend
+
+;
 ; Attempt to parse an argument
 ;
 ; Inputs:
@@ -1368,12 +1424,18 @@ parse_arg       JSL MSKIPWS                     ; Otherwise, skip white space
                 LDA [MCURSOR]                   ; Check the current character
                 BEQ done                        ; If it is NULL, we're done
 
-                JSL MPARSEARG                   ; Attempt to parse the argument
+                CMP #CHAR_DQUOTE                ; Is it a double-quote?
+                BNE regular_arg
+
+                JSL MPARSESTR                   ; Yes: parse it as a string argument
+                BRA check_rest
+
+regular_arg     JSL MPARSEARG                   ; Attempt to parse the argument
                 LDA MARG_LEN                    ; Check how many arguments we've processed
                 CMP #9
                 BGE done                        ; If >=9, then we're done
 
-                LDA [MCURSOR]                   ; Check the current character
+check_rest      LDA [MCURSOR]                   ; Check the current character
                 BEQ done                        ; If EOL: we're done
                 CMP #' '
                 BEQ parse_arg                   ; If space: try to process another argument
@@ -1502,6 +1564,152 @@ asm_no_operand  INC MARG_LEN                    ; Increment the argument count
                 .pend
 
 ;
+; Load a file from a block device
+;
+; Inputs:
+;   MARG1 = path to the file to load
+;   MARG2 = optional destination address
+;   MARG_LEN = the number of arguments passed
+;
+IMLOAD          .proc
+                PHP
+
+                setxl
+                setas
+                LDA MARG_LEN
+                BNE get_arguments
+
+bad_arguments   LDX #<>MERRARGS                 ; Print bad arguments error
+                LDA #`MERRARGS
+                PHA
+                PLB
+                CALL PRINTS
+                CALL PRINTCR
+                BRA done
+
+get_arguments   setal
+                LDA MARG1                       ; Set up the file descriptor with out path
+                STA ARGUMENT1
+                LDA MARG1+2
+                STA ARGUMENT1+2
+                CALL SETFILEDESC
+
+                setas
+                LDA MARG_LEN
+                CMP #1
+                BNE get_dest
+
+                setal
+                LDA #$FFFF                      ; Destination address not provided...
+                STA @l DOS_DST_PTR              ; ... set it to something sane
+                STA @l DOS_DST_PTR+2
+                BRA try_load
+
+get_dest        setal
+                LDA MARG2                       ; Set the destination address from the arguments
+                STA @l DOS_DST_PTR
+                LDA MARG2+2
+                STA @l DOS_DST_PTR+2 
+
+try_load        JSL FK_LOAD                     ; Try to load the file
+                BCS done
+
+error           setas
+                LDX #<>MCANTLOAD                ; Print bad arguments error
+                LDA #`MCANTLOAD
+                PHA
+                PLB
+                CALL PRINTS
+
+                LDA @l DOS_STATUS               ; Print the DOS status code
+                CALL PRHEXB
+
+                LDA #' '
+                CALL PRINTC
+
+                LDA @l BIOS_STATUS              ; Print the BIOS status code
+                CALL PRHEXB
+
+                CALL PRINTCR
+                CALL PRINTCR
+
+done            PLP
+                RTL
+                .pend
+
+;
+; Save a file to a block device
+;
+; Inputs:
+;   MARG1 = path to the file to load
+;   MARG2 = start address of the block to save
+;   MARG3 = end address of the block to save
+;   MARG_LEN = the number of arguments passed
+;
+IMSAVE          .proc
+                PHB
+                PHP
+
+                setxl
+                setas
+                LDA MARG_LEN
+                CMP #3
+                BEQ get_arguments
+
+                LDX #<>MERRARGS                 ; Print bad arguments error
+                LDA #`MERRARGS
+                PHA
+                PLB
+                CALL PRINTS
+                CALL PRINTCR
+
+                BRA done
+
+get_arguments   setal
+                LDA MARG1                       ; Set up the file descriptor with out path
+                STA ARGUMENT1
+                LDA MARG1+2
+                STA ARGUMENT1+2
+                CALL SETFILEDESC
+
+                LDA MARG2                       ; Set the starting address
+                STA @l DOS_SRC_PTR
+                LDA MARG2+2
+                STA @l DOS_SRC_PTR+2 
+
+                LDA MARG3                       ; Set the ending address
+                STA @l DOS_END_PTR
+                LDA MARG3+2
+                STA @l DOS_END_PTR+2 
+
+                JSL FK_SAVE                     ; Save the data
+                BCS done
+
+error           setas
+                LDX #<>MCANTSAVE                ; Print bad arguments error
+                LDA #`MCANTSAVE
+                PHA
+                PLB
+                CALL PRINTS
+
+                LDA @l DOS_STATUS               ; Print the DOS status code
+                CALL PRHEXB
+
+                LDA #' '
+                CALL PRINTC
+
+                LDA @l BIOS_STATUS              ; Print the BIOS status code
+                CALL PRHEXB
+
+                CALL PRINTCR
+                CALL PRINTCR
+
+done            PLP
+                PLB
+                RTL
+                .pend
+
+;
 ; Exit monitor and return to BASIC command prompt
 ;
 IMEXIT          JML INTERACT
@@ -1513,8 +1721,6 @@ IMEXIT          JML INTERACT
 IMRETURN        RTL ; Handle RETURN key (ie: execute command)
 IMPARSE1        BRK ; Parse one word on the current command line
 IMASSEMBLEA     BRK ; Assemble a line of text.
-IMLOAD          BRK ; Load data from disk. Device=1 (internal floppy) Start=Address in file
-IMSAVE          BRK ; Save memory to disk
 IMVERIFY        BRK ; Verify memory and file on disk
 
 IMDOS           BRK ; Execute DOS command
@@ -1523,7 +1729,9 @@ IMDOS           BRK ; Execute DOS command
 ; MMESSAGES
 ; MONITOR messages and responses.
 MMESSAGES
-MERRARGS        .null "Bad arguments",CHAR_CR
+MERRARGS        .null "Bad arguments",CHAR_CR,CHAR_CR
+MCANTSAVE       .null "Unable to save file: "
+MCANTLOAD       .null "Unable to load file: "
 
 mregisters_msg  .null $0D,"  PC     A    X    Y    SP   DBR DP   NVMXDIZC",CHAR_CR
 MCOMMANDS       .null "ACDFGJHLMR;STVWX>?"

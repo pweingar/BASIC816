@@ -117,7 +117,7 @@ S_SETTIME       .proc
                 ASL A
                 ASL A
                 ORA ARGUMENT2           ; And add in the ones digit
-                STA SCRATCH
+                PHA
 
                 LDA #','
                 CALL EXPECT_TOK
@@ -131,7 +131,7 @@ S_SETTIME       .proc
                 ASL A
                 ASL A
                 ORA ARGUMENT2           ; And add in the ones digit
-                STA SCRATCH+1
+                PHA
 
                 LDA #','
                 CALL EXPECT_TOK
@@ -145,24 +145,26 @@ S_SETTIME       .proc
                 ASL A
                 ASL A
                 ORA ARGUMENT2           ; And add in the ones digit
-                STA SCRATCH+2
+                PHA
 
                 LDA @lRTC_CTRL          ; Pause updates to the clock registers
-                ORA #%00001000
+                ORA #%00001100
                 STA @lRTC_CTRL
 
-                LDA SCRATCH             ; Save the hour...
-                STA @lRTC_HRS
+                PLA                     ; And seconds to the RTC
+                STA @lRTC_SEC
 
-                LDA SCRATCH+1           ; Minutes...
+                PLA                     ; Minutes...
                 STA @lRTC_MIN
 
-                LDA SCRATCH+2           ; And seconds to the RTC
-                STA @lRTC_SEC
+                PLA                     ; Save the hour...
+                STA @lRTC_HRS
 
                 LDA @lRTC_CTRL          ; Re-enable updates to the clock registers
                 AND #%11110111
                 STA @lRTC_CTRL
+
+                CALL SKIPSTMT
 
                 PLP
                 RETURN
@@ -187,7 +189,7 @@ S_SETDATE       .proc
                 ASL A
                 ASL A
                 ORA ARGUMENT2           ; And add in the ones digit
-                STA SCRATCH
+                PHA
 
                 LDA #','
                 CALL EXPECT_TOK
@@ -201,38 +203,65 @@ S_SETDATE       .proc
                 ASL A
                 ASL A
                 ORA ARGUMENT2           ; And add in the ones digit
-                STA SCRATCH+1
+                PHA
 
                 LDA #','
                 CALL EXPECT_TOK
 
                 CALL EVALEXPR           ; Get the year number
-                CALL ASS_ARG1_BYTE      ; Make sure it's a byte
-                CALL DIVINT10           ; Separate both digits
+                CALL ASS_ARG1_INT       ; Make sure it's an integer
+                CALL DIVINT100          ; Separate the ones and tens from the century
+
+                setal
+                LDA ARGUMENT1           ; Get the century
+                STA MTEMP               ; Save it in MTEMP
+
+                LDA ARGUMENT2           ; Separate the 10s from the 1s digits
+                STA ARGUMENT1
+                CALL DIVINT10
+                setas
                 LDA ARGUMENT1           ; Take the tens digit
                 ASL A                   ; Shift it 4 bits
                 ASL A
                 ASL A
                 ASL A
                 ORA ARGUMENT2           ; And add in the ones digit
-                STA SCRATCH+2
+                PHA                     ; Save the 10s and 1s in BCD
+
+                setal
+                LDA MTEMP               ; Separate the 100s from the 1000s digits
+                STA ARGUMENT1
+                CALL DIVINT10
+                setas
+                LDA ARGUMENT1           ; Take the tens digit
+                ASL A                   ; Shift it 4 bits
+                ASL A
+                ASL A
+                ASL A
+                ORA ARGUMENT2           ; And add in the ones digit
+                PHA                     ; Save the 100s and 1000s in BCD               
 
                 LDA @lRTC_CTRL          ; Pause updates to the clock registers
-                ORA #%00001000
+                ORA #%00001100
                 STA @lRTC_CTRL
 
-                LDA SCRATCH             ; Save the day...
-                STA @lRTC_DAY
+                PLA                     ; Set the century
+                STA @lRTC_CENTURY
 
-                LDA SCRATCH+1           ; Month...
+                PLA                     ; And year to the RTC
+                STA @lRTC_YEAR
+
+                PLA                     ; Month...
                 STA @lRTC_MONTH
 
-                LDA SCRATCH+2           ; And year to the RTC
-                STA @lRTC_YEAR
+                PLA                     ; Save the day...
+                STA @lRTC_DAY
 
                 LDA @lRTC_CTRL          ; Re-enable updates to the clock registers
                 AND #%11110111
                 STA @lRTC_CTRL
+
+                CALL SKIPSTMT
 
                 PLP
                 RETURN

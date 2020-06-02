@@ -27,10 +27,6 @@
 .dsection variables
 .cerror * > $3AFFFF, "Too many system variables"
 
-; A block of memory for the virtul file system (jetison this when there is a real one)
-* = VFS
-.dsection vfs_block
-
 ; Section of memory for the restart vector
 ; TODO: this will need to be removed once C256 is out of the prototype stage
 * = $00FFFC
@@ -43,7 +39,9 @@
 .include "vicky_def.s"
 
 BASIC_BANK = $00            ; Memory bank for default purposes
-CODE_BANK = $17             ; Memory bank for the BASIC816 code
+CODE_BANK = $36             ; Memory bank for the BASIC816 code
+
+; Bank 0 memory spaces
 
 IOBUF = $004C00             ; A buffer for I/O operations
 ARRIDXBUF = $004D00         ; The array index buffer used for array references
@@ -55,8 +53,10 @@ ARGUMENT_BOT = $006000      ; Starting address of the argument stack
 ARGUMENT_TOP = $006FFF      ; Ending address of the argument stack
 OPERATOR_BOT = $007000      ; Starting address of the operator stack
 OPERATOR_TOP = $007FFF      ; Ending address of the operator stack
-HEAP_TOP = $34FFFF          ; Starting point of the heap
-BASIC_BOT = $010000         ; Starting point for BASIC programs
+
+; Non Bank 0 memory spaces
+
+LOADBLOCK = $010000         ; File loading will start here
+BASIC_BOT = $360000         ; Starting point for BASIC programs
+HEAP_TOP = $37FFFF          ; Starting point of the heap
 VRAM = $B00000              ; Start of video RAM
-VFS = $360000               ; Start of the "virtual file system"
-LOADBLOCK = $020000         ; File loading will start here

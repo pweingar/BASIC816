@@ -53,8 +53,70 @@ THROW       .macro ; errcode
             setas
             LDA #\1
             STA @lERROR_NUM
+            setal
+            AND #$00FF
+            CALL SET_ERRERL
+            setas
             JMP [HANDLEERR]
             .endm
+
+;
+; Set the variables "ERR" and "ERL"
+;
+; Inputs:
+;   A = value for ERR
+;   LINENUM = the value for ERL
+;
+SET_ERRERL      .proc
+                PHB
+                PHD
+                PHP
+
+                setdp GLOBAL_VARS
+                setdbr BASIC_BANK
+
+                setal
+                STA ARGUMENT1               ; Get any result returned 
+                LDA #0
+                STA ARGUMENT1+2
+                setas
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+
+                STA TOFINDTYPE              ; Indicate what variable to set (BRUN_RESULT)
+                LDA #`err_name
+                STA TOFIND+2
+                setal
+                LDA #<>err_name
+                STA TOFIND
+
+                CALL VAR_SET                ; Set the variable
+
+                setal
+                LDA LINENUM
+                STA ARGUMENT1               ; Get any result returned 
+                LDA LINENUM+2
+                STA ARGUMENT1+2
+                setas
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+
+                STA TOFINDTYPE              ; Indicate what variable to set (BRUN_RESULT)
+                LDA #`erl_name
+                STA TOFIND+2
+                setal
+                LDA #<>erl_name
+                STA TOFIND
+
+                CALL VAR_SET                ; Set the variable
+
+                PLP
+                PLD
+                PLB
+                RETURN
+err_name        .null "ERR"
+erl_name        .null "ERL"
+                .pend
 
 ;
 ; Default error handler.
@@ -114,21 +176,41 @@ ERRORMSG    .word <>MSG_OK
             .word <>MSG_RANGE
             .word <>MSG_ARG
             .word <>MSG_NOFILE
+            .word <>MSG_NAN
+            .word <>MSG_OVERFLOW
+            .word <>MSG_UNDERFLOW
+            .word <>MSG_DIV0
+            .word <>MSG_DIRECTORY
+            .word <>MSG_LOAD
+            .word <>MSG_SAVE
+            .word <>MSG_DELETE
+            .word <>MSG_FILENOTFND
+            .word <>MSG_DIRNOTWRITE
 
-MSG_AT      .null " at"
+MSG_AT          .null " at"
 
-MSG_OK      .null "OK"
-MSG_BREAK   .null "Break"
-MSG_SYNTAX  .null "Syntax error"
-MSG_MEMORY  .null "Out of memory"
-MSG_TYPE    .null "Type mismatch"
-MSG_NOTFND  .null "Variable not found"
-MSG_NOLINE  .null "Line number not found"
-MSG_UNDFLOW .null "Stack underflow"
-MSG_OVRFLOW .null "Stack overflow"
-MSG_RANGE   .null "Out of range"
-MSG_ARG     .null "Illegal argument"
-MSG_NOFILE  .null "File not found"
+MSG_OK          .null "OK"
+MSG_BREAK       .null "Break"
+MSG_SYNTAX      .null "Syntax error"
+MSG_MEMORY      .null "Out of memory"
+MSG_TYPE        .null "Type mismatch"
+MSG_NOTFND      .null "Variable not found"
+MSG_NOLINE      .null "Line number not found"
+MSG_UNDFLOW     .null "Stack underflow"
+MSG_OVRFLOW     .null "Stack overflow"
+MSG_RANGE       .null "Out of range"
+MSG_ARG         .null "Illegal argument"
+MSG_NOFILE      .null "File not found"
+MSG_NAN         .null "Not a number"
+MSG_OVERFLOW    .null "Math overflow"
+MSG_UNDERFLOW   .null "Math underflow"
+MSG_DIV0        .null "Division by zero"
+MSG_DIRECTORY   .null "Unable to read directory"
+MSG_LOAD        .null "Unable to load file"
+MSG_SAVE        .null "Unable to save file"
+MSG_DELETE      .null "Unable to delete file"
+MSG_FILENOTFND  .null "Could not find file"
+MSG_DIRNOTWRITE .null "Could not update directory"
             .pend
 
 ;

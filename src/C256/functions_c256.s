@@ -65,6 +65,8 @@ F_GETDATE   .proc
             STA [STRPTR],Y
             INY
 
+            LDA @lRTC_CENTURY       ; Write the year
+            CALL BCD2STR
             LDA @lRTC_YEAR          ; Write the year
             CALL BCD2STR
 
@@ -112,6 +114,7 @@ F_GETTIME   .proc
             LDY #0
 
             LDA @lRTC_HRS           ; Write the hour
+            AND #$7F                ; Trim out the AM/PM indicator
             CALL BCD2STR   
 
             LDA #':'                ; Write the separator

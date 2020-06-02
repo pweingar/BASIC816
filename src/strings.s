@@ -167,8 +167,12 @@ ascii_loop  LDA SCRATCH2,X
             CPY #1              ; Did we write anything?
             BNE null_term       ; Yes: add a NULL to terminate
 
-            LDA #'0'            ; No: write a "0" to the string
+            LDA #' '            ; No: write a " 0" to the string
             STA [STRPTR]
+            LDY #1
+            LDA #'0'            
+            STA [STRPTR],Y
+            INY
 
 null_term   LDA #0
             STA [STRPTR],Y      ; And terminate the string

@@ -11,3 +11,5 @@ docs/tex/basic816.log
 docs/tex/basic816.synctex.gz
 basic816_repl.hex
 basic816_tests2.hex
+*.pyc
+C256Mgr/__pycache__/foenix.cpython-37.pyc

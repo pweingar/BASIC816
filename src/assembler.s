@@ -756,9 +756,12 @@ IMDISASSEMBLE   .proc
                 ; Made the direct page coincide with our variables
                 setdp <>MONITOR_VARS
 
-                ; Check the number of arguments
+                
                 setas
-                LDA MARG_LEN
+                LDA #0
+                STA @lLINECOUNT     ; Clear the pagination line counter
+                
+                LDA MARG_LEN        ; Check the number of arguments
                 CMP #2
                 BGE set_cursor      ; 2>= arguments? Use them as-is
                 
@@ -900,6 +903,8 @@ pr_operand      LDA @lADDRESS_TAB,X     ; Get the addressing mode for the instru
                 JSL DS_PR_OPERAND       ; And print the correct operand
 
                 CALL PRINTCR
+                CALL PAGINATE           ; Check to see if we have printed a screen
+                
                 PLD
                 PLP
                 RTL
