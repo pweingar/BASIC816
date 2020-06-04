@@ -8,6 +8,7 @@ FK_PUTS             = $00101C ; Print a string to the currently selected channel
 FK_LOCATE           = $001084 ; Reposition the cursor to row Y column X
 FK_IPRINTH          = $001078 ; Print a HEX string
 FK_SETOUT           = $00103c ; Select an output channel
+FK_SETSIZES         = $001128 ; Set the text screen size variables based on the border and screen resolution.
 
 FK_OPEN             = $0010F0 ; open a file for reading/writing/creating
 FK_CREATE           = $0010F4 ; create a new file

@@ -369,25 +369,29 @@ S_SETBORDER     .proc
                 STA BORDER_X_SIZE
                 STA BORDER_Y_SIZE
 
-                SEC
-                LDA @lCOLS_PER_LINE         ; Make sure the screen size is right
-                SBC #8
-                STA @lCOLS_VISIBLE
+                JSL FK_SETSIZES
 
-                SEC
-                LDA @lLINES_MAX
-                SBC #8
-                STA @lLINES_VISIBLE
+                ; SEC
+                ; LDA @lCOLS_PER_LINE         ; Make sure the screen size is right
+                ; SBC #8
+                ; STA @lCOLS_VISIBLE
+
+                ; SEC
+                ; LDA @lLINES_MAX
+                ; SBC #8
+                ; STA @lLINES_VISIBLE
 
                 BRA get_color
 
 hide_border     LDA #0                      ; Hide the border
                 STA @lBORDER_CTRL_REG
 
-                LDA @lCOLS_PER_LINE         ; Make sure the screen size is right
-                STA @lCOLS_VISIBLE
-                LDA @lLINES_MAX
-                STA @lLINES_VISIBLE
+                JSL FK_SETSIZES
+
+                ; LDA @lCOLS_PER_LINE         ; Make sure the screen size is right
+                ; STA @lCOLS_VISIBLE
+                ; LDA @lLINES_MAX
+                ; STA @lLINES_VISIBLE
 
 get_color       LDA #','
                 STA TARGETTOK
@@ -562,45 +566,47 @@ S_GRAPHICS      .proc
 
                 ; Set the screen size
 
-                setal
-                LDA gr_columns,X            ; Set the columns
-                STA @lGR_MAX_COLS
+                JSL FK_SETSIZES
 
-                LDA gr_rows,X               ; Set the rows
-                STA @lGR_MAX_ROWS
+;                 setal
+;                 LDA gr_columns,X            ; Set the columns
+;                 STA @lGR_MAX_COLS
 
-                LDA @lGR_MAX_COLS           ; Get the current columns
-                STA @lM1_OPERAND_A
+;                 LDA gr_rows,X               ; Set the rows
+;                 STA @lGR_MAX_ROWS
 
-                LDA @lGR_MAX_ROWS           ; Get the current rows
-                STA @lM1_OPERAND_B
+;                 LDA @lGR_MAX_COLS           ; Get the current columns
+;                 STA @lM1_OPERAND_A
 
-                LDA @lM1_RESULT             ; Multiply them to get the total pixels
-                STA @lGR_TOTAL_PIXELS
-                setas
-                LDA @lM1_RESULT+2
-                STA @lGR_TOTAL_PIXELS+2
+;                 LDA @lGR_MAX_ROWS           ; Get the current rows
+;                 STA @lM1_OPERAND_B
 
-                setal
-                LDA col_count,X             ; Get the number of columns in the text mode
-                STA @lCOLS_PER_LINE
-                STA @lCOLS_VISIBLE
+;                 LDA @lM1_RESULT             ; Multiply them to get the total pixels
+;                 STA @lGR_TOTAL_PIXELS
+;                 setas
+;                 LDA @lM1_RESULT+2
+;                 STA @lGR_TOTAL_PIXELS+2
 
-                LDA row_count,X             ; Get the number of columns in the text mode
-                STA @lLINES_MAX
-                STA @lLINES_VISIBLE
+;                 setal
+;                 LDA col_count,X             ; Get the number of columns in the text mode
+;                 STA @lCOLS_PER_LINE
+;                 STA @lCOLS_VISIBLE
 
-                setas
-                LDA @lBORDER_CTRL_REG
-                BIT #Border_Ctrl_Enable
-                BEQ reset_cursor
+;                 LDA row_count,X             ; Get the number of columns in the text mode
+;                 STA @lLINES_MAX
+;                 STA @lLINES_VISIBLE
 
-with_border     setal
-                LDA colb_count,X            ; Get the number of columns in the text mode
-                STA @lCOLS_VISIBLE
+;                 setas
+;                 LDA @lBORDER_CTRL_REG
+;                 BIT #Border_Ctrl_Enable
+;                 BEQ reset_cursor
 
-                LDA rowb_count,X            ; Get the number of columns in the text mode
-                STA @lLINES_VISIBLE
+; with_border     setal
+;                 LDA colb_count,X            ; Get the number of columns in the text mode
+;                 STA @lCOLS_VISIBLE
+
+;                 LDA rowb_count,X            ; Get the number of columns in the text mode
+;                 STA @lLINES_VISIBLE
 
 reset_cursor    setal
                 LDA @lCURSORX
