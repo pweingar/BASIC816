@@ -1166,3 +1166,43 @@ done            CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
                 PLP
                 RETURN
                 .pend
+
+;
+; COPY <source path>, <destination path>
+; Copies a file
+;
+S_COPY          .proc
+                PHP
+                TRACE "S_COPY"
+
+                setdp GLOBAL_VARS
+
+                setaxl
+                CALL EVALEXPR               ; Try to evaluate the source file path
+                CALL ASS_ARG1_STR           ; Make sure it is a string
+                
+                LDA ARGUMENT1               ; Set the source path
+                STA @l DOS_STR1_PTR
+                LDA ARGUMENT1+2
+                STA @l DOS_STR1_PTR+2
+
+                setas
+                LDA #','
+                CALL EXPECT_TOK             ; Get the next parameter
+                setal
+                CALL EVALEXPR               ; Try to evaluate the new file name
+                CALL ASS_ARG1_STR           ; Make sure it is a string
+
+                LDA ARGUMENT1               ; Set the source path
+                STA @l DOS_STR2_PTR
+                LDA ARGUMENT1+2
+                STA @l DOS_STR2_PTR+2
+
+                JSL FK_COPY                 ; Attempt to copy the file
+                BCS done
+
+                THROW ERR_NOTCOPIED        ; If failed: throw a file copy error
+
+done            PLP
+                RETURN
+                .pend

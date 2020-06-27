@@ -71,3 +71,4 @@ ERR_SAVE = 18           ; Could not save a file
 ERR_DELETE = 19         ; Could not delete a file
 ERR_FILENOTFOUND = 20   ; Could not find the file
 ERR_DIRNOTWRITE = 21    ; Could not update the directory entry
+ERR_NOTCOPIED = 22      ; Could not copy the file

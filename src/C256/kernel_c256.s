@@ -23,6 +23,8 @@ FK_DIRWRITE         = $001114 ; Write any changes in the current directory clust
 FK_LOAD             = $001118 ; load a binary file into memory, supports multiple file formats
 FK_SAVE             = $00111C ; Save memory to a binary file
 FK_RUN              = $001124 ; Load and run an executable binary file
+FK_COPY             = $00112C ; Copy a file
+FK_CMDBLOCK         = $001120 ; Send a command to a block device
 
 ;;;
 ;;; Kernel Constants
