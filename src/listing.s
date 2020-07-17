@@ -115,7 +115,7 @@ LISTBYTE    .proc
             PHP
             PHD
             PHB
-            TRACE "LISTBYTE"
+            ; TRACE "LISTBYTE"
 
             setdp <>GLOBAL_VARS
             setdbr `GLOBAL_VARS

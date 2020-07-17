@@ -39,7 +39,6 @@
 .include "vicky_def.s"
 
 BASIC_BANK = $00            ; Memory bank for default purposes
-CODE_BANK = $36             ; Memory bank for the BASIC816 code
 
 ; Bank 0 memory spaces
 

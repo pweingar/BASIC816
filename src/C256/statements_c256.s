@@ -9,7 +9,7 @@ GR_LUT_ALPHA = 3
 GR_DEFAULT_COLS = 640               ; Default number of columns in the display
 GR_DEFAULT_ROWS = 480               ; Default number of rows in the display
 GR_MAX_LUT = 8                      ; The number of LUTs Vicky supports
-SP_MAX = 18                         ; The number of sprites Vicky supports
+SP_MAX = 64                         ; The number of sprites Vicky supports
 SP_REG_SIZE = 8                     ; The number of bytes in a sprite's register block
 SP_CONTROL = 0                      ; Offset of the control regsiter for a sprite
 SP_ADDR = 1                         ; Offset of the pixmap address for a sprite
@@ -48,36 +48,13 @@ GS_SP_CONTROL   .fill SP_MAX        ; Shadow registers for the sprite controls
 ; GRAPHICS mode
 ;       Control which graphics blocks are enabled by writing to Vicky's master control register
 
-; VCOPY dest_addr,src_addr,length
-;           Copy length bytes of video memory from src_addr to dest_addr
-;           NOTE: VCOPY will pause execution if a Vicky is already busy with a VDMA operation.
-;               Otherwise, it will return immediately while the copy happens in the background.
-
-; VCOPY dest_addr,dest_stride,src_addr,src_stride,width,height
-;           Copy a block of video memory from src_addr to dest_addr
-;               dest_addr = the address of the first byte to write (must be within video RAM)
-;               src_addr = the address of the first byte to read (must be within video RAM)
-;               width = the number of pixels horizontally to copy
-;               height = the number of pixels vertically to copy
-;               dest_stride = the number of bytes to skip between rows in the destination block
-;               src_stride = the number of bytes to skip between rows in the source block
-;           NOTE: VCOPY will pause execution if a Vicky is already busy with a VDMA operation.
-;               Otherwise, it will return immediately while the copy happens in the background.
-
 ;; Pixmap
 ; PLOT x,y,color
 ;       Set the color of the pixel at (x, y)
 ; LINE x0,y0,x1,y1,color
 ;       Draw a line from (x0, y0) to (x1, y1) in the specified color
-; BOX x0,y0,x1,y1,color,filled
-;       Draw a box with corners (x0, y0) and (x1, y1) in the specified color. Optionally fill it.
-; CIRCLE x0,y0,x1,y1,color,filled
-;       Draw an ellipse inscribing a box with corners (x0, y0) and (x1, y1) in the specified color. Optionally fill it.
-; STENCIL x,y,vblock
-;       Draw the image data stored in vblock to the screen, with its upper-left pixel at (x, y)
-; TEXT x, y, message, color [, font_addr]
-;       Print the message on the pixmap with the upper left corner of the message at (x,y).
-;       Optional: take the characters from the font at font_addr in video memory
+; FILL x0,y0,x1,y1,color
+;       Fill a box with corners (x0, y0) and (x1, y1) in the specified color.
 
 ;; Sprite
 ; SPRITE number,lut,layer,vblock
@@ -564,28 +541,24 @@ S_GRAPHICS      .proc
                 ASL A
                 TAX                         ; X is index into the size tables
 
-                ; Set the screen size
+                setal
+                LDA gr_columns,X            ; Set the columns
+                STA @lGR_MAX_COLS
 
-                JSL FK_SETSIZES
+                LDA gr_rows,X               ; Set the rows
+                STA @lGR_MAX_ROWS
 
-;                 setal
-;                 LDA gr_columns,X            ; Set the columns
-;                 STA @lGR_MAX_COLS
+                LDA @lGR_MAX_COLS           ; Get the current columns
+                STA @lM1_OPERAND_A
 
-;                 LDA gr_rows,X               ; Set the rows
-;                 STA @lGR_MAX_ROWS
+                LDA @lGR_MAX_ROWS           ; Get the current rows
+                STA @lM1_OPERAND_B
 
-;                 LDA @lGR_MAX_COLS           ; Get the current columns
-;                 STA @lM1_OPERAND_A
-
-;                 LDA @lGR_MAX_ROWS           ; Get the current rows
-;                 STA @lM1_OPERAND_B
-
-;                 LDA @lM1_RESULT             ; Multiply them to get the total pixels
-;                 STA @lGR_TOTAL_PIXELS
-;                 setas
-;                 LDA @lM1_RESULT+2
-;                 STA @lGR_TOTAL_PIXELS+2
+                LDA @lM1_RESULT             ; Multiply them to get the total pixels
+                STA @lGR_TOTAL_PIXELS
+                setas
+                LDA @lM1_RESULT+2
+                STA @lGR_TOTAL_PIXELS+2
 
 ;                 setal
 ;                 LDA col_count,X             ; Get the number of columns in the text mode
@@ -607,6 +580,10 @@ S_GRAPHICS      .proc
 
 ;                 LDA rowb_count,X            ; Get the number of columns in the text mode
 ;                 STA @lLINES_VISIBLE
+
+                ; Set the screen size
+
+                JSL FK_SETSIZES
 
 reset_cursor    setal
                 LDA @lCURSORX
@@ -656,7 +633,7 @@ is_visible      LDA ARGUMENT1               ; Get the LUT #
                 SEC     
                 ROL A                       ; And shift it into position, and set enable bit
 
-wr_bm_reg       STA @lBM_CONTROL_REG        ; Write to the bitmap control register         
+wr_bm_reg       STA @lBM0_CONTROL_REG       ; Write to the bitmap control register         
 
                 setal
                 LDA #','
@@ -680,27 +657,21 @@ set_address     setas
 
                 SBC #`VRAM
                 BMI bad_address             ; If it's negative, throw an error
-                STA @lBM_START_ADDY_H
+                STA @lBM0_START_ADDY_H
                 STA @lGR_PM_VRAM+2
 
                 LDA ARGUMENT1               
                 STA @lGR_PM_ADDR            ; Save the address for later use
-                STA @lBM_START_ADDY_L       ; Set the register in Vicky
+                STA @lBM0_START_ADDY_L      ; Set the register in Vicky
                 STA @lGR_PM_VRAM
                 LDA ARGUMENT1+1             ; Otherwise, set the register in Vicky
-                STA @lBM_START_ADDY_M
+                STA @lBM0_START_ADDY_M
                 STA @lGR_PM_VRAM+1
                 STA @lGR_PM_ADDR+1
 
                 LDA #0
                 STA @lGR_PM_VRAM+3
                 STA @lGR_PM_ADDR+3
-
-                setal
-                LDA @lGR_MAX_COLS           ; Set the bitmap size
-                STA @lBM_X_SIZE_L
-                LDA @lGR_MAX_ROWS
-                STA @lBM_Y_SIZE_L
 
                 PLP
                 RETURN
@@ -1156,7 +1127,7 @@ done            PLP
 ; Set MTEMPPTR to the starting address of a sprite, given its number
 ;
 ; Inputs:
-;   ARGUMENT1 = the number of the sprite desired (0 - 8)
+;   ARGUMENT1 = the number of the sprite desired (0 - 63)
 ;
 SPADDR          .proc
                 PHP

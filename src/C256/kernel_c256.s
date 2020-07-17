@@ -8,7 +8,7 @@ FK_PUTS             = $00101C ; Print a string to the currently selected channel
 FK_LOCATE           = $001084 ; Reposition the cursor to row Y column X
 FK_IPRINTH          = $001078 ; Print a HEX string
 FK_SETOUT           = $00103c ; Select an output channel
-FK_SETSIZES         = $001128 ; Set the text screen size variables based on the border and screen resolution.
+FK_SETSIZES         = $00112C ; Set the text screen size variables based on the border and screen resolution.
 
 FK_OPEN             = $0010F0 ; open a file for reading/writing/creating
 FK_CREATE           = $0010F4 ; create a new file
@@ -23,7 +23,7 @@ FK_DIRWRITE         = $001114 ; Write any changes in the current directory clust
 FK_LOAD             = $001118 ; load a binary file into memory, supports multiple file formats
 FK_SAVE             = $00111C ; Save memory to a binary file
 FK_RUN              = $001124 ; Load and run an executable binary file
-FK_COPY             = $00112C ; Copy a file
+FK_COPY             = $001130 ; Copy a file
 FK_CMDBLOCK         = $001120 ; Send a command to a block device
 
 ;;;

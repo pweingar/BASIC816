@@ -15,32 +15,34 @@
 ;
 ;
 PRTRACE     .proc
-            PHP
-            PHB
-            setaxl
             PHA
             PHX
             PHY
+            PHB
+            PHP
 
-            setas
-            LDA #CODE_BANK  ; Set data bank register to the core BASIC code bank
-            PHA
-            PLB
-
-            setal
+            setaxl
             LDA 9,S         ; Get the return address
             CLC
             ADC #3          ; Add 3 to skip over the following branch
             TAX
 
-            CALL PRINTS     ; Try to print the string
+            setas
+            LDA #`PRTRACE
+            PHA
+            PLB
 
-done        setaxl
+pr_loop     LDA #0,B,X
+            BEQ done
+            CALL SCREEN_PUTC
+            INX
+            BRA pr_loop
+
+done        PLP
+            PLB
             PLY
             PLX
             PLA
-            PLB
-            PLP
             RTS
             .pend
 

@@ -96,7 +96,7 @@ endofline       LDA #0              ; Hide the cursor
 ;   A = the key read
 ;
 IGETKEY         .proc
-                TRACE "IGETKEY"
+                ;TRACE "IGETKEY"
 
                 JSL FK_GETCHW
 
