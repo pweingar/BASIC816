@@ -988,7 +988,11 @@ CMD_SAVE        .proc
                 ADC #0
                 STA @l DOS_END_PTR+2
 
-                JSL FK_SAVE                 ; Attempt to save the file
+                ; JSR PRTRACE
+                ; BRA do_save
+                ; .null "Calling: FK_SAVE", 13
+
+do_save         JSL FK_SAVE                 ; Attempt to save the file
                 BCS done
                 CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
                 THROW ERR_SAVE              ; Throw an error if there was a problem

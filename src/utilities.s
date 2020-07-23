@@ -15,15 +15,17 @@
 ;
 ;
 PRTRACE     .proc
+            PHP
+            setaxl
             PHA
             PHX
             PHY
             PHB
-            PHP
+            PHD
 
             setaxl
-            LDA 9,S         ; Get the return address
-            CLC
+            LDA 11,S        ; Get the return address
+calc_addr   CLC
             ADC #3          ; Add 3 to skip over the following branch
             TAX
 
@@ -38,11 +40,13 @@ pr_loop     LDA #0,B,X
             INX
             BRA pr_loop
 
-done        PLP
+done        setaxl
+            PLD
             PLB
             PLY
             PLX
             PLA
+            PLP
             RTS
             .pend
 

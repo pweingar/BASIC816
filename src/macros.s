@@ -187,7 +187,7 @@ continue
 TRACE_A     .macro  ; name
 .if TRACE_LEVEL > 0
         .if TRACE_LEVEL > 1
-            JSR PRTRACE         ; Print the name of the trace point            
+            JSR PRTRACE         ; Print the name of the trace point        
         .endif
             BRA continue
 TESTNAME    .null \1,": "
@@ -206,7 +206,7 @@ continue
 TRACE_L     .macro  ; name, address
 .if TRACE_LEVEL > 0
         .if TRACE_LEVEL > 1
-            JSR PRTRACE         ; Print the name of the trace point            
+            JSR PRTRACE         ; Print the name of the trace point         
         .endif
             BRA continue
 TESTNAME    .null \1,": "
@@ -233,7 +233,7 @@ continue
 TRACE_X     .macro  ; name
 .if TRACE_LEVEL > 0
         .if TRACE_LEVEL > 1
-            JSR PRTRACE         ; Print the name of the trace point            
+            JSR PRTRACE         ; Print the name of the trace point      
         .endif
             BRA continue
 TESTNAME    .null \1,": "
