@@ -400,10 +400,12 @@ set_null        ; Set up the file descriptor for the default directory
 
 set_fd          CALL SETFILEDESC            ; Set the file description based on the argument
                 JSL FK_DIROPEN              ; Open up the directory
-                BCS pr_entry
+                BCS pr_first
 
                 CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
                 THROW ERR_DIRECTORY         ; Throw a directory error
+
+pr_first        CALL PRINTCR                ; Start a new line
 
 pr_entry        setdp SDOS_VARIABLES
                 setas
@@ -434,25 +436,16 @@ chk_long        AND #DOS_ATTR_LONGNAME      ; Is it a long file name entry?
 
 get_short_name  LDY #DIRENTRY.SHORTNAME     ; Starting with the first character of the file...
 pr_name_loop    LDA [DOS_DIR_PTR],Y         ; Get a character of the name
-                CMP #CHAR_SP                ; Is it a blank?
-                BEQ pr_dot                  ; Yes: end the name and print the dot
                 CALL PRINTC                 ; Otherwise: print it.
                 INY                         ; Move to the next character
                 CPY #DIRENTRY.SHORTNAME+8   ; Are we at the end of the name portion?
                 BNE pr_name_loop            ; No: print this new character
 
-pr_dot          LDY #DIRENTRY.SHORTNAME+8
-                LDA [DOS_DIR_PTR],Y         ; Get the first characater of the extension
-                CMP #CHAR_SP                ; Is it a space
-                BEQ pr_tab1                 ; Yes: skip to the next field
-
-                LDA #'.'                    ; Print the dot separator
+                LDA #' '                    ; Print the separator
                 CALL PRINTC
 
                 LDY #DIRENTRY.SHORTNAME+8   ; Move to the first of the extension characters
 pr_ext_loop     LDA [DOS_DIR_PTR],Y         ; Get a character of the name
-                CMP #CHAR_SP                ; Is it a blank?
-                BEQ pr_tab1                 ; Yes: print a tab
                 JSR PRINTC                  ; Otherwise: print it.
                 INY                         ; Move to the next character
                 CPY #DIRENTRY.SHORTNAME+11  ; Are we at the end of the extension portion?
@@ -461,7 +454,32 @@ pr_ext_loop     LDA [DOS_DIR_PTR],Y         ; Get a character of the name
 pr_tab1         LDA #CHAR_TAB               ; Print a TAB
                 CALL PRINTC
 
+                ; Print the file size
+
+                LDY #DIRENTRY.ATTRIBUTE
+                LDA [DOS_DIR_PTR],Y         ; Get the attribute
+                BIT #DOS_ATTR_DIR           ; Is it a directory?
+                BNE pr_attr                 ; Yes: skip printing a file size
+
+                setal
+                LDY #DIRENTRY.SIZE
+                LDA [DOS_DIR_PTR],Y         ; Get the file size
+                STA @l ARGUMENT1
+                INY
+                INY
+                LDA [DOS_DIR_PTR],Y
+                STA @l ARGUMENT1+2
+
+                setas
+                LDA #TYPE_INTEGER
+                STA @l ARGTYPE1
+
+                CALL PR_FILESIZE            ; ... and print it      
+
                 ; Print type flag
+
+pr_attr         LDA #CHAR_TAB               ; Print a TAB
+                CALL PRINTC
 
                 LDY #DIRENTRY.ATTRIBUTE
                 LDA [DOS_DIR_PTR],Y         ; Get the attribute
@@ -484,44 +502,27 @@ chk_directory   BIT #DOS_ATTR_DIR           ; Is it a directory?
                 LDA #'D'                    ; Yes: print a D
                 CALL PRINTC
 
-pr_tab2         LDA #CHAR_TAB               ; Print a TAB
-                CALL PRINTC
+pr_tab2         NOP
 
-                ; Print the file size   
-                setal
-                LDY #DIRENTRY.SIZE
-                LDA [DOS_DIR_PTR],Y         ; Get the file size
-                STA @l ARGUMENT1
-                INY
-                INY
-                LDA [DOS_DIR_PTR],Y
-                STA @l ARGUMENT1+2
+;                 setas
+;                 LDA #CHAR_TAB               ; Print a TAB
+;                 CALL PRINTC    
 
-                setas
-                LDA #TYPE_INTEGER
-                STA @l ARGTYPE1
+;                 ; Print date-time
 
-                CALL PR_FILESIZE            ; ... and print it       
+; pr_date_time    setal
+;                 LDY #DIRENTRY.CREATE_DATE
+;                 LDA [DOS_DIR_PTR],Y         ; Get the creation date
+;                 CALL PR_DATE                ; ... and print it
 
-                setas
-                LDA #CHAR_TAB               ; Print a TAB
-                CALL PRINTC    
+;                 setas
+;                 LDA #' '
+;                 CALL PRINTC
 
-                ; Print date-time
-
-pr_date_time    setal
-                LDY #DIRENTRY.CREATE_DATE
-                LDA [DOS_DIR_PTR],Y         ; Get the creation date
-                CALL PR_DATE                ; ... and print it
-
-                setas
-                LDA #' '
-                CALL PRINTC
-
-                setal
-                LDY #DIRENTRY.CREATE_TIME
-                LDA [DOS_DIR_PTR],Y         ; Get the creation time
-                CALL PR_TIME                ; ... and print it 
+;                 setal
+;                 LDY #DIRENTRY.CREATE_TIME
+;                 LDA [DOS_DIR_PTR],Y         ; Get the creation time
+;                 CALL PR_TIME                ; ... and print it 
 
 end_entry       CALL PRINTCR
 next_entry      CALL PAGINATE               ; Pause the listing, if necessary
@@ -533,7 +534,6 @@ done            CALL SET_DOSSTAT            ; Set DOSSTAT and BIOSSTAT variables
 
                 setdp GLOBAL_VARS
                 CALL SKIPSTMT
-                CALL PRINTCR
 
                 PLP
                 PLD
