@@ -531,8 +531,24 @@ S_GRAPHICS      .proc
                 CALL EVALEXPR               ; Get the red component
                 CALL ASS_ARG1_INT           ; Assert that the result is a byte value
 
-                LDA ARGUMENT1
-                STA @lMASTER_CTRL_REG_L     ; Set the border color
+                setal
+                LDA ARGUMENT1               ; Check to see if we're setting mode to 800x600 or 400x300
+                BIT #$0100
+                BNE set_mode                ; Yes: go ahead and set it
+
+                LDA @l MASTER_CTRL_REG_L    ; Otherwise, check to see if we're already in 800x600 or 400x300
+                BIT #$0100
+                BNE set_mode                ; No: just go ahead and set the mode
+
+                setas
+                LDA #0                      ; Yes: toggle back to 640x480...
+                STA @l MASTER_CTRL_REG_H
+                LDA #1                      ; And back to 800x600....
+                STA @l MASTER_CTRL_REG_H
+                setal
+
+set_mode        LDA ARGUMENT1
+                STA @l MASTER_CTRL_REG_L    ; Set the graphics mode
 
                 .rept 7
                 LSR A
@@ -1304,10 +1320,11 @@ no_layer        LDA @lGR_TEMP
                 AND #$01                    ; Make sure it's just the bit
                 ORA SCRATCH                 ; Combine it with the current values
                 STA @lGS_SP_CONTROL,X       ; And save it
+                setas
                 STA [MTEMPPTR]              ; ... and to Vicky
                 BRA done
 
-get_layer       setas
+get_layer       setal
                 CALL INCBIP
                 CALL EVALEXPR               ; Get the sprite's layer
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
@@ -1328,6 +1345,7 @@ get_layer       setas
 
                 LDA @lGR_TEMP
                 TAX
+                setas
                 LDA GS_SP_CONTROL,X         ; Get the current control register value
                 AND #%10001110              ; Filter out the enable and layer bits
                 ORA SCRATCH                 ; Combine with the provided layer and enable
