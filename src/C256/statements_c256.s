@@ -16,6 +16,9 @@ SP_ADDR = 1                         ; Offset of the pixmap address for a sprite
 SP_X_COORD = 4                      ; Offset of the X coordinate for a sprite
 SP_Y_COORD = 6                      ; Offset of the Y coordinate for a sprite
 
+TILEMAP_REG_SIZE = 12               ; The number of bytes in a tile map's register set
+TILESET_REG_SIZE = 4                ; The number of bytes in a tile set's register set
+
 .section variables
 GR_PM_ADDR      .dword ?            ; Address of the pixmap (from CPU's perspective)
 GR_PM_VRAM      .dword ?            ; Address of the pixmap (relative to start of VRAM)
@@ -538,16 +541,16 @@ S_GRAPHICS      .proc
 
                 LDA @l MASTER_CTRL_REG_L    ; Otherwise, check to see if we're already in 800x600 or 400x300
                 BIT #$0100
-                BNE set_mode                ; No: just go ahead and set the mode
+                BEQ set_mode                ; No: just go ahead and set the mode
 
                 setas
                 LDA #0                      ; Yes: toggle back to 640x480...
                 STA @l MASTER_CTRL_REG_H
                 LDA #1                      ; And back to 800x600....
                 STA @l MASTER_CTRL_REG_H
-                setal
 
-set_mode        LDA ARGUMENT1
+set_mode        setal
+                LDA ARGUMENT1
                 STA @l MASTER_CTRL_REG_L    ; Set the graphics mode
 
                 .rept 7
@@ -1355,4 +1358,360 @@ get_layer       setal
 done            PLP
                 RETURN
 error           THROW ERR_RANGE             ; Throw an out of range error
+                .pend
+
+;
+; Calculate the address of a tile set's registers given its number
+;
+; Inputs:
+;   ARGUMENT1 = the number of the tile set
+;
+; Outputs:
+;   MTEMPPTR = the address of the first byte in the tile set's register space
+;
+TILESET_ADDR    .proc
+                PHP
+
+                setal
+                LDA ARGUMENT1               ; Get the tile set number
+                CMP #4                      ; Make sure it's 0 - 4
+                BGE out_of_range            ; If not, throw a range error
+
+                STA @w M0_OPERAND_A
+                LDA #TILESET_REG_SIZE       ; Multiply it by the number of bytes in a tile set register set
+                STA @w M0_OPERAND_B
+
+                CLC                         ; Add to TILESET0_ADDY_L to get the final address
+                ADC #<>TILESET0_ADDY_L
+                STA MTEMPPTR
+                LDA #`TILESET0_ADDY_L
+                STA MTEMPPTR
+
+                PLP
+                RETURN
+
+out_of_range    THROW ERR_RANGE             ; Throw an out of range error
+                .pend
+
+;
+; Calculate the address of a tile map's registers given its number
+;
+; Inputs:
+;   ARGUMENT1 = the number of the tile set
+;
+; Outputs:
+;   MTEMPPTR = the address of the first byte in the tile map's register space
+;
+TILEMAP_ADDR    .proc
+                PHP
+
+                setal
+                LDA ARGUMENT1               ; Get the tile map number
+                CMP #4                      ; Make sure it's 0 - 4
+                BGE out_of_range            ; If not, throw a range error
+
+                STA @w M0_OPERAND_A
+                LDA #TILEMAP_REG_SIZE       ; Multiply it by the number of bytes in a tile map register set
+                STA @w M0_OPERAND_B
+
+                CLC
+                LDA @w M0_RESULT            ; Add to TL0_CONTROL_REG to get the final address                        
+                ADC #<>TL0_CONTROL_REG
+                STA MTEMPPTR
+                LDA #`TL0_CONTROL_REG
+                STA MTEMPPTR
+
+                PLP
+                RETURN
+
+out_of_range    THROW ERR_RANGE             ; Throw an out of range error
+                .pend
+
+;
+; TILESET number, lut, is_square, address
+;   Defines a tileset (the collection of tiles that can be used by a tile map).
+;       LUT is the color lookup table #
+;       is_square is a boolean indicating if the map is arranged in 256x256 square
+;       address is the address of the bitmap data (must be in video RAM)
+;
+S_TILESET       .proc
+                PHP
+                TRACE "S_TILESET"
+
+                setal
+                CALL EVALEXPR               ; Get the sprite's number
+                CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                CALL TILESET_ADDR           ; Compute the address of the tile set's block
+                LDA MTEMPPTR+2              ; Save the address
+                PHA
+                LDA MTEMPPTR
+                PHA
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the LUT
+                CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                LDA ARGUMENT1
+                PHA                         ; And save it
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the square flag
+                CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                LDA ARGUMENT1
+                PHA                         ; And save it               
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the address
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+                LDA ARGUMENT1
+                STA MARG3                   ; Save it to MARG3
+                LDA ARGUMENT1+2
+                STA MARG3+2
+
+                PLA                         ; Get the square flag back
+                STA MARG2                   ; Save it to MARG2
+
+                PLA                         ; Get the LUT
+                STA MARG1                   ; Save it to MARG1
+
+                PLA                         ; Get the register address
+                STA MTEMPPTR                ; Save it to MTEMPPTR
+                PLA
+                STA MTEMPPTR+2
+
+                LDA MARG3                   ; Get the bitmap address - the address of the start of VRAM
+                STA [MTEMPPTR]              ; And save it to the registers
+                SEC
+                LDA MARG3
+                SBC #`VRAM
+                LDY #TILESET_ADDY_H
+                setas
+                STA [MTEMPPTR],Y
+                setal
+
+                LDA MARG2                   ; Check if is_square == 0?
+                BNE is_square
+                LDA MARG2+2
+                BNE is_square
+
+not_square      LDA MARG1                   ; Get the LUT
+                AND #$07                    ; Force it to be in range
+                LDY #TILESET_ADDY_CFG
+                setas
+                STA [MTEMPPTR],Y            ; Save it to the registers
+                BRA done
+
+is_square       LDA MARG1                   ; Get the LUT
+                AND #$07                    ; Force it to be in range
+                ORA #TILESET_SQUARE_256     ; Turn on the 256x256 flag
+                LDY #3
+                setas
+                STA [MTEMPPTR],Y            ; Save it to the registers
+
+done            PLP
+                RETURN
+                .pend
+
+;
+; TILEMAP number, width, height, address
+;   Defines a tile map.
+;       width = the number of tile columns in the map
+;       height = the number of tile rows in the map
+;       address = the address of the map itself (must be video RAM)
+;
+S_TILEMAP       .proc
+                PHP
+                TRACE "S_TILEMAP"
+
+                setal
+                CALL EVALEXPR               ; Get the sprite's number
+                CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                CALL TILESET_ADDR           ; Compute the address of the tile set's block
+                LDA MTEMPPTR+2              ; Save the address
+                PHA
+                LDA MTEMPPTR
+                PHA
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the width
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+                LDA ARGUMENT1
+                PHA                         ; And save it
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the height
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+                LDA ARGUMENT1
+                PHA                         ; And save it               
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the address
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+                LDA ARGUMENT1
+                STA MARG3                   ; Save it to MARG3
+                LDA ARGUMENT1+2
+                STA MARG3+2
+
+                PLA                         ; Get the height back
+                STA MARG2                   ; Save it to MARG2
+
+                PLA                         ; Get the width
+                STA MARG1                   ; Save it to MARG1
+
+                PLA                         ; Get the register address
+                STA MTEMPPTR                ; Save it to MTEMPPTR
+                PLA
+                STA MTEMPPTR+2
+
+                LDA MARG3                   ; Get the map address - the address of the start of VRAM
+                LDY #TILEMAP_START_ADDY
+                STA [MTEMPPTR],Y            ; And save it to the registers
+                SEC
+                LDA MARG3
+                SBC #`VRAM
+                INY
+                INY
+                setas
+                STA [MTEMPPTR],Y
+                setal
+
+                LDA MARG1                   ; Set the width
+                LDY #TILEMAP_TOTAL_X
+                STA [MTEMPPTR],Y
+                INY
+                INY
+                LDA MARG1+2
+                STA [MTEMPPTR],Y
+
+                LDA MARG1                   ; Set the height
+                LDY #TILEMAP_TOTAL_Y
+                STA [MTEMPPTR],Y
+                INY
+                INY
+                LDA MARG1+2
+                STA [MTEMPPTR],Y
+
+                PLP
+                RETURN
+                .pend
+
+;
+; TILESHOW number, visible
+;   Sets whether or not the tile map is visible
+;       visible: boolean, true if the map should be visible
+;
+S_TILESHOW      .proc
+                PHP
+                TRACE "S_TILESHOW"
+
+                setal
+                CALL EVALEXPR               ; Get the sprite's number
+                CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                CALL TILESET_ADDR           ; Compute the address of the tile set's block
+                LDA MTEMPPTR+2              ; Save the address
+                PHA
+                LDA MTEMPPTR
+                PHA
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the visible flag
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+
+                PLA                         ; Get the register address
+                STA MTEMPPTR                ; Save it to MTEMPPTR
+                PLA
+                STA MTEMPPTR+2
+
+                LDA ARGUMENT1               ; CHeck the visible parameter
+                BNE is_visible              ; If it's <> 0, make it visible
+
+                setas
+                LDA #0                      ; Control value for invisible
+                BRA set_control
+
+is_visible      setas
+                LDA #TILEMAP_VISIBLE        ; Control value for visible
+
+set_control     LDY #TILEMAP_CONTROL        ; Set the control register
+                STA [MTEMPPTR],Y
+
+                PLP
+                RETURN
+                .pend
+
+
+;
+; TILEAT number, x, y
+;   Sets the window position and scroll of a tile map
+;       x = the horizontal scroll/window value
+;       y = the vertical scroll/window value
+;
+S_TILEAT        .proc
+                PHP
+                TRACE "S_TILEMAP"
+
+                setal
+                CALL EVALEXPR               ; Get the sprite's number
+                CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                CALL TILESET_ADDR           ; Compute the address of the tile set's block
+                LDA MTEMPPTR+2              ; Save the address
+                PHA
+                LDA MTEMPPTR
+                PHA
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the X position
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+                LDA ARGUMENT1
+                PHA                         ; And save it
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
+                CALL EVALEXPR               ; Get the Y position
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+                LDA ARGUMENT1
+                STA MARG2                   ; Save it to MARG2
+
+                PLA                         ; Get the X position
+                STA MARG1                   ; Save it to MARG1
+
+                PLA                         ; Get the register address
+                STA MTEMPPTR                ; Save it to MTEMPPTR
+                PLA
+                STA MTEMPPTR+2
+
+                LDA MARG1                   ; Set the X position
+                LDY #TILEMAP_WINDOW_X
+                STA [MTEMPPTR],Y
+                INY
+                INY
+                LDA MARG1+2
+                STA [MTEMPPTR],Y
+
+                LDA MARG1                   ; Set the Y position
+                LDY #TILEMAP_WINDOW_Y
+                STA [MTEMPPTR],Y
+                INY
+                INY
+                LDA MARG1+2
+                STA [MTEMPPTR],Y
+
+                PLP
+                RETURN
                 .pend

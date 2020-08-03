@@ -3,6 +3,15 @@
 ; Bit Field Definition for the Control Register
 TILE_Enable             = $01
 
+TILEMAP_CONTROL         = 0             ; Offset to a tile map's control register
+TILEMAP_START_ADDY      = 1             ; Offset to a tile map's address
+TILEMAP_TOTAL_X         = 4             ; Offset to a tile map's width
+TILEMAP_TOTAL_Y         = 6             ; Offset to a tile map's height
+TILEMAP_WINDOW_X        = 8             ; Offset to a tile map's X position
+TILEMAP_WINDOW_Y        = 10            ; Offset to a tile map's Y position
+
+TILEMAP_VISIBLE         = $08           ; Tile map is visible flag
+
 ;
 ;Tile MAP Layer 0 Registers
 TL0_CONTROL_REG         = $AF0200       ; Bit[0] - Enable, Bit[3:1] - LUT Select,
@@ -66,6 +75,10 @@ TILESET0_ADDY_L         = $AF0280   ; Pointer to Tileset 0 [21:0]
 TILESET0_ADDY_M         = $AF0281
 TILESET0_ADDY_H         = $AF0282
 TILESET0_ADDY_CFG       = $AF0283   ; [3] - TileStride256x256 [2:0] LUT
+
+TILESET_ADDY_H          = 2             ; Offset to high byte of tile set address
+TILESET_ADDY_CFG        = 3             ; Offset to the tile set address configuration
+TILESET_SQUARE_256      = $08
 
 ; Tile Set 1 Location info
 TILESET1_ADDY_L         = $AF0284
