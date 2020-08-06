@@ -1382,10 +1382,11 @@ TILESET_ADDR    .proc
                 STA @w M0_OPERAND_B
 
                 CLC                         ; Add to TILESET0_ADDY_L to get the final address
+                LDA @w M0_RESULT
                 ADC #<>TILESET0_ADDY_L
                 STA MTEMPPTR
                 LDA #`TILESET0_ADDY_L
-                STA MTEMPPTR
+                STA MTEMPPTR+2
 
                 PLP
                 RETURN
@@ -1419,7 +1420,7 @@ TILEMAP_ADDR    .proc
                 ADC #<>TL0_CONTROL_REG
                 STA MTEMPPTR
                 LDA #`TL0_CONTROL_REG
-                STA MTEMPPTR
+                STA MTEMPPTR+2
 
                 PLP
                 RETURN
@@ -1442,6 +1443,7 @@ S_TILESET       .proc
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
                 CALL TILESET_ADDR           ; Compute the address of the tile set's block
+                setal
                 LDA MTEMPPTR+2              ; Save the address
                 PHA
                 LDA MTEMPPTR
@@ -1452,6 +1454,7 @@ S_TILESET       .proc
 
                 CALL EVALEXPR               ; Get the LUT
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                setal
                 LDA ARGUMENT1
                 PHA                         ; And save it
 
@@ -1460,6 +1463,7 @@ S_TILESET       .proc
 
                 CALL EVALEXPR               ; Get the square flag
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                setal
                 LDA ARGUMENT1
                 PHA                         ; And save it               
 
@@ -1468,6 +1472,7 @@ S_TILESET       .proc
 
                 CALL EVALEXPR               ; Get the address
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
+                setal
                 LDA ARGUMENT1
                 STA MARG3                   ; Save it to MARG3
                 LDA ARGUMENT1+2
@@ -1484,13 +1489,25 @@ S_TILESET       .proc
                 PLA
                 STA MTEMPPTR+2
 
+                ; PLA                         ; Get the register address
+                ; STA MTEMPPTR                ; Save it to MTEMPPTR
+                ; STA $020010
+                ; PLA
+                ; STA MTEMPPTR+2
+                ; STA $020012
+
+                ; LDA #0
+                ; STA MTEMPPTR
+                ; LDA #2
+                ; STA MTEMPPTR+2
+
                 LDA MARG3                   ; Get the bitmap address - the address of the start of VRAM
                 STA [MTEMPPTR]              ; And save it to the registers
+                setas
                 SEC
-                LDA MARG3
+                LDA MARG3+2
                 SBC #`VRAM
                 LDY #TILESET_ADDY_H
-                setas
                 STA [MTEMPPTR],Y
                 setal
 
@@ -1499,18 +1516,18 @@ S_TILESET       .proc
                 LDA MARG2+2
                 BNE is_square
 
-not_square      LDA MARG1                   ; Get the LUT
+not_square      setas
+                LDA MARG1                   ; Get the LUT
                 AND #$07                    ; Force it to be in range
                 LDY #TILESET_ADDY_CFG
-                setas
                 STA [MTEMPPTR],Y            ; Save it to the registers
                 BRA done
 
-is_square       LDA MARG1                   ; Get the LUT
+is_square       setas
+                LDA MARG1                   ; Get the LUT
                 AND #$07                    ; Force it to be in range
                 ORA #TILESET_SQUARE_256     ; Turn on the 256x256 flag
-                LDY #3
-                setas
+                LDY #TILESET_ADDY_CFG
                 STA [MTEMPPTR],Y            ; Save it to the registers
 
 done            PLP
@@ -1531,7 +1548,8 @@ S_TILEMAP       .proc
                 setal
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
-                CALL TILESET_ADDR           ; Compute the address of the tile set's block
+                CALL TILEMAP_ADDR           ; Compute the address of the tile set's block
+                setal
                 LDA MTEMPPTR+2              ; Save the address
                 PHA
                 LDA MTEMPPTR
@@ -1542,6 +1560,7 @@ S_TILEMAP       .proc
 
                 CALL EVALEXPR               ; Get the width
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
+                setal
                 LDA ARGUMENT1
                 PHA                         ; And save it
 
@@ -1550,6 +1569,7 @@ S_TILEMAP       .proc
 
                 CALL EVALEXPR               ; Get the height
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
+                setal
                 LDA ARGUMENT1
                 PHA                         ; And save it               
 
@@ -1557,7 +1577,8 @@ S_TILEMAP       .proc
                 CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the address
-                CALL ASS_ARG1_INT           ; Make sure it's an integer
+                CALL ASS_ARG1_INT           ; Make sure it's an integers
+                setal
                 LDA ARGUMENT1
                 STA MARG3                   ; Save it to MARG3
                 LDA ARGUMENT1+2
@@ -1574,32 +1595,36 @@ S_TILEMAP       .proc
                 PLA
                 STA MTEMPPTR+2
 
+                ; PLA                         ; Get the register address
+                ; STA MTEMPPTR                ; Save it to MTEMPPTR
+                ; STA $020010
+                ; PLA
+                ; STA MTEMPPTR+2
+                ; STA $020012
+
+                ; LDA #0
+                ; STA MTEMPPTR
+                ; LDA #2
+                ; STA MTEMPPTR+2
+
                 LDA MARG3                   ; Get the map address - the address of the start of VRAM
                 LDY #TILEMAP_START_ADDY
                 STA [MTEMPPTR],Y            ; And save it to the registers
+                setas
                 SEC
-                LDA MARG3
+                LDA MARG3+2
                 SBC #`VRAM
                 INY
                 INY
-                setas
                 STA [MTEMPPTR],Y
                 setal
 
                 LDA MARG1                   ; Set the width
                 LDY #TILEMAP_TOTAL_X
                 STA [MTEMPPTR],Y
-                INY
-                INY
-                LDA MARG1+2
-                STA [MTEMPPTR],Y
 
-                LDA MARG1                   ; Set the height
+                LDA MARG2                   ; Set the height
                 LDY #TILEMAP_TOTAL_Y
-                STA [MTEMPPTR],Y
-                INY
-                INY
-                LDA MARG1+2
                 STA [MTEMPPTR],Y
 
                 PLP
@@ -1618,7 +1643,8 @@ S_TILESHOW      .proc
                 setal
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
-                CALL TILESET_ADDR           ; Compute the address of the tile set's block
+                CALL TILEMAP_ADDR           ; Compute the address of the tile set's block
+                setal
                 LDA MTEMPPTR+2              ; Save the address
                 PHA
                 LDA MTEMPPTR
@@ -1629,11 +1655,24 @@ S_TILESHOW      .proc
 
                 CALL EVALEXPR               ; Get the visible flag
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
+                setal
 
                 PLA                         ; Get the register address
                 STA MTEMPPTR                ; Save it to MTEMPPTR
                 PLA
                 STA MTEMPPTR+2
+
+                ; PLA                         ; Get the register address
+                ; STA MTEMPPTR                ; Save it to MTEMPPTR
+                ; STA $020010
+                ; PLA
+                ; STA MTEMPPTR+2
+                ; STA $020012
+
+                ; LDA #0
+                ; STA MTEMPPTR
+                ; LDA #2
+                ; STA MTEMPPTR+2
 
                 LDA ARGUMENT1               ; CHeck the visible parameter
                 BNE is_visible              ; If it's <> 0, make it visible
@@ -1645,7 +1684,8 @@ S_TILESHOW      .proc
 is_visible      setas
                 LDA #TILEMAP_VISIBLE        ; Control value for visible
 
-set_control     LDY #TILEMAP_CONTROL        ; Set the control register
+set_control     setas
+                LDY #TILEMAP_CONTROL        ; Set the control register
                 STA [MTEMPPTR],Y
 
                 PLP
@@ -1666,7 +1706,7 @@ S_TILEAT        .proc
                 setal
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
-                CALL TILESET_ADDR           ; Compute the address of the tile set's block
+                CALL TILEMAP_ADDR           ; Compute the address of the tile set's block
                 LDA MTEMPPTR+2              ; Save the address
                 PHA
                 LDA MTEMPPTR
@@ -1696,20 +1736,24 @@ S_TILEAT        .proc
                 PLA
                 STA MTEMPPTR+2
 
+                ; PLA                         ; Get the register address
+                ; STA MTEMPPTR                ; Save it to MTEMPPTR
+                ; STA $020010
+                ; PLA
+                ; STA MTEMPPTR+2
+                ; STA $020012
+
+                ; LDA #0
+                ; STA MTEMPPTR
+                ; LDA #2
+                ; STA MTEMPPTR+2
+
                 LDA MARG1                   ; Set the X position
                 LDY #TILEMAP_WINDOW_X
                 STA [MTEMPPTR],Y
-                INY
-                INY
-                LDA MARG1+2
-                STA [MTEMPPTR],Y
 
-                LDA MARG1                   ; Set the Y position
+                LDA MARG2                   ; Set the Y position
                 LDY #TILEMAP_WINDOW_Y
-                STA [MTEMPPTR],Y
-                INY
-                INY
-                LDA MARG1+2
                 STA [MTEMPPTR],Y
 
                 PLP

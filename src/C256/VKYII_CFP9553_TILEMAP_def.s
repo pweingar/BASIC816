@@ -10,7 +10,7 @@ TILEMAP_TOTAL_Y         = 6             ; Offset to a tile map's height
 TILEMAP_WINDOW_X        = 8             ; Offset to a tile map's X position
 TILEMAP_WINDOW_Y        = 10            ; Offset to a tile map's Y position
 
-TILEMAP_VISIBLE         = $08           ; Tile map is visible flag
+TILEMAP_VISIBLE         = 1             ; Tile map is visible flag
 
 ;
 ;Tile MAP Layer 0 Registers

@@ -50,6 +50,12 @@ sp_loop     STA GS_SP_CONTROL,X
             LDA #0                  ; Clear the lock key flags
             STA @lKEYBOARD_LOCKS
 
+            LDA #0
+            STA @l TL0_CONTROL_REG
+            STA @l TL1_CONTROL_REG
+            STA @l TL2_CONTROL_REG
+            STA @l TL3_CONTROL_REG
+
 done        RETURN
             .pend
 
