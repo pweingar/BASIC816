@@ -563,6 +563,11 @@
         \caption{Color lookup table numbers}
         \label{luts}
     \end{table}
+    
+    \subsection*{\keyword{SETTIME} \param{hour}, \param{minute}, \param{second}}
+
+    Sets the time on the C256's real time clock, given the time as three numbers:
+    \param{hour}, \param{minute}, and \param{second}.
 
     \subsection*{\keyword{SPRITE} \param{number}, \param{lut} [, \param{address} ]}
 
@@ -595,10 +600,59 @@
     and the background color index is specified by \param{background}.
     Both values must be in the range 0 -- 15.
 
-    \subsection*{\keyword{SETTIME} \param{hour}, \param{minute}, \param{second}}
+    \subsection*{\keyword{TILEAT} \param{number}, \param{x}, \param{y}}
 
-    Sets the time on the C256's real time clock, given the time as three numbers:
-    \param{hour}, \param{minute}, and \param{second}.
+    Sets the window and scroll position for a tile map.
+    \param{number} is the number of the tile set or tile map (0--3).
+    \param{x} is the horizontal window and scroll position. 
+    \param{y} is the vertical window and scroll position.
+
+    The window and scroll positions are handled with a bitfield, and not a true number:
+
+    \begin{table}[!htb]
+        \begin{center}
+            \begin{tabular}{|l|l|l|} \hline
+                Bits & Purpose & Reading \\ \hline\hline
+                15 & Direction & 1 = Left/Up, 0 = Right/Down \\ \hline
+                13--4 & Position & Window offset in columns or rows \\ \hline
+                3--0 & Scroll & Smooth scroll amount (in pixels) \\ \hline
+            \end{tabular}
+        \end{center}
+        \caption{Tile map window position and scrolling}
+        \label{tile_scroll}
+    \end{table}
+
+    \subsection*{\keyword{TILESET} \param{number}, \param{lut}, \param{is\_square}, \param{address}}
+
+    Sets the bitmap to use for a tile map.
+    \param{number} is the number of the tile set or tile map (0--3).
+    \param{lut} is the number of the color look up table the tile set uses (0--7).
+    \param{is\_square} is a boolean indicating if the tiles are laid out on a 256 by 256 pixel
+    image (true) or 8 by 2,048 pixels (false).
+    \param{address} is the address of the first byte of the tile set, which must be somewhere
+    in video RAM.
+
+    \subsection*{\keyword{TILEMAP} \param{number}, \param{columns}, \param{rows}, \param{address}}
+
+    Sets the tile map to use.
+    \param{number} is the number of the tile set or tile map (0--3).
+    \param{columns} is the number tiles across in the tile map.
+    \param{rows} is the number of tiles vertically in the tile map.
+    \param{address} is the address of the first byte of the tile map, which must be somewhere
+    in video RAM.
+
+    Note that the tile map may be considerably bigger than the screen both horizontally and vertically.
+    The Vicky II chip allows for smooth scrolling in both directions across the whole map.
+    Also, each tile takes two bytes in the tile map. The lower byte is the number of the tile. The upper
+    byte specifies which tile set the tile comes from.
+
+    \subsection*{\keyword{TILESHOW} \param{number}, \param{is\_visible}}
+
+    Controls whether or not a tile map is visible.
+
+    \param{number} is the number of the tile set or tile map (0--3).
+    \param{is\_visible} is a boolean controlling whether or not the tile map is visible.
+    If 0, the tile map is invisible. If any other number, the tile map is visible.
 
     \section*{C256 Specific Functions}
 
@@ -628,7 +682,7 @@
         \begin{center}
             \begin{tabular}{|l|l|l|} \hline
                 Offsets & Value &  Purpose \\ \hline\hline
-                0--2 & "PGM" & Type signature \\ \hline
+                0--2 & ``PGM'' & Type signature \\ \hline
                 3 & 0x01 & Target version and CPU \\ \hline
                 4--7 & address & Destination address \\ \hline
                 8-- & data & Data to load \\ \hline
