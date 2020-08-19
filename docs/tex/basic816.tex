@@ -7,7 +7,7 @@
     \newcommand{\param}[1]{{\tt <{#1}>}}
     \title{The \BASIC\  Language Manual}
     \author{PJW}
-    \date{20 September 2019}
+    \date{9 August 2020}
     \maketitle
 
     \section*{About \BASIC}
@@ -433,19 +433,21 @@
 
     \BASIC\ includes a number of statements to support features of the C256 Foenix.
 
-    \subsection*{\keyword{CLRPIXMAP}}
+    \subsection*{\keyword{CLRBITMAP} \param{plane}}
 
     Sets all pixels in the bitmap to 0 (transparent).
-    The bitmap must have been setup with the \keyword{PIXMAP} statement before
+    \param{plane} is the number of the bitmap plane (0 or 1).
+    The bitmap must have been setup with the \keyword{BITMAP} statement before
     this statement can be used.
 
-    \subsection*{\keyword{FILL} \param{x0}, \param{y0}, \param{x1}, \param{y1}, \param{color}}
+    \subsection*{\keyword{FILL} \param{plane}, \param{x0}, \param{y0}, \param{x1}, \param{y1}, \param{color}}
 
     Fill the rectangle with corners at $(x_0, y_0)$ to $(x_1, y_1)$ with the color
     specified by the \param{color} index number.
+    \param{plane} is the number of the bitmap plane (0 or 1).
     The actual color displayed will depend on the RGB values provided for
     that index in the color lookup table currently used by the bitmap.
-    The \keyword{PIXMAP} statement must have been used before using
+    The \keyword{BITMAP} statement must have been used before using
     this statement.
 
     \subsection*{\keyword{GRAPHICS} \param{mode}}
@@ -460,6 +462,8 @@
         \begin{center}
             \begin{tabular}{|l|l|l|} \hline
                 Bit & Purpose \\ \hline\hline
+                9 & Pixel Double: 0 = use base resolution, 1 = use half base resolution \\ \hline
+                8 & Base Resolution: 0 = 640x480, 1 = 800x600 \\ \hline
                 7 & Global disable: If set, this disables all Vicky output. \\ \hline
                 6 & Gamma Correction: If set, this enables gamma correction. \\ \hline
                 5 & Sprites: If set, this enables the sprite engine. \\ \hline
@@ -474,25 +478,49 @@
         \end{center}
     \end{table}
 
-    \subsection*{\keyword{LINE} \param{x0}, \param{y0}, \param{x1}, \param{y1}, \param{color}}
+    One of the big changes with VICKY II is support of multiple display resolutions: 320x240,
+    400x300, 640x480, 800x600. The resolution is set using bits 8 and 9 of the master control
+    register. Bit 8 sets the base resolution by setting the display clock frequency, and bit 9
+    turns on and off the pixel doubler. These resolution bits affect text as well as graphics
+    rendering. So, choosing mode \verb+&h101+ will switch to a high resolution text mode with
+    up to 100 characters per row (if the border is turned off).
+
+    \begin{table}[!htb]
+        \begin{center}
+            \begin{tabular}{|l|l|l|} \hline
+                Bit 9 & Bit 8 & Resolution \\ \hline\hline
+                0 & 0 & 640x480 (default) \\ \hline
+                0 & 1 & 800x600 \\ \hline
+                1 & 0 & 320x240 \\ \hline
+                1 & 1 & 400x300 \\ \hline
+            \end{tabular}
+            \caption{Vicky Display Resolutions}
+            \label{vicky_res}
+        \end{center}
+    \end{table}    
+
+    \subsection*{\keyword{LINE} \param{plane}, \param{x0}, \param{y0}, \param{x1}, \param{y1}, \param{color}}
 
     Draw a line on the bitmap display from positions $(x_0, y_0)$ to $(x_1, y_1)$ in the color
     specified by the \param{color} index number.
+    \param{plane} is the number of the bitmap plane (0 or 1).
     The actual color displayed will depend on the RGB values provided for
     that index in the color lookup table currently used by the bitmap.
-    The \keyword{PIXMAP} statement must have been used before using
+    The \keyword{BITMAP} statement must have been used before using
     this statement.
 
     \subsection*{\keyword{MONITOR}}
 
     Enter the machine language monitor.
 
-    \subsection*{\keyword{PIXMAP} \param{visible}, \param{lut} [, \param{address}]}
+    \subsection*{\keyword{BITMAP} \param{plane}, \param{visible}, \param{lut} [, \param{address}]}
 
     Controls the visibility of the bitmap display (the bitmap engine must be
     enabled with the \keyword{GRAPHICS} command). The parameter \param{visible}
     must be a number. If it is 0, the bitmap will be hidden. If it is any other
     value, it will be shown.
+
+    \param{plane} is the number of the bitmap plane (0 or 1).
 
     The number of the color lookup table to use must also be provided as \param{lut},
     which must be the number of one of the graphics color lookup tables.
@@ -501,13 +529,14 @@
     This address must be in the video memory area starting at B00000.
     If no address is provided, it will default to B00000.
 
-    \subsection*{\keyword{PLOT} \param{column}, \param{row}, \param{color}}
+    \subsection*{\keyword{PLOT} \param{plane}, \param{column}, \param{row}, \param{color}}
 
     Set the pixel at the specified \param{row} and \param{column} to the
     color with the given \param{color} index number.
+    \param{plane} is the number of the bitmap plane (0 or 1).
     The actual color displayed will depend on the RGB values provided for
     that index in the color lookup table currently used by the bitmap.
-    The \keyword{PIXMAP} statement must have been used before using
+    The \keyword{BITMAP} statement must have been used before using
     this statement.
 
     \subsection*{\keyword{SETBGCOLOR} \param{red}, \param{green}, \param{blue}}

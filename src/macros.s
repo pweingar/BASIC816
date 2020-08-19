@@ -79,55 +79,16 @@ RETURN      .macro
             RTS
             .endm
 
-;
-; Allocate SIZE bytes of storage on the stack for local variables
-; and link the DP register to point to the locals
-;
-LOCALS      .macro size
-            PHP
-            setal
-            CLC
-            TSC
-            ADC #\size
-            TCS
-            PHD
-            INC A
-            TCD
-            .endm
-
-;
-; Restore the DP register to the value saved to the stack
-; and deallocate the local storage
-;
-CLEANUP     .macro size
-            setal
-            PLD
-            TSC
-            SEC
-            SBC #\size
-            TCS
-            PLP
-            .endm
-
 ;;
-;; This style saves the stack pointer prior to pushing arguments and
-;; prior to setting up the stack frame onto the stack. This is more
-;; expensive to run BUT allows the stack to be unwound knowing only
-;; the correct value of the frame pointer
-;;
-;; 53 clocks of overhead per call, 25 bytes of code (plus 4 bytes per call on the stack)
-;;
-
-;;
-;;      +-------------+<-+
-;; 01fe | param       |  |
-;;      +-------------+  |
-;; 01fc | param       |  |
-;;      +-------------+  |
-;; 01fa | SP (01ff)   |--+
 ;;      +-------------+
-;; 01f7 | return addr |
+;; 01fd | param       |
+;;      +-------------+
+;; 01fb | param       |
+;;      +-------------+
+;; 01f9 | return addr |
 ;;      +-------------+<-+
+;; 01f7 | local       |  |
+;;      +-------------+  |
 ;; 01f5 | local       |  |
 ;;      +-------------+  |
 ;; 01f3 | SP (01f6)   |--+
@@ -136,34 +97,35 @@ CLEANUP     .macro size
 ;;      +-------------+
 ;; 01f0 |             | <-- SP (01f0)
 
-LINK        .macro ; size   (28 clocks, 15 bytes)
-            PHP
-            setal           ; 3
-            TSX             ; 2
-            TSC             ; 2
-            SEC             ; 2
-            SBC #\1         ; 3
-            TCS             ; 2 - Move stack down to make room for locals
-            PHX             ; 4 - Save old SP
-            PHD             ; 4 - Save old DP
-            DEC A           ; 2 - Compute new DP
-            DEC A           ; 2
-            DEC A           ; 2
-            TCD             ; 2
+ENTER       .macro locals           ; 36 cycles
+            PHP                     ; 4
+            setaxl                  ; 2
+            PHX                     ; 4 - Save X
+            TSX                     ; 2 - SP to X
+
+.if \locals > 0
+            SEC                     ; 2 - Add space for the locals
+            TSC                     ; 2
+            SBC #\locals            ; 3
+            TCS                     ; 2
+.endif
+
+            PHX                     ; 4 - Save the old SP
+            PHD                     ; 4 - Save the old DP
+
+            TSC                     ; 2 - Calculate the new DP
+            INC A                   ; 3
+            TCD                     ; 2
             .endm
 
-UNLINK2     .macro          ; 18 clocks, 8 bytes
-            setal           ; 3
-            LDA #2,D        ; 4 - Restore old SP
-            TCS             ; 2
-            LDA #0,D        ; 4 - Restore old DP
-            TCD             ; 2
+LEAVE       .macro                  ; 18 cycles
+            setaxl                  ; 2
+            LDA #2,D                ; 4
+            TCS                     ; 2 - Restore the SP
+            LDA #0,D                ; 4
+            TCD                     ; 2 - Restore the DP
+            PLX                     ; 4 - Recover the old X
             PLP
-            .endm
-
-CLEAN2      .macro          ; 7 clocks, 2 bytes
-            PLA             ; 5
-            TCS             ; 2
             .endm
 
 ;

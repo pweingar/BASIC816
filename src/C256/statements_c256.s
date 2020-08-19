@@ -19,9 +19,14 @@ SP_Y_COORD = 6                      ; Offset of the Y coordinate for a sprite
 TILEMAP_REG_SIZE = 12               ; The number of bytes in a tile map's register set
 TILESET_REG_SIZE = 4                ; The number of bytes in a tile set's register set
 
+BM_MAX = 2                          ; Maximum number of bitmaps we support
+
+
 .section variables
-GR_PM_ADDR      .dword ?            ; Address of the pixmap (from CPU's perspective)
-GR_PM_VRAM      .dword ?            ; Address of the pixmap (relative to start of VRAM)
+GR_BM0_ADDR     .dword ?            ; Address of bitmap 0 (from CPU's perspective)
+GR_BM1_ADDR     .dword ?            ; Address of bitmap 1 (from CPU's perspective)
+GR_BM0_VRAM     .dword ?            ; Address of bitmap 0 (relative to start of VRAM)
+GR_BM1_VRAM     .dword ?            ; Address of bitmap 1 (relative to start of VRAM)
 GR_MAX_COLS     .word ?             ; Width the display in pixels
 GR_MAX_ROWS     .word ?             ; Height of the display in pixels
 GR_TOTAL_PIXELS .word ?             ; Total number of pixels in the display
@@ -350,28 +355,12 @@ S_SETBORDER     .proc
                 STA BORDER_Y_SIZE
 
                 JSL FK_SETSIZES
-
-                ; SEC
-                ; LDA @lCOLS_PER_LINE         ; Make sure the screen size is right
-                ; SBC #8
-                ; STA @lCOLS_VISIBLE
-
-                ; SEC
-                ; LDA @lLINES_MAX
-                ; SBC #8
-                ; STA @lLINES_VISIBLE
-
                 BRA get_color
 
 hide_border     LDA #0                      ; Hide the border
                 STA @lBORDER_CTRL_REG
 
                 JSL FK_SETSIZES
-
-                ; LDA @lCOLS_PER_LINE         ; Make sure the screen size is right
-                ; STA @lCOLS_VISIBLE
-                ; LDA @lLINES_MAX
-                ; STA @lLINES_VISIBLE
 
 get_color       LDA #','
                 STA TARGETTOK
@@ -579,27 +568,6 @@ set_mode        setal
                 LDA @lM1_RESULT+2
                 STA @lGR_TOTAL_PIXELS+2
 
-;                 setal
-;                 LDA col_count,X             ; Get the number of columns in the text mode
-;                 STA @lCOLS_PER_LINE
-;                 STA @lCOLS_VISIBLE
-
-;                 LDA row_count,X             ; Get the number of columns in the text mode
-;                 STA @lLINES_MAX
-;                 STA @lLINES_VISIBLE
-
-;                 setas
-;                 LDA @lBORDER_CTRL_REG
-;                 BIT #Border_Ctrl_Enable
-;                 BEQ reset_cursor
-
-; with_border     setal
-;                 LDA colb_count,X            ; Get the number of columns in the text mode
-;                 STA @lCOLS_VISIBLE
-
-;                 LDA rowb_count,X            ; Get the number of columns in the text mode
-;                 STA @lLINES_VISIBLE
-
                 ; Set the screen size
 
                 JSL FK_SETSIZES
@@ -623,25 +591,104 @@ colb_count      .word 72,92,32,42
 rowb_count      .word 52,67,22,52
                 .pend
 
+;
+; Find the address (to the CPU) to the bitmap given it's number
+;
+; Inputs:
+;   ARGUMENT1 = the number of the bitmap plane (0 or 1)
+;
+; Outputs:
+;   MTEMPPTR = pointer to the first byte for that bitmap (in SRAM)
+;
+BITMAP_SRAM     .proc
+                PHX
+                PHP
+
+                setaxl
+                LDA ARGUMENT1           ; Get the number
+                CMP #BM_MAX
+                BGE range_err           ; Make sure it's within range
+                ASL A
+                ASL A                   ; Multiply by 4 to calculate an address offset
+                TAX
+
+                LDA @l GR_BM0_ADDR,X    ; Get the low 16-bits of the address
+                STA MTEMPPTR
+                LDA @l GR_BM0_ADDR+2,X  ; Get the high bits of the address
+                STA MTEMPPTR+2
+
+                PLP
+                PLX
+                RETURN
+range_err       THROW ERR_RANGE         ; Throw an out of range error
+                .pend
+
+;
+; Find the address to the bitmap given it's number
+;
+; Inputs:
+;   ARGUMENT1 = the number of the bitmap plane (0 or 1)
+;
+; Outputs:
+;   MTEMPPTR = pointer to the first byte for that bitmap (in VRAM)
+;
+BITMAP_VRAM     .proc
+                PHX
+                PHP
+
+                setaxl
+                LDA ARGUMENT1           ; Get the number
+                CMP #BM_MAX
+                BGE range_err           ; Make sure it's within range
+                ASL A
+                ASL A                   ; Multiply by 4 to calculate an address offset
+                TAX
+
+                LDA @l GR_BM0_VRAM,X    ; Get the low 16-bits of the address
+                STA MTEMPPTR
+                LDA @l GR_BM0_VRAM+2,X  ; Get the high bits of the address
+                STA MTEMPPTR+2
+
+                PLP
+                PLX
+                RETURN
+range_err       THROW ERR_RANGE         ; Throw an out of range error
+                .pend
 
 ; Set the pixmap base address
-; PIXMAP visible, lut, address
-S_PIXMAP        .proc
+; BITMAP number, visible, lut, address
+S_BITMAP        .proc
                 PHP
-                TRACE "S_PIXMAP"
+                TRACE "S_BITMAP"
 
                 setal
+                CALL EVALEXPR               ; Get the bitmap number
+                CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+                setal
+                LDA ARGUMENT1               ; Make sure it's in range
+                CMP #BM_MAX
+                BGE range_err               ; If not, throw an error
+                STA MARG1                   ; If so, save it to MARG1
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma 
                 CALL EVALEXPR               ; Get the visible flag
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
-                MOVE_W MARG1,ARGUMENT1      ; Save it to MARG1
+                MOVE_W MARG2,ARGUMENT1      ; Save it to MARG2
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
                 CALL EVALEXPR               ; Get the LUT #
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
 
+                LDA MARG1                   ; Get the number back
+                ASL A                       ; Multiply by 8 to get the offset to the registers
+                ASL A
+                ASL A
+                TAX                         ; And save that offset to X
+
                 setas
-                LDA MARG1                   ; Check the visible flag
+                LDA MARG2                   ; Check the visible flag
                 BNE is_visible              ; If <> 0, it's visible
 
                 LDA ARGUMENT1               ; Get the LUT #
@@ -652,7 +699,7 @@ is_visible      LDA ARGUMENT1               ; Get the LUT #
                 SEC     
                 ROL A                       ; And shift it into position, and set enable bit
 
-wr_bm_reg       STA @lBM0_CONTROL_REG       ; Write to the bitmap control register         
+wr_bm_reg       STA @l BM0_CONTROL_REG,X    ; Write to the bitmap control register      
 
                 setal
                 LDA #','
@@ -664,33 +711,48 @@ wr_bm_reg       STA @lBM0_CONTROL_REG       ; Write to the bitmap control regist
                 LDARG_EA ARGUMENT1,VRAM,TYPE_INTEGER
                 BRA set_address
 
+range_err       THROW ERR_RANGE
+
 get_address     setal
                 CALL INCBIP
                 CALL EVALEXPR               ; Get the address
 
                 ; Rebase the address to the start of VRAM
-set_address     setas
-                SEC
+set_address     setal
+                LDA MARG1                   ; Get the bitmap number back
+                ASL A                       ; Multiply by four to get the offset to the address variable
+                ASL A
+                TAX                         ; And put it in X
+
+                LDA ARGUMENT1               ; Get the CPU-space address
+                STA @l GR_BM0_ADDR,X        ; And save it to the correct GR_BM?_ADDR variable
+                STA @l GR_BM0_VRAM,X
+                STA MARG3                   ; And MARG3, temporarily
                 LDA ARGUMENT1+2
-                STA @lGR_PM_ADDR+2          ; Save the address for later use                
+                STA @l GR_BM0_ADDR+2,X
 
-                SBC #`VRAM
-                BMI bad_address             ; If it's negative, throw an error
-                STA @lBM0_START_ADDY_H
-                STA @lGR_PM_VRAM+2
+                SEC
+                SBC #`VRAM                  ; Rebase the upper half of the address to Vicky memory space
+                STA @l GR_BM0_VRAM+2,X
+                STA MARG3+2                 ; And to MARG3
 
-                LDA ARGUMENT1               
-                STA @lGR_PM_ADDR            ; Save the address for later use
-                STA @lBM0_START_ADDY_L      ; Set the register in Vicky
-                STA @lGR_PM_VRAM
-                LDA ARGUMENT1+1             ; Otherwise, set the register in Vicky
-                STA @lBM0_START_ADDY_M
-                STA @lGR_PM_VRAM+1
-                STA @lGR_PM_ADDR+1
+                LDA MARG1                   ; Get the bitmap number back
+                ASL A                       ; Multiply by eight to get the offset to the registers
+                ASL A
+                ASL A
+                TAX                         ; And put it in X
 
-                LDA #0
-                STA @lGR_PM_VRAM+3
-                STA @lGR_PM_ADDR+3
+                setas
+                LDA MARG3                   ; Get the address in Vicky space...
+                STA @l BM0_START_ADDY_L,X   ; Save it to the Vicky registers
+                LDA MARG3+1
+                STA @l BM0_START_ADDY_M,X
+                LDA MARG3+2
+                STA @l BM0_START_ADDY_H,X
+
+                LDA #0                      ; Default offset to (0, 0)
+                STA @l BM0_X_OFFSET,X
+                STA @l BM0_Y_OFFSET,X
 
                 PLP
                 RETURN
@@ -698,21 +760,26 @@ bad_address     THROW ERR_ARGUMENT          ; Throw an illegal argument exceptio
                 .pend
 
 ; Clear the current pixmap memory
-; CLRPIXMAP
-S_CLRPIXMAP     .proc
+; CLRBITMAP number
+S_CLRBITMAP     .proc
                 PHP
-                TRACE "S_CLRPIXMAP"
+                TRACE "S_CLRBITMAP"
+
+                setal
+                CALL EVALEXPR               ; Get the bitmap number
+                CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+                CALL BITMAP_VRAM            ; Get the address of the bitmap into MTEMPPTR
 
                 ; We're going to use Vicky's VDMA capabilities to fill the screen here.
                 ; This should be MUCH faster than the CPU can do it.
 
                 setal
-                LDA @lGR_PM_VRAM            ; Set the start address and the # of pixels to write
+                LDA MTEMPPTR                ; Set the start address and the # of pixels to write
                 STA @lVDMA_DST_ADDY_L
-                LDA @lGR_TOTAL_PIXELS
+                LDA @lGR_TOTAL_PIXELS       ; Set the size
                 STA @lVDMA_SIZE_L
                 setas
-                LDA @lGR_PM_VRAM+2
+                LDA MTEMPPTR+2
                 STA @lVDMA_DST_ADDY_H
                 LDA @lGR_TOTAL_PIXELS+2
                 STA @lVDMA_SIZE_H
@@ -755,6 +822,7 @@ SY      .word ?
 ; Draw a pixel on the pixmap
 ;
 ; Inputs:
+;   MTEMPPTR = the address of the first byte of the bitmap
 ;   X0 = column number (x-coordinate)
 ;   X1 = row number (y-coordinate)
 ;   COLOR = color index (0 - 255)
@@ -780,15 +848,15 @@ PLOT            .proc
 
                 CLC                         ; Add the address of the first pixel
                 LDA SCRATCH
-                ADC @lGR_PM_ADDR
-                STA MTEMPPTR
+                ADC MTEMPPTR
+                STA SCRATCH
                 LDA SCRATCH+2
-                ADC @lGR_PM_ADDR+2
-                STA MTEMPPTR+2              ; MTEMPPTR := pixmap + pixel offset
+                ADC MTEMPPTR+2
+                STA SCRATCH+2               ; SCRATCH := pixmap + pixel offset
 
                 setas
                 LDA COLOR                   ; Get the color
-                STA [MTEMPPTR]              ; And write the color to the pixel
+                STA [SCRATCH]               ; And write the color to the pixel
 
                 PLP
                 RETURN
@@ -800,6 +868,7 @@ PLOT            .proc
 ; Used the algorithm at: https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#C
 ;
 ; Inputs:
+;   MTEMPPTR = the address of the first byte of the bitmap
 ;   X0 = the first X coordinate
 ;   Y0 = the first Y coordinate
 ;   X1 = the second X coordinate
@@ -916,6 +985,7 @@ done            RETURN
 ; Fill a block of the pixmap with a color
 ;
 ; Inputs:
+;   MTEMPPTR = the address of the first byte of the bitmap
 ;   X0 = the first X coordinate
 ;   Y0 = the first Y coordinate
 ;   X1 = the second X coordinate
@@ -949,11 +1019,11 @@ FILL            .proc
 
                 setal
                 CLC                         ; Set the destination address
-                LDA @lGR_PM_VRAM
+                LDA MTEMPPTR
                 ADC SCRATCH
                 STA @lVDMA_DST_ADDY_L
                 setas
-                LDA @lGR_PM_VRAM+2
+                LDA MTEMPPTR+2
                 ADC SCRATCH+2
                 STA @lVDMA_DST_ADDY_H
 
@@ -966,7 +1036,6 @@ FILL            .proc
 
                 SEC
                 LDA @lGR_MAX_COLS
-                ;SBC SCRATCH
                 STA @lVDMA_DST_STRIDE_L     ; And the destination stride
 
                 SEC                         ; Set the height of the FILL operation
@@ -997,7 +1066,7 @@ done            PLP
 
 
 ; Draw a pixel on the pixmap
-; PLOT x, y, color_index
+; PLOT plane, x, y, color_index
 S_PLOT          .proc
                 PHP
                 TRACE "S_PLOT"
@@ -1006,10 +1075,17 @@ S_PLOT          .proc
                 setdbr 0
                 setaxl
 
+                CALL EVALEXPR               ; Get the bitmap number
+                CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+                CALL BITMAP_SRAM            ; Get the address of the bitmap into MTEMPPTR
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
+
                 CALL EVALEXPR               ; Get the x coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                STA MARG1                   ; Save it to MARG1       
+                STA X0                      ; Save it to MARG2
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1017,7 +1093,7 @@ S_PLOT          .proc
                 CALL EVALEXPR               ; Get the y coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                STA MARG2                   ; Save it to MARG2
+                STA Y0                      ; Save it to MARG3
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1025,7 +1101,7 @@ S_PLOT          .proc
                 CALL EVALEXPR               ; Get the color index            
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
                 LDA ARGUMENT1
-                STA MARG3                   ; Save it to MARG3
+                STA COLOR                   ; Save it to MARG1
 
                 CALL PLOT                   ; And draw the pixel
 
@@ -1034,7 +1110,7 @@ S_PLOT          .proc
                 .pend
 
 ; Draw a pixel on the pixmap
-; LINE x0, y0, x1, y1, color
+; LINE plane, x0, y0, x1, y1, color
 S_LINE          .proc
                 PHP
                 TRACE "S_LINE"
@@ -1042,6 +1118,13 @@ S_LINE          .proc
                 setdp <>GLOBAL_VARS
                 setdbr 0
                 setaxl
+
+                CALL EVALEXPR               ; Get the bitmap number
+                CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+                CALL BITMAP_SRAM            ; Get the address of the bitmap into MTEMPPTR
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the x0 coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
@@ -1087,7 +1170,7 @@ done            PLP
                 .pend
 
 ; Draw a pixel on the pixmap
-; FILL x0, y0, x1, y1, color
+; FILL plane, x0, y0, x1, y1, color
 S_FILL          .proc
                 PHP
                 TRACE "S_FILL"
@@ -1095,6 +1178,13 @@ S_FILL          .proc
                 setdp <>GLOBAL_VARS
                 setdbr 0
                 setaxl
+
+                CALL EVALEXPR               ; Get the bitmap number
+                CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+                CALL BITMAP_SRAM            ; Get the address of the bitmap into MTEMPPTR
+
+                LDA #','
+                CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the x0 coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
