@@ -1849,3 +1849,200 @@ S_TILEAT        .proc
                 PLP
                 RETURN
                 .pend
+
+;
+; DMA Type Constants
+;
+DMA_LINEAR = 0                              ; Memory to copy is a continguous, linear range
+DMA_RECT = 1                                ; Memory to copy is a rectangular block
+
+;
+; A structure to represent a rectangular chunk of memory
+;
+DMA_RECT_INFO   .struct
+WIDTH           .word ?                     ; The width of the rectangle to copy (for RECTANGULAR)
+HEIGHT          .word ?                     ; The height of the rectangle to copy (for RECTANGULAR sources)
+STRIDE          .word ?                     ; The number of bytes to skip to get to the next line (for RECTANGULAR)
+                .ends
+
+;
+; A structure to represent a section of memory to be the source or destination
+; for a DMA operation.
+;
+DMA_BLOCK       .struct
+MODE            .byte ?                     ; The type of transfer: 0 = LINEAR, 1 = RECTANGULAR
+ADDR            .long ?                     ; The starting address for the data to transfer
+                .union
+SIZE            .long ?                     ; The number of bytes to transfer (for LINEAR sources)              
+RECT            .dstruct DMA_RECT_INFO      ; The size and layout of the rectangle (for RECTANGULAR)
+                .endu
+                .ends
+
+.section variables
+DMA_SRC         .dstruct DMA_BLOCK          ; Source for a DMA transfer
+DMA_DEST        .dstruct DMA_BLOCK          ; Destination for a DMA transfer
+.send
+
+;
+; Routine to actually perform a copy of memory data
+;
+; Inputs:
+;   DMA_SRC = record of the source for the DMA operation
+;   DMA_DEST = record of the destination for the DMA operation
+;
+DO_DMA          .proc
+                PHD
+                PHP
+
+                setdp GLOBAL_VARS
+
+                setaxl
+                LDA @l DMA_SRC.ADDR             ; Get the source address
+                STA MTEMPPTR
+                setas
+                LDA @l DMA_SRC.ADDR+2
+                setal
+                AND #$00FF
+                STA MTEMPPTR+2
+
+                LDA @l DMA_SRC.SIZE             ; Get the source size
+                STA SCRATCH
+                setas
+                LDA @l DMA_SRC.SIZE+2
+                setal
+                AND #$00FF
+                STA SCRATCH+2
+
+                LDA @l DMA_DEST.ADDR            ; Get the destination address
+                STA SCRATCH2
+                setas
+                LDA @l DMA_DEST.ADDR+2
+                setal
+                AND #$00FF
+                STA SCRATCH2+2
+
+copy_loop       setas
+                LDA [MTEMPPTR]                  ; Get the byte to copy
+                STA [SCRATCH2]                  ; Save it to the destination
+
+                setal
+                INC MTEMPPTR                    ; Increment the source pointer
+                BNE inc_dest
+                INC MTEMPPTR+2
+
+inc_dest        INC SCRATCH2                    ; Increment the destination pointer
+                BNE dec_count
+                INC SCRATCH2+2 
+
+dec_count       SEC                             ; Decrement the counter
+                LDA SCRATCH
+                SBC #1
+                STA SCRATCH
+                LDA SCRATCH+2
+                SBC #0
+                STA SCRATCH+2
+
+                LDA SCRATCH                     ; If counter <> 0
+                BNE copy_loop                   ; Then keep going
+                LDA SCRATCH+2
+                BNE copy_loop
+
+                ; Otherwise, we're done
+
+                PLP
+                PLD
+                RETURN
+                .pend
+
+;
+; Use DMA to copy a chunk of memory from one location to another.
+; The statement is multi-purpose in that it supports transfers within and between system RAM
+; and video RAM, and it also supports linear and rectangular copies.
+;
+; MEMCOPY LINEAR <src addr>, <size> TO LINEAR <dest addr>
+; MEMCOPY LINEAR <src addr>, <size> TO RECT <dest addr>, <width>, <stride>
+; MEMCOPY RECT <src addr>, <width>, <height>, <stride> TO LINEAR <dest addr>
+; MEMCOPY RECT <src addr>, <width>, <height>, <stride> TO RECT <dest addr>, <width>, <stride>
+;
+S_MEMCOPY       .proc
+                PHD
+                PHP
+                TRACE "S_MEMCOPY"
+
+                setas
+                setxl
+
+                CALL PEEK_TOK               ; Look for the next token
+                CMP #TOK_LINEAR             ; Is it LINEAR?
+                BEQ src_linear              ; Yes: go to process a linear source
+
+                ; TODO: process RECT
+
+syntax_err      THROW ERR_SYNTAX            ; Otherwise: throw a syntax error
+
+src_linear      CALL EXPECT_TOK             ; Eat the LINEAR keyword
+                CALL EVALEXPR               ; Get the source address
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+
+                setal
+                LDA ARGUMENT1
+                STA @l DMA_SRC.ADDR         ; Set the source address
+                setas
+                LDA ARGUMENT1+2
+                STA @l DMA_SRC.ADDR+2
+
+                LDA #','                    ; Get a comma
+                CALL EXPECT_TOK
+                CALL EVALEXPR               ; Get the length of the data range to copy
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+
+                setal
+                LDA ARGUMENT1
+                STA @l DMA_SRC.SIZE         ; Set the source size
+                setas
+                LDA ARGUMENT1+2
+                STA @l DMA_SRC.SIZE+2
+
+                LDA #DMA_LINEAR             ; Set the source mode
+                STA @L DMA_SRC.MODE
+
+                ; Parse the TO keyword
+
+                LDA #TOK_TO
+                CALL EXPECT_TOK             ; Eat the TO token
+
+                CALL PEEK_TOK               ; Scan to the next token
+                CMP #TOK_LINEAR             ; Is it LINEAR?
+                BEQ dest_linear             ; Yes: go to process a linear destination
+
+                ; TODO: process RECT
+
+syntax_err2     THROW ERR_SYNTAX            ; Otherwise: throw a syntax error     
+
+dest_linear     CALL EXPECT_TOK             ; Eat the LINEAR keyword
+                CALL EVALEXPR               ; Get the destination address
+                CALL ASS_ARG1_INT           ; Make sure it's an integer
+
+                setal
+                LDA ARGUMENT1
+                STA @l DMA_DEST.ADDR        ; Set the destination address
+                setas
+                LDA ARGUMENT1+2
+                STA @l DMA_DEST.ADDR+2
+
+                setal
+                LDA ARGUMENT1
+                STA @l DMA_DEST.SIZE        ; Set the destination size
+                setas
+                LDA ARGUMENT1+2
+                STA @l DMA_DEST.SIZE+2
+
+                LDA #DMA_LINEAR             ; Set the destination mode
+                STA @l DMA_DEST.MODE
+
+                CALL DO_DMA                 ; Trigger the actual DMA operation
+
+                PLP
+                PLD
+                RETURN
+                .pend

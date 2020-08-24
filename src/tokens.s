@@ -777,6 +777,9 @@ TOK_LOOP = $9D
 TOK_DATA = $A8
 TOK_NEGATIVE = $AF
 
+TOK_LINEAR = $E6
+TOK_RECT = $E7
+
 TOK_TY_OP = $00         ; The token is an operator
 TOK_TY_CMD = $10        ; The token is a command (e.g. RUN, LIST, etc.)
 TOK_TY_STMNT = $20      ; The token is a statement (e.g. INPUT, PRINT, DIM, etc.)
@@ -838,8 +841,8 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
 
             ; Functions
 
-            DEFTOK "-", TOK_TY_FUNC, 0, FN_NEGATIVE, 0
-            DEFTOK "LEN", TOK_TY_FUNC, 0, FN_LEN, 0
+            DEFTOK "-", TOK_TY_FUNC, 0, FN_NEGATIVE, 0          ; AF
+            DEFTOK "LEN", TOK_TY_FUNC, 0, FN_LEN, 0             ; B0
             DEFTOK "PEEK", TOK_TY_FUNC, 0, FN_PEEK, 0
             DEFTOK "PEEKW", TOK_TY_FUNC, 0, FN_PEEKW, 0
             DEFTOK "PEEKL", TOK_TY_FUNC, 0, FN_PEEKL, 0
@@ -855,7 +858,7 @@ TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
             DEFTOK "VAL", TOK_TY_FUNC, 0, FN_VAL, 0
             DEFTOK "LEFT$", TOK_TY_FUNC, 0, FN_LEFT, 0
             DEFTOK "RIGHT$", TOK_TY_FUNC, 0, FN_RIGHT, 0
-            DEFTOK "MID$", TOK_TY_FUNC, 0, FN_MID, 0
+            DEFTOK "MID$", TOK_TY_FUNC, 0, FN_MID, 0            ; C0
 
             ; Commands
 
@@ -876,7 +879,7 @@ LISTTOK     DEFTOK "LIST", TOK_TY_CMD, 0, CMD_LIST, 0
             DEFTOK "GET", TOK_TY_STMNT, 0, S_GET, 0
             DEFTOK "INPUT", TOK_TY_STMNT, 0, S_INPUT, 0
 
-            DEFTOK "SETBORDER", TOK_TY_STMNT, 0, S_SETBORDER, 0
+            DEFTOK "SETBORDER", TOK_TY_STMNT, 0, S_SETBORDER, 0     ; D0
             DEFTOK "TEXTCOLOR", TOK_TY_STMNT, 0, S_TEXTCOLOR, 0
             DEFTOK "SETBGCOLOR", TOK_TY_STMNT, 0, S_SETBGCOLOR, 0
             DEFTOK "SETDATE", TOK_TY_STMNT, 0, S_SETDATE, 0
@@ -892,11 +895,15 @@ LISTTOK     DEFTOK "LIST", TOK_TY_CMD, 0, CMD_LIST, 0
             DEFTOK "FILL", TOK_TY_STMNT, 0, S_FILL, 0
             DEFTOK "SPRITE", TOK_TY_STMNT, 0, S_SPRITE, 0
             DEFTOK "SPRITEAT", TOK_TY_STMNT, 0, S_SPRITEAT, 0
-            DEFTOK "SPRITESHOW", TOK_TY_STMNT, 0, S_SPRITESHOW, 0
+            DEFTOK "SPRITESHOW", TOK_TY_STMNT, 0, S_SPRITESHOW, 0   ; E0
 
             DEFTOK "TILESET", TOK_TY_STMNT, 0, S_TILESET, 0
             DEFTOK "TILEMAP", TOK_TY_STMNT, 0, S_TILEMAP, 0
             DEFTOK "TILESHOW", TOK_TY_STMNT, 0, S_TILESHOW, 0
             DEFTOK "TILEAT", TOK_TY_STMNT, 0, S_TILEAT, 0
+
+            DEFTOK "MEMCOPY", TOK_TY_STMNT, 0, S_MEMCOPY, 0             ; Token for MEMCOPY statement
+            DEFTOK "LINEAR", TOK_TY_BYWRD, 0, 0, 0                      ; E6 - Keyword for MEMCOPY statement
+            DEFTOK "RECT", TOK_TY_BYWRD, 0, 0, 0                        ; E7 - Keyword for MEMCOPY statement
 
             .word 0, 0, 0, 0
