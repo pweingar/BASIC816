@@ -1857,28 +1857,25 @@ DMA_LINEAR = 0                              ; Memory to copy is a continguous, l
 DMA_RECT = 1                                ; Memory to copy is a rectangular block
 
 ;
-; A structure to represent a rectangular chunk of memory
-;
-DMA_RECT_INFO   .struct
-WIDTH           .word ?                     ; The width of the rectangle to copy (for RECTANGULAR)
-HEIGHT          .word ?                     ; The height of the rectangle to copy (for RECTANGULAR sources)
-STRIDE          .word ?                     ; The number of bytes to skip to get to the next line (for RECTANGULAR)
-                .ends
-
-;
 ; A structure to represent a section of memory to be the source or destination
 ; for a DMA operation.
 ;
 DMA_BLOCK       .struct
 MODE            .byte ?                     ; The type of transfer: 0 = LINEAR, 1 = RECTANGULAR
 ADDR            .long ?                     ; The starting address for the data to transfer
-                .union
 SIZE            .long ?                     ; The number of bytes to transfer (for LINEAR sources)              
-RECT            .dstruct DMA_RECT_INFO      ; The size and layout of the rectangle (for RECTANGULAR)
-                .endu
+WIDTH           .word ?                     ; The width of the rectangle to copy (for RECTANGULAR)
+HEIGHT          .word ?                     ; The height of the rectangle to copy (for RECTANGULAR sources)
+STRIDE          .word ?                     ; The number of bytes to skip to get to the next line (for RECTANGULAR)
                 .ends
 
+DMA_SRC_2D = $01                            ; Source transfer should be 2D
+DMA_DST_2D = $02                            ; Destination transfer should be 2D
+DMA_SRC_SRAM = $10                          ; Flag indicating that the source is in SRAM ($00:0000 - $3F:FFFF)
+DMA_DST_SRAM = $20                          ; Flag indicating that the destination is in SRAM ($00:0000 - $3F:FFFF)
+
 .section variables
+DMA_BLOCKS      .byte ?                     ; What blocks are involved
 DMA_SRC         .dstruct DMA_BLOCK          ; Source for a DMA transfer
 DMA_DEST        .dstruct DMA_BLOCK          ; Destination for a DMA transfer
 .send
@@ -1896,58 +1893,295 @@ DO_DMA          .proc
 
                 setdp GLOBAL_VARS
 
-                setaxl
-                LDA @l DMA_SRC.ADDR             ; Get the source address
-                STA MTEMPPTR
+                ; Set up source parameters
                 setas
-                LDA @l DMA_SRC.ADDR+2
-                setal
-                AND #$00FF
-                STA MTEMPPTR+2
+                LDA #0
+                STA @l DMA_BLOCKS           ; Set mode to something neutral
 
-                LDA @l DMA_SRC.SIZE             ; Get the source size
-                STA SCRATCH
-                setas
+                LDA @l DMA_SRC.ADDR+2       ; Check the bank
+                CMP #`VRAM                  ; Is it in VRAM?
+                BGE src_vram                ; Yes: leave the DMA_BLOCK bit alone
+
+src_sram        STA @l SDMA_SRC_ADDY_H      ; Set the SDMA source address
+                LDA @l DMA_SRC.ADDR+1
+                STA @l SDMA_SRC_ADDY_M
+                LDA @l DMA_SRC.ADDR
+                STA @l SDMA_SRC_ADDY_L
+
+                LDA #DMA_SRC_SRAM           ; Set the SRAM source block bit
+                STA @l DMA_BLOCKS
+                BRA src_mode
+
+src_vram        SEC                         ; Convert to VRAM relative address
+                SBC #`VRAM
+                STA @l VDMA_SRC_ADDY_H      ; Set the VDMA source address
+                LDA @l DMA_SRC.ADDR+1
+                STA @l VDMA_SRC_ADDY_M
+                LDA @l DMA_SRC.ADDR
+                STA @l VDMA_SRC_ADDY_L
+
+src_mode        LDA @l DMA_SRC.MODE         ; Determine if source is 1D or 2D
+                BNE src_2d
+
+                ; Set up 1D source parameters
+src_1d          LDA @l DMA_BLOCKS           ; Check if the source is SRAM or VRAM
+                BEQ src_1d_vram
+
+                ; Set the 1D SRAM source information
+src_1d_sram     LDA @l DMA_SRC.SIZE         ; It's SRAM, so set the SDMA size
+                STA @l SDMA_SIZE_L
+                LDA @l DMA_SRC.SIZE+1
+                STA @l SDMA_SIZE_M
                 LDA @l DMA_SRC.SIZE+2
-                setal
-                AND #$00FF
-                STA SCRATCH+2
+                STA @l SDMA_SIZE_H
+                BRL set_dst                 ; Go to set up the destination
 
-                LDA @l DMA_DEST.ADDR            ; Get the destination address
-                STA SCRATCH2
+                ; Set the 1D VRAM source information
+src_1d_vram     LDA @l DMA_SRC.SIZE         ; It's VRAM, so set the VDMA size
+                STA @l VDMA_SIZE_L
+                LDA @l DMA_SRC.SIZE+1
+                STA @l VDMA_SIZE_M
+                LDA @l DMA_SRC.SIZE+2
+                STA @l VDMA_SIZE_H
+                BRL set_dst                 ; Go to set up the destination
+
+                ; Set up 2D source parameters
+src_2d          LDA @l DMA_BLOCKS
+                ORA #DMA_SRC_2D             ; Set the bit to make the source a 2D transfer
+                STA @l DMA_BLOCKS
+                
+                BIT #DMA_SRC_SRAM           ; Are we writing to SRAM
+                BEQ src_2d_vram             ; No: set the 2d values in the VRAM source
+
+                ; Set the 1D SRAM source information
+src_2d_sram     LDA @l DMA_SRC.WIDTH        ; Set the source width
+                STA @l SDMA_X_SIZE_L
+                LDA @l DMA_SRC.WIDTH+1
+                STA @l SDMA_X_SIZE_L+1
+
+                LDA @l DMA_SRC.HEIGHT       ; Set the source height
+                STA @l SDMA_Y_SIZE_L
+                LDA @l DMA_SRC.HEIGHT+1
+                STA @l SDMA_Y_SIZE_L+1
+
+                LDA @l DMA_SRC.STRIDE       ; Set the source stride
+                STA @l SDMA_SRC_STRIDE_L
+                LDA @l DMA_SRC.STRIDE+1
+                STA @l SDMA_SRC_STRIDE_L+1
+                BRA set_dst
+
+                ; Set the 2D SRAM source information
+src_2d_vram     LDA @l DMA_SRC.WIDTH        ; Set the source width
+                STA @l VDMA_X_SIZE_L
+                LDA @l DMA_SRC.WIDTH+1
+                STA @l VDMA_X_SIZE_L+1
+
+                LDA @l DMA_SRC.HEIGHT       ; Set the source height
+                STA @l VDMA_Y_SIZE_L
+                LDA @l DMA_SRC.HEIGHT+1
+                STA @l VDMA_Y_SIZE_L+1
+
+                LDA @l DMA_SRC.STRIDE       ; Set the source stride
+                STA @l VDMA_SRC_STRIDE_L
+                LDA @l DMA_SRC.STRIDE+1
+                STA @l VDMA_SRC_STRIDE_L+1
+
+set_dst         ; Set up destination parameters
                 setas
-                LDA @l DMA_DEST.ADDR+2
-                setal
-                AND #$00FF
-                STA SCRATCH2+2
+                LDA @l DMA_DEST.ADDR+2      ; Check the bank
+                CMP #`VRAM                  ; Is it in VRAM?
+                BGE dst_vram                ; Yes: leave the DMA_BLOCK bit alone
 
-copy_loop       setas
-                LDA [MTEMPPTR]                  ; Get the byte to copy
-                STA [SCRATCH2]                  ; Save it to the destination
+dst_sram        STA @l SDMA_DST_ADDY_H      ; Set the SDMA destination address
+                LDA @l DMA_DEST.ADDR+1
+                STA @l SDMA_DST_ADDY_M
+                LDA @l DMA_DEST.ADDR
+                STA @l SDMA_DST_ADDY_L
 
-                setal
-                INC MTEMPPTR                    ; Increment the source pointer
-                BNE inc_dest
-                INC MTEMPPTR+2
+                LDA @l DMA_BLOCKS
+                ORA #DMA_DST_SRAM           ; Set the bit to indicate the destination is SRAM
+                STA @l DMA_BLOCKS 
+                BRA dst_mode
 
-inc_dest        INC SCRATCH2                    ; Increment the destination pointer
-                BNE dec_count
-                INC SCRATCH2+2 
+dst_vram        SEC                         ; Convert to VRAM relative address
+                SBC #`VRAM
+                STA @l VDMA_DST_ADDY_H      ; Set the VDMA destination address
+                LDA @l DMA_DEST.ADDR+1
+                STA @l VDMA_DST_ADDY_M
+                LDA @l DMA_DEST.ADDR
+                STA @l VDMA_DST_ADDY_L               
 
-dec_count       SEC                             ; Decrement the counter
-                LDA SCRATCH
-                SBC #1
-                STA SCRATCH
-                LDA SCRATCH+2
-                SBC #0
-                STA SCRATCH+2
+                ; Determine if destination is 1D or 2D
+dst_mode        LDA @l DMA_DEST.MODE        
+                BNE dst_2d                  ; If 2D, set up the 2D destination parameters
 
-                LDA SCRATCH                     ; If counter <> 0
-                BNE copy_loop                   ; Then keep going
-                LDA SCRATCH+2
-                BNE copy_loop
+                ; Set up 1D destination parameters
+dst_1d          LDA @l DMA_BLOCKS           ; Check if the source is SRAM or VRAM
+                BIT #DMA_DST_SRAM           ; Is the destination SRAM?
+                BEQ dst_1d_vram
+                
+                ; Set up 1D SRAM destination parameters
+dst_1d_sram     LDA @l DMA_DEST.SIZE
+                STA @l SDMA_SIZE_L
+                LDA @l DMA_DEST.SIZE+1
+                STA @l SDMA_SIZE_L+1
+                LDA @l DMA_DEST.SIZE+2
+                STA @l SDMA_SIZE_H
+                BRL start_xfer
 
-                ; Otherwise, we're done
+                ; Set up 1D SRAM destination parameters
+dst_1d_vram     LDA @l DMA_DEST.SIZE
+                STA @l VDMA_SIZE_L
+                LDA @l DMA_DEST.SIZE+1
+                STA @l VDMA_SIZE_L+1
+                LDA @l DMA_DEST.SIZE+2
+                STA @l VDMA_SIZE_H
+                BRL start_xfer
+
+                ; Set up 2D destination parameters
+dst_2d          LDA @l DMA_BLOCKS
+                ORA #DMA_DST_2D             ; Set the bit to make the source a 2D transfer
+                STA @l DMA_BLOCKS
+
+                BIT #DMA_DST_SRAM           ; Are we writing to the SRAM?
+                BEQ dst_2d_vram             ; No: set the 2D parameters for VRAM
+
+                ; Set the 2D destination parameters for SRAM
+dst_2d_sram     LDA @l DMA_DEST.WIDTH       ; Set the SRAM width
+                STA @l SDMA_X_SIZE_L
+                LDA @L DMA_DEST.WIDTH+1
+                STA @l SDMA_X_SIZE_L+1
+
+                LDA @l DMA_DEST.HEIGHT      ; Set the SRAM height
+                STA @l SDMA_Y_SIZE_L
+                LDA @L DMA_DEST.HEIGHT+1
+                STA @l SDMA_Y_SIZE_L+1
+
+                LDA @l DMA_DEST.STRIDE      ; Set the SRAM stride
+                STA @l SDMA_DST_STRIDE_L
+                LDA @L DMA_DEST.STRIDE+1
+                STA @l SDMA_DST_STRIDE_L+1
+
+                BRA start_xfer
+
+                ; Set the 2D destination parameters for VRAM
+dst_2d_vram     LDA @l DMA_DEST.WIDTH       ; Set the VRAM width
+                STA @l VDMA_X_SIZE_L
+                LDA @L DMA_DEST.WIDTH+1
+                STA @l VDMA_X_SIZE_L+1
+
+                LDA @l DMA_DEST.HEIGHT      ; Set the VRAM height
+                STA @l VDMA_Y_SIZE_L
+                LDA @L DMA_DEST.HEIGHT+1
+                STA @l VDMA_Y_SIZE_L+1
+
+                LDA @l DMA_DEST.STRIDE      ; Set the VRAM stride
+                STA @l VDMA_DST_STRIDE_L
+                LDA @L DMA_DEST.STRIDE+1
+                STA @l VDMA_DST_STRIDE_L+1
+
+                ; Determine what type of transfer we're doing
+start_xfer      LDA @l DMA_BLOCKS
+                AND #DMA_SRC_SRAM | DMA_DST_SRAM
+                BEQ start_vdma_only
+                CMP #DMA_SRC_SRAM
+                BEQ start_s2v
+                CMP #DMA_DST_SRAM
+                BNE start_sdma_only
+                BRL start_v2s
+
+start_sdma_only ; Set the SDMA registers for a SDMA-only transfer
+
+                LDA @l DMA_BLOCKS           ; Check the SDMA flags
+                AND #DMA_SRC_2D | DMA_DST_2D
+                BEQ sdma_1d_only            ; Source and Destination 1D...
+                CMP #DMA_SRC_2D | DMA_DST_2D
+                BEQ sdma_2d_only            ; Source and Destination 2D
+
+                ; Cannot mix topographies within an SRAM->SRAM transfer                
+                THROW ERR_ARGUMENT          ; Throw an illegal argument error
+
+sdma_1d_only    LDA #SDMA_CTRL0_Enable      ; Set the bits for 1D, SRAM->SRAM
+                BRA sdma_set_ctrl
+
+                ; Set the bits for 2D, SRAM->SRAM
+sdma_2d_only    LDA #SDMA_CTRL0_Enable | SDMA_CTRL0_1D_2D
+sdma_set_ctrl   STA @l SDMA_CTRL_REG0
+                BRL trig_sdma               ; And trigger the SDMA
+
+start_vdma_only ; Set the VDMA registers for a VDMA-only transfer
+
+                LDA @l DMA_BLOCKS           ; Check the SDMA flags
+                AND #DMA_SRC_2D | DMA_DST_2D
+                BEQ vdma_1d_only            ; Source and Destination 1D...
+                CMP #DMA_SRC_2D | DMA_DST_2D
+                BEQ vdma_2d_only            ; Source and Destination 2D...
+
+                ; Cannot mix topographies within an VRAM->VRAM transfer                
+                THROW ERR_ARGUMENT          ; Throw an illegal argument error
+
+vdma_1d_only    LDA #VDMA_CTRL_Enable       ; Set the bits for 1D, VRAM->VRAM
+                BRA vdma_set_ctrl
+
+                ; Set the bits for 2D, VRAM->VRAM
+vdma_2d_only    LDA #VDMA_CTRL_Enable | VDMA_CTRL_1D_2D
+vdma_set_ctrl   STA @l VDMA_CONTROL_REG
+                BRA trig_vdma               ; And trigger the VDMA
+
+start_s2v       ; Set the DMA registers for SRAM -> VRAM transfer
+
+                LDA @l DMA_BLOCKS           ; Set the SDMA flags
+                AND #DMA_SRC_2D
+                ASL A
+                ORA #SDMA_CTRL0_Enable | SDMA_CTRL0_SysRAM_Src
+                STA @l SDMA_CTRL_REG0
+
+                LDA @l DMA_BLOCKS           ; Set the VDMA flags
+                AND #DMA_DST_2D
+                ORA #VDMA_CTRL_Enable | VDMA_CTRL_SysRAM_Src
+                STA @l VDMA_CONTROL_REG
+                BRA trig_vdma               ; And trigger the VDMA
+
+start_v2s       ; Set the DMA registers for VRAM -> SRAM transfer
+                LDA @l DMA_BLOCKS           ; Set the SDMA flags
+                AND #DMA_DST_2D
+                ORA #SDMA_CTRL0_Enable | SDMA_CTRL0_SysRAM_Dst
+                STA @l SDMA_CTRL_REG0
+
+                LDA @l DMA_BLOCKS           ; Set the VDMA flags
+                AND #DMA_SRC_2D
+                ASL A
+                ORA #VDMA_CTRL_Enable | VDMA_CTRL_SysRAM_Dst
+                STA @l VDMA_CONTROL_REG                    
+
+trig_vdma       ; Trigger the VDMA part of the transfer
+                LDA @l VDMA_CONTROL_REG
+                ORA #VDMA_CTRL_Start_TRF    ; Trigger the VDMA
+                STA @l VDMA_CONTROL_REG
+
+                LDA @l DMA_BLOCKS           ; Check if we need SDMA
+                AND #DMA_SRC_SRAM | DMA_DST_SRAM 
+                BEQ wait_vdma               ; No: wait for VDMA to complete
+
+trig_sdma       ; Trigger the SDMA part of the transfer
+
+                LDA @l SDMA_CTRL_REG0
+                ORA #SDMA_CTRL0_Start_TRF   ; Trigger the SDMA
+                STA @l SDMA_CTRL_REG0
+     
+                NOP                         ; When the transfer is started the CPU will be put on Hold (RDYn)...
+                NOP                         ; Before it actually gets to stop it will execute a couple more instructions
+                NOP                         ; From that point on, the CPU is halted (keep that in mind)
+                NOP                         ; No IRQ will be processed either during that time
+                NOP
+
+wait_vdma       LDA @l VDMA_STATUS_REG      ; Check the VDMA status
+                BIT #VDMA_STAT_VDMA_IPS     ; If the transfer is still in process...
+                BNE wait_vdma               ; Wait until it stops.
+
+                LDA #$00                    ; Clear the TRF bits
+                STA @l SDMA_CTRL_REG0
+                STA @l VDMA_CONTROL_REG
 
                 PLP
                 PLD
@@ -1959,10 +2193,10 @@ dec_count       SEC                             ; Decrement the counter
 ; The statement is multi-purpose in that it supports transfers within and between system RAM
 ; and video RAM, and it also supports linear and rectangular copies.
 ;
-; MEMCOPY LINEAR <src addr>, <size> TO LINEAR <dest addr>
-; MEMCOPY LINEAR <src addr>, <size> TO RECT <dest addr>, <width>, <stride>
-; MEMCOPY RECT <src addr>, <width>, <height>, <stride> TO LINEAR <dest addr>
-; MEMCOPY RECT <src addr>, <width>, <height>, <stride> TO RECT <dest addr>, <width>, <stride>
+; MEMCOPY LINEAR <src addr>, <size> TO LINEAR <dest addr>, <size>
+; MEMCOPY LINEAR <src addr>, <size> TO RECT <dest addr>, <width>, <height>, <stride>
+; MEMCOPY RECT <src addr>, <width>, <height>, <stride> TO LINEAR <dest addr>, <size>
+; MEMCOPY RECT <src addr>, <width>, <height>, <stride> TO RECT <dest addr>, <width>, <height>, <stride>
 ;
 S_MEMCOPY       .proc
                 PHD
@@ -1972,77 +2206,145 @@ S_MEMCOPY       .proc
                 setas
                 setxl
 
-                CALL PEEK_TOK               ; Look for the next token
-                CMP #TOK_LINEAR             ; Is it LINEAR?
-                BEQ src_linear              ; Yes: go to process a linear source
+                LDA #0
+                LDX #0
+clr_loop        STA @l DMA_SRC
+                INX
+                CPX #SIZE(DMA_BLOCK) * 2
+                BNE clr_loop
 
-                ; TODO: process RECT
+                CALL PEEK_TOK                       ; Look for the next token
+                CMP #TOK_LINEAR                     ; Is it LINEAR?
+                BEQ src_linear                      ; Yes: go to process a linear source
+                CMP #TOK_RECT                       ; Is it RECT?
+                BEQ src_rect                        ; Yes: go to process a rectangular source
 
-syntax_err      THROW ERR_SYNTAX            ; Otherwise: throw a syntax error
+syntax_err      THROW ERR_SYNTAX                    ; Otherwise: throw a syntax error
 
-src_linear      CALL EXPECT_TOK             ; Eat the LINEAR keyword
-                CALL EVALEXPR               ; Get the source address
-                CALL ASS_ARG1_INT           ; Make sure it's an integer
+                ; Process a linear source
+src_linear      CALL EXPECT_TOK                     ; Eat the LINEAR keyword
+                CALL EVALEXPR                       ; Get the source address
+                CALL ASS_ARG1_INT                   ; Make sure it's an integer
 
-                setal
-                LDA ARGUMENT1
-                STA @l DMA_SRC.ADDR         ; Set the source address
-                setas
-                LDA ARGUMENT1+2
-                STA @l DMA_SRC.ADDR+2
+                MOVE_L DMA_SRC.ADDR, ARGUMENT1      ; Set the source address
 
-                LDA #','                    ; Get a comma
+                LDA #','                            ; Get a comma
                 CALL EXPECT_TOK
-                CALL EVALEXPR               ; Get the length of the data range to copy
-                CALL ASS_ARG1_INT           ; Make sure it's an integer
+                CALL EVALEXPR                       ; Get the length of the data range to copy
+                CALL ASS_ARG1_INT                   ; Make sure it's an integer
 
-                setal
-                LDA ARGUMENT1
-                STA @l DMA_SRC.SIZE         ; Set the source size
-                setas
-                LDA ARGUMENT1+2
-                STA @l DMA_SRC.SIZE+2
+                MOVE_L DMA_SRC.SIZE, ARGUMENT1      ; Set the source size
+                LD_B DMA_SRC.MODE, DMA_LINEAR       ; Set the source mode
+                BRL process_to
 
-                LDA #DMA_LINEAR             ; Set the source mode
-                STA @L DMA_SRC.MODE
+                ; Process a rectangular source
+src_rect        CALL EXPECT_TOK                     ; Eat the LINEAR keyword
+                CALL EVALEXPR                       ; Get the source address
+                CALL ASS_ARG1_INT                   ; Make sure it's an integer
+
+                MOVE_L DMA_SRC.ADDR, ARGUMENT1      ; Set the source address
+
+                LDA #','                            ; Get a comma
+                CALL EXPECT_TOK
+                CALL EVALEXPR                       ; Get the width of the data range to copy
+                CALL ASS_ARG1_INT16                 ; Make sure it's a 16-bit integer
+
+                ; Set the width and prepare for multiplication
+                MOV2_W DMA_SRC.WIDTH, M0_OPERAND_A, ARGUMENT1
+
+                LDA #','                            ; Get a comma
+                CALL EXPECT_TOK
+                CALL EVALEXPR                       ; Get the height of the data range to copy
+                CALL ASS_ARG1_INT16                 ; Make sure it's a 16-bit integer
+
+                ; Set the height and prepare for multiplication
+                MOV2_W DMA_SRC.HEIGHT, M0_OPERAND_B, ARGUMENT1
+
+                LDA #','                            ; Get a comma
+                CALL EXPECT_TOK
+                CALL EVALEXPR                       ; Get the stride of the data range to copy
+                CALL ASS_ARG1_INT16                 ; Make sure it's a 16-bit integer
+
+                MOVE_W DMA_SRC.STRIDE, ARGUMENT1    ; Set the stride    
+                MOVE_L DMA_SRC.SIZE, M0_RESULT      ; Get WIDTH * HEIGHT
+                LD_B DMA_SRC.MODE, DMA_RECT         ; Set the source mode
 
                 ; Parse the TO keyword
-
+process_to      setas
                 LDA #TOK_TO
-                CALL EXPECT_TOK             ; Eat the TO token
+                CALL EXPECT_TOK                     ; Eat the TO token
 
-                CALL PEEK_TOK               ; Scan to the next token
-                CMP #TOK_LINEAR             ; Is it LINEAR?
-                BEQ dest_linear             ; Yes: go to process a linear destination
+                CALL PEEK_TOK                       ; Scan to the next token
+                CMP #TOK_LINEAR                     ; Is it LINEAR?
+                BEQ dest_linear                     ; Yes: go to process a linear destination
+                CMP #TOK_RECT                       ; Is it RECT?
+                BEQ dest_rect                       ; Yes: go to process a rectangular source
 
-                ; TODO: process RECT
+syntax_err2     THROW ERR_SYNTAX                    ; Otherwise: throw a syntax error 
 
-syntax_err2     THROW ERR_SYNTAX            ; Otherwise: throw a syntax error     
+                ; Process a linear transfer
+dest_linear     CALL EXPECT_TOK                     ; Eat the LINEAR keyword
+                CALL EVALEXPR                       ; Get the destination address
+                CALL ASS_ARG1_INT                   ; Make sure it's an integer
 
-dest_linear     CALL EXPECT_TOK             ; Eat the LINEAR keyword
-                CALL EVALEXPR               ; Get the destination address
-                CALL ASS_ARG1_INT           ; Make sure it's an integer
+                MOVE_L DMA_DEST.ADDR, ARGUMENT1     ; Set the destination address
+
+                LDA #','                            ; Get a comma
+                CALL EXPECT_TOK
+                CALL EVALEXPR                       ; Get the length of the data range to copy
+                CALL ASS_ARG1_INT                   ; Make sure it's an integer
+
+                MOVE_L DMA_DEST.SIZE, ARGUMENT1     ; Set the destination size
+                LD_B DMA_DEST.MODE, DMA_LINEAR      ; Set the destination mode
+                BRL verify
+
+                ; Process a rectangular destination
+dest_rect       CALL EXPECT_TOK                     ; Eat the LINEAR keyword
+                CALL EVALEXPR                       ; Get the source address
+                CALL ASS_ARG1_INT                   ; Make sure it's an integer
+
+                MOVE_L DMA_DEST.ADDR, ARGUMENT1     ; Set the source address
+
+                LDA #','                            ; Get a comma
+                CALL EXPECT_TOK
+                CALL EVALEXPR                       ; Get the width of the data range to copy
+                CALL ASS_ARG1_INT16                 ; Make sure it's a 16-bit integer
+
+                ; Set the width and prepare for multiplication
+                MOV2_W DMA_DEST.WIDTH, M0_OPERAND_A, ARGUMENT1
+
+                LDA #','                            ; Get a comma
+                CALL EXPECT_TOK
+                CALL EVALEXPR                       ; Get the height of the data range to copy
+                CALL ASS_ARG1_INT16                 ; Make sure it's a 16-bit integer
+
+                ; Set the height and prepare for multiplication
+                MOV2_W DMA_DEST.HEIGHT, M0_OPERAND_B, ARGUMENT1
+
+                LDA #','                            ; Get a comma
+                CALL EXPECT_TOK
+                CALL EVALEXPR                       ; Get the stride of the data range to copy
+                CALL ASS_ARG1_INT16                 ; Make sure it's a 16-bit integer
+
+                MOVE_W DMA_DEST.STRIDE, ARGUMENT1   ; Set the stride
+                MOVE_L DMA_DEST.SIZE, M0_RESULT     ; Get WIDTH * HEIGHT
+                LD_B DMA_DEST.MODE, DMA_RECT        ; Set the destination mode
+
+                ; Verify that the source and destination sizes are the same
+verify          setal
+                LDA @l DMA_SRC.SIZE
+                CMP @l DMA_DEST.SIZE
+                BNE size_err
+                setas
+                LDA @l DMA_SRC.SIZE+2
+                CMP @l DMA_DEST.SIZE+2
+                BNE size_err
 
                 setal
-                LDA ARGUMENT1
-                STA @l DMA_DEST.ADDR        ; Set the destination address
-                setas
-                LDA ARGUMENT1+2
-                STA @l DMA_DEST.ADDR+2
-
-                setal
-                LDA ARGUMENT1
-                STA @l DMA_DEST.SIZE        ; Set the destination size
-                setas
-                LDA ARGUMENT1+2
-                STA @l DMA_DEST.SIZE+2
-
-                LDA #DMA_LINEAR             ; Set the destination mode
-                STA @l DMA_DEST.MODE
-
                 CALL DO_DMA                 ; Trigger the actual DMA operation
 
                 PLP
                 PLD
                 RETURN
+size_err        THROW ERR_ARGUMENT          ; Throw an illegal argument error
                 .pend

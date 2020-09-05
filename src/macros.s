@@ -257,18 +257,26 @@ DEC_L       .macro addr
 ; Move a word (16 bit) value from address src to address dest
 MOVE_W      .macro dest,src
             setal
-            LDA \2
-            STA \1
+            LDA \src
+            STA \dest
+            .endm
+
+; Move a word to two different destination addresses
+MOV2_W      .macro dest1, dest2, src
+            setal
+            LDA \src
+            STA \dest1
+            STA \dest2
             .endm
 
 ; Move a long (24 bit) value from address src to address dest
 MOVE_L      .macro dest,src
             setal
-            LDA \2
-            STA \1
+            LDA \src
+            STA \dest
             setas
-            LDA \2+2
-            STA \1+2
+            LDA \src+2
+            STA \dest+2
             .endm
 
 ; Move a quadword (32 bit) value from address src to address dest
