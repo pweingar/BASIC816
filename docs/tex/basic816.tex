@@ -1,6 +1,7 @@
 \documentclass{report}
 \usepackage[margin=0.75in]{geometry}
 \usepackage{ccfonts}
+\usepackage{graphicx}
 \begin{document}
     \newcommand{\BASIC}[0]{{\sc Basic816}}
     \newcommand{\keyword}[1]{{\tt {#1}}}
@@ -433,6 +434,13 @@
 
     \BASIC\ includes a number of statements to support features of the C256 Foenix.
 
+    \subsection*{\keyword{BITMAP} \param{plane}, \param{visible}, \param{lut} [, \param{address}]}
+
+    Controls the visibility of the bitmap display (the bitmap engine must be
+    enabled with the \keyword{GRAPHICS} command). The parameter \param{visible}
+    must be a number. If it is 0, the bitmap will be hidden. If it is any other
+    value, it will be shown.
+
     \subsection*{\keyword{CLRBITMAP} \param{plane}}
 
     Sets all pixels in the bitmap to 0 (transparent).
@@ -513,13 +521,6 @@
 
     Enter the machine language monitor.
 
-    \subsection*{\keyword{BITMAP} \param{plane}, \param{visible}, \param{lut} [, \param{address}]}
-
-    Controls the visibility of the bitmap display (the bitmap engine must be
-    enabled with the \keyword{GRAPHICS} command). The parameter \param{visible}
-    must be a number. If it is 0, the bitmap will be hidden. If it is any other
-    value, it will be shown.
-
     \param{plane} is the number of the bitmap plane (0 or 1).
 
     The number of the color lookup table to use must also be provided as \param{lut},
@@ -528,6 +529,90 @@
     Optionally, an address may be provided for the first byte of the bitmap.
     This address must be in the video memory area starting at B00000.
     If no address is provided, it will default to B00000.
+
+    \subsection*{\keyword{MEMCOPY} \param{source} \keyword{TO} \param{destination}}
+
+    Request a copy of one block of memory to another block using the C256's DMA capabilities.
+    In the C256, DMA transfers can work with two different memory topologies.
+    A block of memory to be copied can be a linear (or ``1D'') block of contiguous bytes, or
+    it can be a rectangular (or ``2D'') block of bytes, which can be a smaller region of a
+    larger rectangular block. An example of this latter topology is when a program wants to
+    copy a 32 pixel by 32 pixel block out of a 640 by 480 image.
+
+    In order to specify the block topology, \param{source} and \param{destination} must
+    use one of two forms:
+
+    \begin{description}
+        \item[\keyword{LINEAR} \param{address}, \param{length}]
+            This structure specifies that the block is 1D or linear and starts at \param{address}
+            and consists of \param{length} contiguous bytes. (See: Figure~\ref{memcopy_1d})
+        
+        \item[\keyword{RECT} \param{address}, \param{width}, \param{height}, \param{stride}]
+            This structure specified that the block is a 2D or rectangular block.
+            The block starts at \param{address} and is \param{width} bytes wide and
+            \param{height} bytes high.
+            The block is part of a potentially larger rectangular ``image'' that is
+            \param{stride} bytes wide. (See: Figure~\ref{memcopy_2d})
+    \end{description}
+
+    \begin{figure}[htbp]
+        \centering
+        \includegraphics{MEMCOPY_LINEAR.png}
+        \caption{A linear (1D) memory block}
+        \label{memcopy_1d}
+    \end{figure}
+
+    \begin{figure}[htbp]
+        \centering
+        \includegraphics{MEMCOPY_RECT.png}
+        \caption{A rectangular (2D) memory block}
+        \label{memcopy_2d}
+    \end{figure}
+
+    Within certain limits, source and destination can use two different memory topologies,
+    so the structures of source and destination do not need to match.
+    An example where this
+    might be useful is when a program loads a small icon file that is 32 by 32 pixels and
+    then copies it to video RAM for display on a 640 by 480 screen:
+
+    \begin{verbatim}
+MEMCOPY LINEAR &h010000, 1024 TO RECT &hB00000,32,32,640
+    \end{verbatim}
+
+    This statement will copy a 32 by 32 pixel image starting at 0x010000 to
+    0xB00000 as a 32 by 32 block in a larger 640 by 480 image.
+
+    There are two system limitations involving the addresses involved.
+    The C256 has two different types of RAM: system RAM, and video RAM.
+    System RAM (SRAM) is that memory from 0x000000 to 0x3FFFFF and can be used for all
+    code and data. This memory is not directly accessible by the graphics subsystem,
+    however.
+    Video RAM (VRAM) is that memory from 0xB00000 to 0xEFFFFF and is exclusively for the
+    graphics subsystem. All graphical data to be displayed must be placed in this block
+    of memory.
+
+    Any memory copy involving SRAM involves stopping the CPU for the duration of the copy.
+    This means any \keyword{MEMCOPY} transferring blocks between SRAM addresses, from SRAM
+    to VRAM, or from VRAM to SRAM will halt the processor while the transfer is happening.
+    While transfers will be quick, the C256 will not be able to service interrupts while
+    this is happening. VRAM to VRAM transfers, do not stop the processor so interrupts
+    can still be processed (although the BASIC program will still pause while the transfer
+    is happening).
+
+    Another limitation is that while transfers between the two different memories can
+    use different memory topologies as shown above, transfers within a single memory type
+    have to use the same memory topology. For example, the following statement is
+    legal:
+
+    \begin{verbatim}
+MEMCOPY LINEAR &h010000, 1024 TO LINEAR &h020000, 1024
+    \end{verbatim}
+
+    But this statement will result in an Illegal Argument error, since it is trying to use
+    two different memory topologies within the same type of memory (SRAM in this case):
+    \begin{verbatim}
+MEMCOPY LINEAR &h010000, 1024 TO RECT &h020000, 32, 32, 640
+    \end{verbatim}
 
     \subsection*{\keyword{PLOT} \param{plane}, \param{column}, \param{row}, \param{color}}
 
