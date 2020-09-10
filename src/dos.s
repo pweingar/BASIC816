@@ -818,6 +818,7 @@ copy_char       setas
                 BEQ next_char               ; ... we want to skip it
 
                 STA INPUTBUF,X              ; Otherwise, copy the character to the input buffer
+                ; CALL PRINTC
                 INX
 
 next_char       setal
@@ -830,8 +831,12 @@ do_process      setas
                 LDA #0                      ; Put a 0 at the end of the input buffer
                 STA INPUTBUF,X
 
+                ; LDA #CHAR_CR
+                ; CALL PRINTC
+
                 CALL PROCESS                ; Process the line.
                 
+                setal
                 INC MCURSOR                 ; Try again with the next line
                 BNE copy_line
                 INC MCURSOR+2
