@@ -1137,9 +1137,16 @@ save_nm_char    STA MLINEBUF,X              ; Otherwise: copy it
                 INX
                 CPY #8
                 BNE name_loop
-                BRA do_ext
 
-skip_dot        INY
+                ; Name is too long.. eat the remainder
+eat_name        LDA [ARGUMENT1],Y           ; Get the character
+                BEQ copy_short_name         ; If null, we're done with the short name
+                CMP #'.'                    ; Is it a dot?
+                BEQ skip_dot                ; Yes: skip over it
+                INY                         ; No: try again with the the next character
+                BRA eat_name
+
+skip_dot        INY                         ; Character at Y is '.', so skip over it
 
 do_ext          LDX #8
 ext_loop        LDA [ARGUMENT1],Y           ; Get the character of the new extension
@@ -1153,7 +1160,7 @@ ext_loop        LDA [ARGUMENT1],Y           ; Get the character of the new exten
 save_ext_char   STA MLINEBUF,X              ; Otherwise: copy it
                 INY
                 INX
-                CPY #11
+                CPY #12
                 BNE ext_loop
 
 copy_short_name LDX #0                      ; Copy the short name we built to the directory entry
