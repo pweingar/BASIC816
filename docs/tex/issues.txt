@@ -1,7 +1,8 @@
 1. RENAME "invaders.bas", "invaders.bak" creates a file "invaders..ba"
 2. <INSERT> is duplicating the character to the left
-3. <DELETE> is still pulling the first character of the next line, if the screen size has changed
+3. <DELETE> is still pulling the first character of the next line, if the screen size has changed [RESOLVED?]
 4. SAVE should maybe auto handle backups
 5. There needs to be a non-blocking version of GET
 6. A print HEX$ loop runs out of memory
-7. SAVE doubles the 512th character.
+7. SAVE doubles the 512th character. [RESOLVED]
+8. PLOT and LINE had wrong address calculations [RESOLVED]

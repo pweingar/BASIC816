@@ -542,11 +542,11 @@ set_mode        setal
                 LDA ARGUMENT1
                 STA @l MASTER_CTRL_REG_L    ; Set the graphics mode
 
-                .rept 7
-                LSR A
-                .next
-                AND #$00FF
-                ASL A
+                setas
+                LDA ARGUMENT1+1             ; Get the screen size bits
+                setal
+                AND #$0003
+                ASL A                       ; Multiply by two to get the index
                 TAX                         ; X is index into the size tables
 
                 setal
