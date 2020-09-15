@@ -279,8 +279,8 @@ MOVE_L      .macro dest,src
             STA \dest+2
             .endm
 
-; Move a quadword (32 bit) value from address src to address dest
-MOVE_Q      .macro dest,src
+; Move a dword (32 bit) value from address src to address dest
+MOVE_D      .macro dest,src
             setal
             LDA \2
             STA \1
@@ -357,4 +357,35 @@ BLT_L       .macro dest,src1,src2
 
 do_branch   JMP \dest
 continue
+            .endm
+
+; Push a word (16-bits) to the stack
+PUSH_W      .macro src
+            setal
+            LDA \src
+            PHA
+            .endm
+
+; Pull a word (16-bits) from the stack into destination
+PULL_W      .macro dest
+            setal
+            PLA
+            STA \dest
+            .endm
+; Push a dword (32-bits) to the stack
+PUSH_D      .macro src
+            setal
+            LDA \src+2
+            PHA
+            LDA \src
+            PHA
+            .endm
+
+; Pull a dword (32-bits) from the stack into destination
+PULL_D      .macro dest
+            setal
+            PLA
+            STA \dest
+            PLA
+            STA \dest+2
             .endm

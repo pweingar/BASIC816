@@ -68,7 +68,6 @@ in_string       setal
                 setas
                 LDA #TYPE_STRING
                 STA ARGTYPE1
-                CALL STRCPY         ; And make a copy on the heap
 
 save_input      setal
                 CALL VAR_SET        ; Attempt to set the value to the variable
@@ -139,8 +138,6 @@ varloop         CALL SKIPWS
                 setas
                 LDA #TYPE_STRING
                 STA ARGTYPE1
-
-                CALL STRCPY         ; And make a copy on the heap
                 
                 CALL VAR_SET        ; Attempt to set the value to the variable
 

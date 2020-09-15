@@ -454,13 +454,13 @@ found_end   STY SCRATCH         ; Save the length to SCRATCH
             LDA #TYPE_STRING    ; Set the type to allocate to STRING
             LDX SCRATCH         ; And the length to the length of the string literal
             INX
-            CALL ALLOC          ; And allocate the string
+            CALL TEMPSTRING     ; Get a temporary string
 
             LDY #0
 copy_loop   CPY SCRATCH         ; Have we copied all the characters?
             BEQ done            ; Yes: we're done
             LDA [BIP]           ; No: get the next character
-            STA [CURRBLOCK],Y   ; And copy it to the allocated string
+            STA [STRPTR],Y      ; And copy it to the allocated string
             INY
             CALL INCBIP
             BRA copy_loop       ; And try the next character
@@ -468,15 +468,9 @@ copy_loop   CPY SCRATCH         ; Have we copied all the characters?
 error       THROW ERR_SYNTAX    ; Throw a syntax error
 
 done        LDA #0
-            STA [CURRBLOCK],Y
+            STA [STRPTR],Y
 
-            setal
-            LDA CURRBLOCK       ; Save the pointer to the string in ARGUMENT1
-            STA ARGUMENT1
-            setas
-            LDA CURRBLOCK+2
-            STA ARGUMENT1+2
-
+            MOVE_D ARGUMENT1,STRPTR ; Save the pointer to the string in ARGUMENT1
             LDA #TYPE_STRING    ; And set the type of ARGUMENT1 to string
             STA ARGTYPE1
 

@@ -365,8 +365,6 @@ FN_STR          .proc
                 LDA #TYPE_STRING
                 STA ARGTYPE1
 
-                CALL STRCPY         ; And preserve a copy to the heap
-
                 PLP
                 FN_END
                 RETURN
@@ -501,8 +499,6 @@ loop            LDA ARGUMENT1       ; Write the low digit
 
                 LDA #TYPE_STRING    ; And make the type STRING
                 STA ARGTYPE1
-
-                CALL STRCPY         ; Allocate a copy on the heap
 
                 PLP
                 FN_END

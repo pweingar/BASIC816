@@ -364,9 +364,12 @@ VAR_CREATE      .proc
                 setas
                 LDA ARGTYPE1            ; Validate that our types match
                 CMP TOFINDTYPE
-                BEQ alloc_binding
+                BEQ chk_string
+                THROW ERR_TYPE          ; If not: throw an error
 
-                THROW ERR_TYPE
+chk_string      CMP #TYPE_STRING        ; Is it a string?
+                BNE alloc_binding       ; No: just go ahead and bind it
+                CALL STRCPY             ; Yes: make a copy
 
 alloc_binding   setxl
                 CALL VAR_ALLOC          ; Allocate the binding for the variable
@@ -481,7 +484,7 @@ use_create      CALL VAR_CREATE
 found           setas
                 LDA ARGTYPE1
                 CMP #TYPE_STRING
-                BEQ set_ref
+                BEQ set_string
 
 set_val         setaxl
                 LDY #BINDING.VALUE
@@ -496,6 +499,8 @@ done            TRACE "/VARSET"
 
                 PLP
                 RETURN
+
+set_string      CALL STRCPY             ; Make a copy of the string
 
                 ; This variable is of a heap allocated type
                 ; Dereference the old value and (maybe) add a reference to the ne

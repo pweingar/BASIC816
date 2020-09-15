@@ -86,8 +86,6 @@ F_GETDATE   .proc
             LDA #TYPE_STRING
             STA ARGTYPE1
 
-            CALL STRCPY
-
             PLP
             FN_END
             RETURN
@@ -146,8 +144,6 @@ F_GETTIME   .proc
             setas
             LDA #TYPE_STRING
             STA ARGTYPE1
-
-            CALL STRCPY
 
             PLP
             FN_END

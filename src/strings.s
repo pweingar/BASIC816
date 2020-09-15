@@ -2,6 +2,17 @@
 ;;; String subroutines
 ;;;
 
+CLRTMPSTR   .proc
+            PHP
+
+            setal
+            STZ STRPTR
+            STZ STRPTR+2
+
+            PLP
+            RETURN
+            .pend
+
 ;
 ; Allocate a temporary string.
 ;
@@ -18,29 +29,38 @@
 TEMPSTRING  .proc
             PHP
 
-            setxl
-            setas               ; Set STRPTR to the next available page
+            setaxl
+            LDA STRPTR          ; Is STRPTR == 0?
+            BNE add_256         ; No: add 256 to it
+            LDA STRPTR+2
+            BNE add_256
+
+            setas               ; Yes: set STRPTR to first available page
             STZ STRPTR
             LDA NEXTVAR+1
             INC A
             INC A
             STA STRPTR+1
-            setas
             LDA NEXTVAR+2
             STA STRPTR+2
+            STZ STRPTR+3
+            BRA chk_room
 
-            CMP HEAP+2          ; Check the bank see if the there is a heap collision
-            BCC has_room        ; No... return pointer
-            BEQ no_room         ; Yes... throw error
+add_256     setal
+            LDA STRPTR+1        ; There was already a temporary string...
+            INC A               ; Leave 256 bytes for it
+            STA STRPTR+1
 
-            setal
-            LDA STRPTR          ; Check the lower 16 bits
-            CMP HEAP
-            BCC has_room        ; No... return pointer
+chk_room    setal
+            LDA HEAP+1          ; Check to make sure that STRPTR and HEAP haven't touched
+            DEC A
+            CMP STRPTR+1
+            BEQ no_room         ; If they have, throw an error
+            BGE done
 
 no_room     THROW ERR_MEMORY    ; Yes... throw error
 
-has_room    PLP
+done        PLP
             RETURN
             .pend
 
@@ -372,6 +392,8 @@ terminate   setal
 ;   ARGUMENT1 = the copied string (allocated to the heap)
 ;
 STRCPY      .proc
+            PHX
+            PHY
             PHP
             PHD
             PHB
@@ -380,8 +402,9 @@ STRCPY      .proc
 
             setdp GLOBAL_VARS
 
-            setaxl
+            PUSH_D INDEX            ; Save INDEX
 
+            setaxl
             LDDBR ARGUMENT1+2       ; SCRATCH := LEN(ARGUMENT1)
             LDX ARGUMENT1
             CALL STRLEN
@@ -394,15 +417,10 @@ STRCPY      .proc
             LDA #TYPE_STRING
             CALL ALLOC
             
-            setal
-            LDA CURRBLOCK           ; INDEX := pointer to the string
-            STA INDEX
-            setas
-            LDA CURRBLOCK+2
-            STA INDEX+2
+            MOVE_D INDEX,CURRBLOCK  ; INDEX := pointer to the string
 
             LDY #0
-
+            setas
 loop        LDA [ARGUMENT1],Y       ; Copy the data to the allocated string
             STA [INDEX],Y
             BEQ ret_copy
@@ -410,19 +428,15 @@ loop        LDA [ARGUMENT1],Y       ; Copy the data to the allocated string
             BRA loop
 
 ret_copy    TRACE "/STRCPY"
+            MOVE_D ARGUMENT1, INDEX ; And return the pointer to the allocated string
 
-            LDA INDEX               ; And return the pointer to the allocated string
-            STA ARGUMENT1
-            LDA INDEX+1
-            STA ARGUMENT1+1
-            LDA INDEX+2
-            STA ARGUMENT1+2
-            LDA #0
-            STA ARGUMENT1+3
+            PULL_D INDEX            ; Restore INDEX
 
             PLB
             PLD
             PLP
+            PLY
+            PLX
             RETURN
             .pend
 
@@ -516,15 +530,8 @@ copy_loop   TRACE "copy_loop"
             STA [STRPTR],Y
 
 finish_copy TRACE "finish_copy"
-            setal
-            LDA STRPTR              ; Return STRPTR
-            STA ARGUMENT1
-            LDA STRPTR+2
-            STA ARGUMENT1+2
-
+            MOVE_D ARGUMENT1, STRPTR    ; Return STRPTR
             LD_B ARGTYPE1,TYPE_STRING
-
-            CALL STRCPY
 
 done        TRACE "done"
             PLP

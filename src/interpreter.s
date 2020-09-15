@@ -716,6 +716,8 @@ EXECLINE    PHP
             STA LINENUM
             TRACE_A "EXECLINE"
 
+            CALL CLRTMPSTR              ; Reset the temporary string pointer
+
             setas
             LDA EXECACTION              ; If the last EXEC action was RETURN
             CMP #EXEC_RETURN            ; BIP has already been set, so...

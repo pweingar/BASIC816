@@ -331,7 +331,7 @@ TST_VAR_REPEAT  .proc
                 CALL VAR_REF            ; Try to get the result
 
                 UT_M_EQ_LIT_B ARGTYPE1,TYPE_STRING,"EXPECTED STRING"
-                MOVE_Q TST_TEMP1,ARGUMENT1
+                MOVE_D TST_TEMP1,ARGUMENT1
                 UT_STRIND_EQ TST_TEMP1,MESSAGE2,"EXPECTED 'Goodbye'"
 
                 UT_END
