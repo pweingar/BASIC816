@@ -20,6 +20,9 @@ TILEMAP_REG_SIZE = 12               ; The number of bytes in a tile map's regist
 TILESET_REG_SIZE = 4                ; The number of bytes in a tile set's register set
 
 BM_MAX = 2                          ; Maximum number of bitmaps we support
+MAX_VRAM_VICKY = $0040              ; Upper limit (exclusive) bank address for VRAM in Vicky address space
+MAX_VRAM_CPU = $00F0                ; Upper limit (exclusive) bank address for VRAM in CPU address space
+MIN_VRAM_CPU = $00B0                ; Lower limit (inclusive) bank address for VRAM in CPU address space
 
 
 .section variables
@@ -617,6 +620,11 @@ BITMAP_SRAM     .proc
                 LDA @l GR_BM0_ADDR+2,X  ; Get the high bits of the address
                 STA MTEMPPTR+2
 
+                CMP #MAX_VRAM_CPU       ; Check to make sure address is within VRAM
+                BGE range_err
+                CMP #MIN_VRAM_CPU
+                BLT range_err
+
                 PLP
                 PLX
                 RETURN
@@ -648,6 +656,9 @@ BITMAP_VRAM     .proc
                 STA MTEMPPTR
                 LDA @l GR_BM0_VRAM+2,X  ; Get the high bits of the address
                 STA MTEMPPTR+2
+
+                CMP #MAX_VRAM_VICKY     ; Check to make sure the address is from $00:0000 - $3F:FFFF
+                BGE range_err           ; If not, throw a range error
 
                 PLP
                 PLX
