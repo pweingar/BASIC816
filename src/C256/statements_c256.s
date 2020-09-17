@@ -1192,7 +1192,7 @@ S_FILL          .proc
 
                 CALL EVALEXPR               ; Get the bitmap number
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
-                CALL BITMAP_SRAM            ; Get the address of the bitmap into MTEMPPTR
+                CALL BITMAP_VRAM            ; Get the address of the bitmap into MTEMPPTR
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
