@@ -50,6 +50,7 @@ CLSCREEN        JML ICLSCREEN           ; Clear the screen
 .include "functions.s"
 .include "commands.s"
 .include "variables.s"
+.include "integers.s"
 .include "floats.s"
 .include "arrays.s"
 .include "dos.s"

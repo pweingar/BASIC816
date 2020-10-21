@@ -30,93 +30,104 @@ mismatch    setal
 
 ; Perform addition
 OP_PLUS     .proc
-            CALL BINTYPE            ; Get the type of the arguments
+            PHP
 
-            setal
+            TRACE "OP_PLUS"
+
+            setas
+            LDA ARGTYPE1            ; Are both inputs strings?
+            CMP #TYPE_STRING
+            BNE numbers
+            LDA ARGTYPE2
+            CMP #TYPE_STRING
+            BNE type_error
+
+is_string   CALL STRCONCAT          ; Yes: evaluate string concatenation
+            BRA done
+
+type_error  THROW ERR_TYPE          ; If the types can't be cast...
+
+numbers     CALL ASS_ARGS_NUM       ; Check that both inputs are numbers and castable
+
+            LDA ARGTYPE1            ; Get the type...
             CMP #TYPE_INTEGER       ; Is it integer?
-            BEQ OP_PLUS_INT         ; Yes: evaluate integer addition
+            BNE chk_float
+            CALL OP_INT_ADD         ; Yes: evaluate integer addition
+            BRA done
 
-            CMP #TYPE_STRING        ; Is it string?
-            BNE not_string
+chk_float   CMP #TYPE_FLOAT         ; Is it a float?
+            BNE type_error          ; No: it's a type error
+            CALL OP_FP_ADD          ; Yes: do a floating point add
 
-            JMP STRCONCAT           ; Yes: evaluate string concatenation
-
-not_string  THROW ERR_TYPE
-            .pend
-
-OP_PLUS_INT .proc
-            CLC
-            LDA ARGUMENT1
-            ADC ARGUMENT2
-            STA ARGUMENT1
-            LDA ARGUMENT1+2
-            ADC ARGUMENT2+2
-            STA ARGUMENT1+2
-            RTS
+done        PLP
+            RETURN
             .pend
 
 ; Perform subtraction
 OP_MINUS    .proc
-            SEC
-            LDA ARGUMENT1
-            SBC ARGUMENT2
-            STA ARGUMENT1
-            LDA ARGUMENT1+2
-            SBC ARGUMENT2+2
-            STA ARGUMENT1+2
-            RTS
+            PHP
+
+            CALL ASS_ARGS_NUM       ; Check that both inputs are numbers and castable
+
+            setas
+            LDA ARGTYPE1            ; Get the type...
+            CMP #TYPE_INTEGER       ; Is it integer?
+            BNE chk_float
+            CALL OP_INT_SUB         ; Yes: evaluate integer subtraction
+            BRA done
+
+chk_float   CMP #TYPE_FLOAT         ; Is it a float?
+            BNE type_error          ; No: it's a type error
+            CALL OP_FP_SUB          ; Yes: do a floating point subtraction
+
+done        PLP
+            RETURN
+
+type_error  THROW ERR_TYPE
             .pend
 
-; 32-bit multiplication
+;
+; Multiply two numbers
+;
+; INPUTS:
+;   ARGUMENT1 = 32-bit number
+;   ARGUMENT2 = 32-bit number
+;
+; Outputs:
+;   ARGUMENT1 := ARGUMENT1 * ARGUMENT2
+;
 OP_MULTIPLY .proc
-.if SYSTEM = SYSTEM_C256
-            ; The C256 has a 16-bit hardware multiplier, so use it.
-            LDA ARGUMENT1
-            STA @lM1_OPERAND_A
+            PHP
 
-            LDA ARGUMENT2
-            STA @lM1_OPERAND_B
+            CALL ASS_ARGS_NUM       ; Check that both inputs are numbers and castable
 
-            LDA @lM1_RESULT
-            STA ARGUMENT1
-            LDA @lM1_RESULT+2
-            STA ARGUMENT1+2
-.else
-            ; We don't have a hardware multiplier, so do the multiplication the hard way
-            STZ SCRATCH
-            STZ SCRATCH+2
+            setas
+            LDA ARGTYPE1            ; Get the type...
+            CMP #TYPE_INTEGER       ; Is it integer?
+            BNE chk_float
+            CALL OP_INT_MUL         ; Yes: evaluate integer multiplication
+            BRA done
 
-loop        LDX ARGUMENT1       ; Is ARGUMENT1 = 0
-            BNE shift_a1
-            LDX ARGUMENT1+2
-            BEQ done
+chk_float   CMP #TYPE_FLOAT         ; Is it a float?
+            BNE type_error          ; No: it's a type error
+            CALL OP_FP_MUL          ; Yes: do a floating point multiplication
 
-shift_a1    CLC                 ; Shift ARGUMENT1 by 1 bit
-            ROR ARGUMENT1+2
-            LSR ARGUMENT1
-            BCC shift_a2        ; If that bit was clear, skip the addition
+done        PLP
+            RETURN
 
-            CLC                 ; Add ARGUMENT2 to our result so far
-            LDA SCRATCH
-            ADC ARGUMENT2
-            STA SCRATCH
-            LDA SCRATCH+2
-            ADC ARGUMENT2+2
-            STA SCRATCH+2
-
-shift_a2    ASL ARGUMENT2       ; And shift ARGUMENT2 left by one bit
-            ROL ARGUMENT2+2
-            BRA loop
-
-done        LDA SCRATCH         ; Copy result back to ARGUMENT1
-            STA ARGUMENT1
-            LDA SCRATCH+2
-            STA ARGUMENT1+2
-.endif
-            RTS
+type_error  THROW ERR_TYPE
             .pend
 
-; Division
+;
+; Divide two numbers
+;
+; INPUTS:
+;   ARGUMENT1 = 32-bit number
+;   ARGUMENT2 = 32-bit number
+;
+; Outputs:
+;   ARGUMENT1 := ARGUMENT1 / ARGUMENT2
+;
 OP_DIVIDE   .proc
             TRACE "OP_DIVIDE"
 

@@ -2,9 +2,6 @@
 ;;; Tests of the interpreter
 ;;;
 
-TMP_BUFF_ORG = $004000
-TMP_BUFF_SIZ = $100
-
 TST_PRINT       .proc
                 UT_BEGIN "TST_PRINT"
 

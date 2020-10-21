@@ -261,39 +261,25 @@ MULINT10        .proc
                 setal
                 PHA
 
-; .if SYSTEM = SYSTEM_C256
-;                 ; The C256 has a 16-bit hardware multiplier, so use it.
-;                 LDA ARGUMENT1
-;                 STA @lM1_OPERAND_A
+                ASL ARGUMENT1           ; 7 -- 20 -- 74
+                ROL ARGUMENT1+2         ; 7
+                LDA ARGUMENT1           ; 4
+                STA SCRATCH             ; 4
+                LDA ARGUMENT1+2         ; 4
+                STA SCRATCH+2           ; 4
 
-;                 LDA #10
-;                 STA @lM1_OPERAND_B
+                ASL SCRATCH             ; 7 -- 28
+                ROL SCRATCH+2           ; 7
+                ASL SCRATCH             ; 7
+                ROL SCRATCH+2           ; 7
 
-;                 LDA @lM1_RESULT
-;                 STA ARGUMENT1
-;                 LDA @lM1_RESULT+2
-;                 STA ARGUMENT1+2
-; .else
-                ASL ARGUMENT1
-                ROL ARGUMENT1+2
-                LDA ARGUMENT1
-                STA SCRATCH
-                LDA ARGUMENT1+2
-                STA SCRATCH+2
-
-                ASL SCRATCH
-                ROL SCRATCH+2
-                ASL SCRATCH
-                ROL SCRATCH+2
-
-                CLC
-                LDA ARGUMENT1
-                ADC SCRATCH
-                STA ARGUMENT1
-                LDA ARGUMENT1+2
-                ADC SCRATCH+2
-                STA ARGUMENT1+2
-; .endif
+                CLC                     ; 2 -- 26
+                LDA ARGUMENT1           ; 4
+                ADC SCRATCH             ; 4
+                STA ARGUMENT1           ; 4
+                LDA ARGUMENT1+2         ; 4
+                ADC SCRATCH+2           ; 4
+                STA ARGUMENT1+2         ; 4
 
                 PLA
                 PLD
@@ -521,4 +507,82 @@ ASS_ARG1_BYTE   .proc
 
 TYPE_ERR        THROW ERR_TYPE
 RANGE_ERR       THROW ERR_RANGE
+                .pend
+
+;
+; Assert that ARGUMENT1 is a FLOAT. Convert an INTEGER to a FLOAT.
+;
+; Inputs:
+;   ARGUMENT1 = the value to check
+;
+ASS_ARG1_FLOAT  .proc
+                PHP
+
+                setas
+                LDA ARGTYPE1            ; Check the type
+                CMP #TYPE_FLOAT         ; If it's float...
+                BEQ done                ; Then we're done
+
+                CMP #TYPE_INTEGER       ; If it's integer...
+                BEQ cast                ; Then cast it to float
+
+type_err        THROW ERR_TYPE          ; Throw a type error
+
+cast            CALL ITOF               ; Cast INTEGER to FLOAT
+
+done            PLP
+                RETURN
+                .pend
+
+;
+; Assert that ARGUMENT1 and ARGUMENT2 are both numbers.
+;
+; If either is a FLOAT, cast the other to FLOAT from INTEGER.
+;
+; Inputs:
+;   ARGUMENT1 = the first argument, must be a number
+;
+ASS_ARGS_NUM    .proc
+                PHP
+
+                setas
+                LDA ARGTYPE1                ; Check ARGUMENT1
+                CMP #TYPE_INTEGER
+                BEQ arg1_int
+                CMP #TYPE_FLOAT
+                BEQ arg1_float
+
+type_err        THROW ERR_TYPE              ; Throw a type error
+
+arg1_int        LDA ARGTYPE2                ; Check argument 2
+                CMP #TYPE_INTEGER           ; If integer, we're done
+                BEQ done
+
+                CMP #TYPE_FLOAT             ; If not float, throw an error
+                BNE type_err
+
+                CALL ITOF                   ; Otherwise, cast ARGUMENT1 to FLOAT
+                BRA done
+
+arg1_float      LDA ARGTYPE2                ; Check argument 2
+                CMP #TYPE_FLOAT             ; If it's float
+                BEQ done                    ; Then we're done
+
+                CMP #TYPE_INTEGER           ; If it's not integer
+                BNE type_err                ; Thrown an error
+
+                PUSH_D ARGUMENT1            ; Save ARGUMENT1
+
+                MOVE_D ARGUMENT1,ARGUMENT2  ; ARGUMENT1 := ARGUMENT2
+                LD_B ARGTYPE1,TYPE_INTEGER
+
+                CALL ITOF                   ; Cast it to FLOAT
+
+                MOVE_D ARGUMENT2,ARGUMENT1  ; ARGUMENT2 := ARGUMENT1
+                LD_B ARGTYPE2,TYPE_FLOAT
+
+                PULL_D ARGUMENT1            ; Get ARGUMENT1 back
+
+done            PLP
+                RETURN
                 .pend

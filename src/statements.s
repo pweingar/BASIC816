@@ -1284,8 +1284,10 @@ check_int       CMP #TYPE_INTEGER   ; Is it an integer?
                 CALL PR_INTEGER     ; Print the integer in ARGUMENT1
                 BRA check_nl
 
-check_float     ; TODO: process floats and any other printable types
-                BRA done
+check_float     CMP #TYPE_FLOAT     ; Is it a float?
+                BNE done            ; No: just quit
+                CALL PR_FLOAT       ; Print the float in ARGUMENT1
+                BRA check_nl
 
                 ; Check for the next non-whitespace... should be a null, colon, comma, or semicolon
 check_nl        CALL SKIPWS
@@ -1358,7 +1360,7 @@ done            PLB
 ; Print an integer in ARGUMENT1
 ;
 ; Inputs:
-;   ARGUMENT1 = pointer to a string to print
+;   ARGUMENT1 = integer to print
 ;
 PR_INTEGER      .proc
                 PHP
@@ -1366,6 +1368,30 @@ PR_INTEGER      .proc
                 setal
                 CALL ITOS           ; Convert the integer to a string
 
+                LDA STRPTR          ; Copy the pointer to the string to ARGUMENT1
+                STA ARGUMENT1
+                LDA STRPTR+2
+                STA ARGUMENT1+2
+                CALL PR_STRING      ; And print it
+
+                PLP
+                RETURN
+                .pend
+
+;
+; Print an float in ARGUMENT1
+;
+; Inputs:
+;   ARGUMENT1 = floating point number to print
+;
+PR_FLOAT        .proc
+                PHP
+
+                TRACE "PR_FLOAT"
+
+                CALL FTOS           ; Convert the float to a string
+
+                setal
                 LDA STRPTR          ; Copy the pointer to the string to ARGUMENT1
                 STA ARGUMENT1
                 LDA STRPTR+2

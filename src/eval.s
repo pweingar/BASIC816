@@ -656,7 +656,7 @@ push_op     CALL PHOPERATOR     ; Yes: should push the operator
             ; Digit has been seen... read a number literal and push it
             ; to the argument stack
 is_digit    setal
-            CALL EVALNUMBER     ; Try to evaluate the number
+            CALL PARSENUM       ; Try to evaluate the number
 got_number  LDX #<>ARGUMENT1
             CALL PHARGUMENT     ; And push it to the argument stack
             BRA get_char

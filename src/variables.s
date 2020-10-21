@@ -578,8 +578,7 @@ loop            CALL INCBIP         ; Point to the next character
                 CALL ISVARCHAR      ; Is the character still suitable for variables
                 BCS loop            ; Check the next one
 
-is_float        ; LDA #TYPE_FLOAT     ; Otherwise it's a float
-                LDA #TYPE_INTEGER   ; TODO: Remove this when floats are implemented
+is_float        LDA #TYPE_FLOAT     ; Otherwise it's a float
                 BRA set_type
 
 is_integer      CALL INCBIP         ; Skip over the type symbol

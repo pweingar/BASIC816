@@ -120,17 +120,17 @@ M1_OPERAND_A     = $000108 ;2 Bytes Operand A (ie: A x B)
 M1_OPERAND_B     = $00010A ;2 Bytes Operand B (ie: A x B)
 M1_RESULT        = $00010C ;4 Bytes Result of A x B
 
-DIVIDER_0        = $000108 ;0 Byte  Unsigned divider
-D0_OPERAND_A     = $000108 ;2 Bytes Divider 0 Dividend ex: A in  A/B
-D0_OPERAND_B     = $00010A ;2 Bytes Divider 0 Divisor ex B in A/B
-D0_RESULT        = $00010C ;2 Bytes Quotient result of A/B ex: 7/2 = 3 r 1
-D0_REMAINDER     = $00010E ;2 Bytes Remainder of A/B ex: 1 in 7/2=3 r 1
+DIVIDER_0        = $000110 ;0 Byte  Unsigned divider
+D0_OPERAND_A     = $000110 ;2 Bytes Divider 0 Dividend ex: A in  A/B
+D0_OPERAND_B     = $000112 ;2 Bytes Divider 0 Divisor ex B in A/B
+D0_RESULT        = $000114 ;2 Bytes Quotient result of A/B ex: 7/2 = 3 r 1
+D0_REMAINDER     = $000116 ;2 Bytes Remainder of A/B ex: 1 in 7/2=3 r 1
 
-DIVIDER_1        = $000110 ;0 Byte  Signed divider
-D1_OPERAND_A     = $000110 ;2 Bytes Divider 1 Dividend ex: A in  A/B
-D1_OPERAND_B     = $000112 ;2 Bytes Divider 1 Divisor ex B in A/B
-D1_RESULT        = $000114 ;2 Bytes Signed quotient result of A/B ex: 7/2 = 3 r 1
-D1_REMAINDER     = $000116 ;2 Bytes Signed remainder of A/B ex: 1 in 7/2=3 r 1
+DIVIDER_1        = $000118 ;0 Byte  Signed divider
+D1_OPERAND_A     = $000118 ;2 Bytes Divider 1 Dividend ex: A in  A/B
+D1_OPERAND_B     = $00011A ;2 Bytes Divider 1 Divisor ex B in A/B
+D1_RESULT        = $00011C ;2 Bytes Signed quotient result of A/B ex: 7/2 = 3 r 1
+D1_REMAINDER     = $00011E ;2 Bytes Signed remainder of A/B ex: 1 in 7/2=3 r 1
 ; Reserved
 ADDER_SIGNED_32  = $000120 ; The 32 Bit Adders takes 12Byte that are NOT RAM Location
 

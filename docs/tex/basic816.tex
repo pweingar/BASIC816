@@ -786,7 +786,7 @@ MEMCOPY LINEAR &h010000, 1024 TO RECT &h020000, 32, 32, 640
     This format is intended as an elaboration on the PRG format from the Commodore computers
     in that it provides for a single block of data to load starting from an included destination
     address. To support the 65816 (and possibly other processors), it uses a 32-bit address field and
-    has a signature and target CPU preamble. The first three bytes are the signature in ASCII: "PGM".
+    has a signature and target CPU preamble. The first three bytes are the signature in ASCII: "PGX".
     The next byte is the target version and CPU, where the upper 4-bits is the version of the file format, 
     and the lower 4-bits is the CPU code. Currently, the only CPU supported is 1 for 65816.
     The next four bytes are the starting destination address. The rest of the bytes in the file are the
@@ -796,7 +796,7 @@ MEMCOPY LINEAR &h010000, 1024 TO RECT &h020000, 32, 32, 640
         \begin{center}
             \begin{tabular}{|l|l|l|} \hline
                 Offsets & Value &  Purpose \\ \hline\hline
-                0--2 & ``PGM'' & Type signature \\ \hline
+                0--2 & ``PGX'' & Type signature \\ \hline
                 3 & 0x01 & Target version and CPU \\ \hline
                 4--7 & address & Destination address \\ \hline
                 8-- & data & Data to load \\ \hline
@@ -906,3 +906,4 @@ struct {
     \end{table}
 
 \end{document}
+

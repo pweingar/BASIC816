@@ -7,6 +7,48 @@ UT_PASS_MSG .text "PASSED",CHAR_CR,0
 UT_FAIL_MSG .text "FAILED",CHAR_CR,0
 .send
 
+; Set the console color to the regular text color
+UT_MSGCOLOR .proc
+            PHA
+            PHP
+
+            setas
+            LDA #$70
+            STA @l CURCOLOR
+
+            PLP
+            PLA
+            RETURN
+            .pend
+
+; Set the console color to the error color
+UT_ERRCOLOR .proc
+            PHA
+            PHP
+
+            setas
+            LDA #$80
+            STA @l CURCOLOR
+
+            PLP
+            PLA
+            RETURN
+            .pend
+
+; Set the console color to the PASSED color
+UT_PASCOLOR .proc
+            PHA
+            PHP
+
+            setas
+            LDA #$20
+            STA @l CURCOLOR
+
+            PLP
+            PLA
+            RETURN
+            .pend
+
 ;
 ; Send a NUL terminated string to the log.
 ;
@@ -30,7 +72,9 @@ UT_LOGMSG   .proc
 ;   X = pointer to the message (a NUL terminated string)
 ;
 UT_FAIL     .proc
+            CALL UT_ERRCOLOR
             CALL UT_LOGMSG
+            CALL UT_MSGCOLOR
 .if SYSTEM = SYSTEM_C64
 WAIT        JMP WAIT
 .else
@@ -48,6 +92,7 @@ WAIT        JMP WAIT
 ;   X = pointer to the message (a NUL terminated string)
 ;
 UT_FAIL_AW  .proc
+            CALL UT_ERRCOLOR
             CALL UT_LOGMSG
 
             setal
@@ -67,6 +112,8 @@ UT_FAIL_AW  .proc
             LDA #']'
             CALL PRINTC
 
+            CALL UT_MSGCOLOR
+
 .if SYSTEM = SYSTEM_C64
 WAIT        JMP WAIT
 .else
@@ -84,6 +131,7 @@ WAIT        JMP WAIT
 ;   X = pointer to the message (a NUL terminated string)
 ;
 UT_FAIL_AB  .proc
+            CALL UT_ERRCOLOR
             CALL UT_LOGMSG
 
             setas
@@ -102,6 +150,8 @@ UT_FAIL_AB  .proc
             setas
             LDA #']'
             CALL PRINTC
+
+            CALL UT_MSGCOLOR
 
 .if SYSTEM = SYSTEM_C64
 WAIT        JMP WAIT
@@ -122,6 +172,7 @@ WAIT        JMP WAIT
 ;   X = pointer to the message (a NUL terminated string)
 ;
 UT_FAIL_AL  .proc
+            CALL UT_ERRCOLOR
             CALL UT_LOGMSG
 
             setas
@@ -144,6 +195,53 @@ UT_FAIL_AL  .proc
             setas
             LDA #']'
             CALL PRINTC
+
+            CALL UT_MSGCOLOR
+
+.if SYSTEM = SYSTEM_C64
+WAIT        JMP WAIT
+.else
+            BRK
+            NOP
+.endif
+            RETURN
+            .pend
+
+;
+; Write a failure message to the log and stop the tests.
+; Also write out what is stored in A/Y (24 bit)
+;
+; Inputs:
+;   A = contains bits [31..16]
+;   Y = contains bits [15..0]
+;   X = pointer to the message (a NUL terminated string)
+;
+UT_FAIL_AD  .proc
+            CALL UT_ERRCOLOR
+            CALL UT_LOGMSG
+
+            setal
+            PHA
+
+            setas
+            LDA #' '
+            CALL PRINTC
+            LDA #'['
+            CALL PRINTC
+
+            setal
+            PLA
+            CALL PRHEXW
+
+            setal
+            TYA
+            CALL PRHEXW
+
+            setas
+            LDA #']'
+            CALL PRINTC
+
+            CALL UT_MSGCOLOR
 
 .if SYSTEM = SYSTEM_C64
 WAIT        JMP WAIT
@@ -206,15 +304,39 @@ continue        setas
 ; End a unit test case... print the success message.
 ;
 UT_END          .macro
+                CALL UT_PASCOLOR            ; Change to the PASSED message color
                 setxl
                 LDX #<>UT_PASS_MSG
                 PHB
                 setdbr `DATA_BLOCK
                 CALL UT_LOGMSG
-                PLB               
+                PLB
+                CALL UT_MSGCOLOR            ; Go back to the standard color
 
                 PLP
                 RETURN
+                .endm
+
+UT_PASSED       .macro testcase
+                setxl
+                LDX #<>text_casename
+                PHB
+                setdbr `DATA_BLOCK
+                CALL UT_LOGMSG
+                PLB
+
+                CALL UT_PASCOLOR            ; Change to the PASSED message color
+                setxl
+                LDX #<>UT_PASS_MSG
+                PHB
+                setdbr `DATA_BLOCK
+                CALL UT_LOGMSG
+                PLB
+                CALL UT_MSGCOLOR            ; Go back to the standard color
+                
+.section data
+text_casename   .null \testcase, ": "
+.send
                 .endm
 
 ;
@@ -292,6 +414,37 @@ fail            setxl
                 setas
                 LDA \1+2
                 CALL UT_FAIL_AL
+                PLB
+                BRA continue
+.section data
+MESSAGE         .null \3
+.send
+continue        PLP
+                .endm
+
+;
+; Assert that a memory location contains a literal value (dword)
+;
+; Be sure to call this with the correct accumulator width!
+;
+UT_M_EQ_LIT_D   .macro  ; address,literal,message
+                PHP
+                setal
+                LDA \1
+                CMP #<>\2
+                BNE fail
+                LDA \1+2
+                CMP #(\2 >> 16)
+                BEQ continue
+
+fail            setxl
+                LDX #<>MESSAGE
+                PHB
+                setdbr `DATA_BLOCK
+                LDA \1
+                TAY
+                LDA \1+2
+                CALL UT_FAIL_AD
                 PLB
                 BRA continue
 .section data
@@ -494,7 +647,39 @@ UT_STR_EQ       .macro ; actual, expected, message
 MESSAGE         .null \3
 .send
 continue             
-                .endm          
+                .endm     
+
+;
+; Assert ARGUMENT1 has a given null terminated string
+;
+UT_ARG1STR_EQ   .macro ; expected, message
+                setal
+                LDA #<>\1           ; Point ARGUMENT2 to expected
+                STA ARGUMENT2
+                LDA #`\1
+                STA ARGUMENT2+2   
+
+                setas               ; Set their types to string
+                LDA #TYPE_STRING
+                STA ARGTYPE1
+                STA ARGTYPE2
+
+                CALL STRCMP
+
+                LDA ARGUMENT1       ; Check to see if the result is 0 (they are equal)
+                BEQ continue
+
+                LDX #<>MESSAGE      ; No, print the error message
+                PHB
+                setdbr `DATA_BLOCK
+                CALL UT_FAIL
+                PLB
+                BRA continue
+.section data
+MESSAGE         .null \2
+.send
+continue             
+                .endm           
 
 ;
 ; Assert that two null-terminated strings are equal

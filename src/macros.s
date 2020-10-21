@@ -220,7 +220,7 @@ LDARG_EA    .macro dest,ea,type
             setal
             LDA #<>\2
             STA \1
-            LDA #`\2
+            LDA #(\2 >> 16)
             STA \1+2
             setas
             LDA #\3
@@ -313,7 +313,7 @@ LD_Q        .macro dest,value
             setal
             LDA #<>\2
             STA \1
-            LDA #`\2
+            LDA #(\2 >> 16)
             STA \1+2
             .endm
 

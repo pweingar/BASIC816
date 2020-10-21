@@ -3,6 +3,7 @@
 ;;;
 
 .include "page_00_inc.s"
+.include "int_math_defs.s"
 
 ; Section of memory used to handle the RESET and start BASIC
 * = $002000
