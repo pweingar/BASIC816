@@ -119,7 +119,7 @@ type_error  THROW ERR_TYPE
             .pend
 
 ;
-; Divide two numbers
+; Divide two numbers... note this will always return a floating point number
 ;
 ; INPUTS:
 ;   ARGUMENT1 = 32-bit number
@@ -131,17 +131,12 @@ type_error  THROW ERR_TYPE
 OP_DIVIDE   .proc
             TRACE "OP_DIVIDE"
 
-.if SYSTEM = SYSTEM_C256
-            LDA ARGUMENT1
-            STA @lD1_OPERAND_B
+            CALL ASS_ARG1_FLOAT
+            CALL ASS_ARG2_FLOAT
 
-            LDA ARGUMENT2
-            STA @lD1_OPERAND_A 
+            CALL OP_FP_DIV
 
-            LDA @lD1_RESULT
-            STA ARGUMENT1
-.endif
-            RTS
+            RETURN
             .pend
 
 ; Mod
@@ -165,6 +160,9 @@ OP_MOD      .proc
 OP_AND      .proc
             TRACE "OP_AND"
 
+            CALL ASS_ARG1_INT       ; Make sure ARGUMENT1 is an integer
+            CALL ASS_ARG2_INT       ; Make sure ARGUMENT2 is an integer
+
             setal
             LDA ARGUMENT1
             AND ARGUMENT2
@@ -180,6 +178,9 @@ OP_AND      .proc
 OP_OR       .proc
             TRACE "OP_OR"
 
+            CALL ASS_ARG1_INT       ; Make sure ARGUMENT1 is an integer
+            CALL ASS_ARG2_INT       ; Make sure ARGUMENT2 is an integer
+
             setal
             LDA ARGUMENT1
             ORA ARGUMENT2
@@ -194,6 +195,8 @@ OP_OR       .proc
 ; Bitwise NOT
 OP_NOT      .proc
             TRACE "OP_NOT"
+
+            CALL ASS_ARG1_INT       ; Make sure ARGUMENT1 is an integer
 
             setal
             LDA ARGUMENT1

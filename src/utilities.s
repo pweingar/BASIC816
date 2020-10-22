@@ -419,9 +419,52 @@ ASS_ARG1_INT    .proc
                 setas
                 LDA ARGTYPE1            ; Verify that the type is INTEGER
                 CMP #TYPE_INTEGER
-                BNE TYPE_ERR
+                BEQ done                ; If so: just return
 
-                PLP
+                CMP #TYPE_FLOAT         ; Check if it's a float
+                BNE TYPE_ERR            ; If not: throw an error
+
+                CALL FTOI               ; Try to convert it to an integer
+
+done            PLP
+                RETURN
+
+TYPE_ERR        THROW ERR_TYPE
+                .pend
+
+;
+; Assert that ARGUMENT2 contains an integer. Throw a type mismatch error.
+;
+; TODO: if ARGUMENT2 is a float, convert it to an integer
+;
+; Inputs:
+;   ARGUMENT2
+;
+ASS_ARG2_INT    .proc
+                PHP
+                TRACE "ASS_ARG2_INT"
+
+                setas
+                LDA ARGTYPE2                ; Verify that the type is INTEGER
+                CMP #TYPE_INTEGER
+                BEQ done                    ; If so: just return
+
+                CMP #TYPE_FLOAT             ; Check if it's a float
+                BNE TYPE_ERR                ; If not: throw an error
+                
+                PUSH_D ARGUMENT1            ; Save ARGUMENT1
+
+                MOVE_D ARGUMENT1,ARGUMENT2  ; ARGUMENT1 := ARGUMENT2
+                LD_B ARGTYPE1,TYPE_FLOAT
+
+                CALL FTOI                   ; Try to convert it to an integer
+
+                MOVE_D ARGUMENT2,ARGUMENT1  ; ARGUMENT2 := ARGUMENT1
+                LD_B ARGTYPE2,TYPE_INTEGER
+
+                PULL_D ARGUMENT1            ; Get ARGUMENT1 back
+
+done            PLP
                 RETURN
 
 TYPE_ERR        THROW ERR_TYPE
@@ -464,9 +507,14 @@ ASS_ARG1_INT16  .proc
                 setas
                 LDA ARGTYPE1            ; Verify that the type is INTEGER
                 CMP #TYPE_INTEGER
-                BNE TYPE_ERR
+                BEQ check_range         ; If so: check the range
 
-                setal
+                CMP #TYPE_FLOAT         ; Check if it's a float
+                BNE TYPE_ERR            ; If not: throw an error
+
+                CALL FTOI               ; Try to convert it to an integer
+
+check_range     setal
                 LDA ARGUMENT1+2         ; Validate it is 16-bit
                 BNE range_err
 
@@ -493,9 +541,14 @@ ASS_ARG1_BYTE   .proc
                 setas
                 LDA ARGTYPE1            ; Verify that the type is INTEGER
                 CMP #TYPE_INTEGER
-                BNE TYPE_ERR
+                BEQ check_range         ; If so: check the range
 
-                LDA ARGUMENT1+3         ; Validate that the value is in byte range
+                CMP #TYPE_FLOAT         ; Check if it's a float
+                BNE TYPE_ERR            ; If not: throw an error
+
+                CALL FTOI               ; Try to convert it to an integer
+
+check_range     LDA ARGUMENT1+3         ; Validate that the value is in byte range
                 BNE RANGE_ERR           ; If not... throw a range error
                 LDA ARGUMENT1+2
                 BNE RANGE_ERR
@@ -531,6 +584,46 @@ type_err        THROW ERR_TYPE          ; Throw a type error
 cast            CALL ITOF               ; Cast INTEGER to FLOAT
 
 done            PLP
+                RETURN
+                .pend
+
+;
+; Assert that ARGUMENT2 is a FLOAT. Convert an INTEGER to a FLOAT.
+;
+; Inputs:
+;   ARGUMENT2 = the value to check
+;
+ASS_ARG2_FLOAT  .proc
+                PHP
+
+                setas
+                LDA ARGTYPE2            ; Check the type
+                CMP #TYPE_FLOAT         ; If it's float...
+                BEQ done                ; Then we're done
+
+                CMP #TYPE_INTEGER       ; If it's integer...
+                BEQ cast                ; Then cast it to float
+
+type_err        THROW ERR_TYPE          ; Throw a type error
+
+cast            CALL CAST_ARG2_FLOAT
+
+done            PLP
+                RETURN
+                .pend
+
+CAST_ARG2_FLOAT .proc
+                PUSH_D ARGUMENT1            ; Save ARGUMENT1
+
+                MOVE_D ARGUMENT1,ARGUMENT2  ; ARGUMENT1 := ARGUMENT2
+                LD_B ARGTYPE1,TYPE_INTEGER
+
+                CALL ITOF                   ; Cast it to FLOAT
+
+                MOVE_D ARGUMENT2,ARGUMENT1  ; ARGUMENT2 := ARGUMENT1
+                LD_B ARGTYPE2,TYPE_FLOAT
+
+                PULL_D ARGUMENT1            ; Get ARGUMENT1 back
                 RETURN
                 .pend
 
@@ -571,17 +664,7 @@ arg1_float      LDA ARGTYPE2                ; Check argument 2
                 CMP #TYPE_INTEGER           ; If it's not integer
                 BNE type_err                ; Thrown an error
 
-                PUSH_D ARGUMENT1            ; Save ARGUMENT1
-
-                MOVE_D ARGUMENT1,ARGUMENT2  ; ARGUMENT1 := ARGUMENT2
-                LD_B ARGTYPE1,TYPE_INTEGER
-
-                CALL ITOF                   ; Cast it to FLOAT
-
-                MOVE_D ARGUMENT2,ARGUMENT1  ; ARGUMENT2 := ARGUMENT1
-                LD_B ARGTYPE2,TYPE_FLOAT
-
-                PULL_D ARGUMENT1            ; Get ARGUMENT1 back
+                CALL CAST_ARG2_FLOAT        ; Convert integer to float
 
 done            PLP
                 RETURN

@@ -814,6 +814,8 @@ err_limit       THROW ERR_RANGE     ; Throw an argument range error
 FN_ABS          .proc
                 FN_START "FN_ABS"
 
+                ; TODO: add support for floats
+
                 CALL EVALEXPR       ; Evaluate the first expression
                 ; CALL POPARGUMENT
                 CALL ASS_ARG1_INT   ; Make sure it's an integer
@@ -844,6 +846,8 @@ done            FN_END
 ;
 FN_SGN          .proc
                 FN_START "FN_SGN"
+
+                ; TODO: add support for floats
 
                 CALL EVALEXPR       ; Evaluate the first expression
 

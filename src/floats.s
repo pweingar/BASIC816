@@ -643,8 +643,12 @@ FTOI            .proc
 
                 ; TODO: recognize infinities and NaN and throw an error
 
-                ; Has a number... so start shifting it into SCRATCH
 not_zero        setal
+
+.if SYSTEM = SYSTEM_C256
+                CALL FP_TO_FIXINT
+.else
+                ; Has a number... so start shifting it into SCRATCH
                 LDA #1
                 STA SCRATCH
                 STZ SCRATCH+2
@@ -682,7 +686,7 @@ shift_done      setas
                 STA ARGUMENT1           ; Copy it to ARGUMENT1
                 LDA SCRATCH+2
                 STA ARGUMENT1+2
-
+.endif
 done            RETURN
                 .pend
 
