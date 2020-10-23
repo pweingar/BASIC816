@@ -2,6 +2,9 @@
 ;;; Block assignment for C256 Foenix
 ;;;
 
+SYS_C256_FMX = 1        ; System SKU for C256 Foenix FMX
+SYS_C256_USER = 2       ; System SKU for C256 Foenix User
+
 .include "page_00_inc.s"
 .include "int_math_defs.s"
 
@@ -15,16 +18,28 @@
 .cerror * > $8FF, "Too many direct page variables"
 
 ; Section of memory for the BASIC interpreter's code
+.if C256_SKU == SYS_C256_FMX
 * = $3A0000
+.else
+* = $1A0000
+.endif
 .dsection code
 
 ; Section of memory for all constant data
+.if C256_SKU == SYS_C256_FMX
 * = $3AD000
+.else
+* = $1AD000
+.endif
 .dsection data
 .cerror * > $3AEFFF, "Too many string constants"
 
 ; Section for global variables that don't need to reside in direct page memory
+.if C256_SKU == SYS_C256_FMX
 * = $3AF000
+.else
+* = $1AF000
+.endif
 .dsection variables
 .cerror * > $3AFFFF, "Too many system variables"
 
@@ -56,7 +71,12 @@ OPERATOR_TOP = $007FFF      ; Ending address of the operator stack
 
 ; Non Bank 0 memory spaces
 
-LOADBLOCK = $010000         ; File loading will start here
-BASIC_BOT = $360000         ; Starting point for BASIC programs
-HEAP_TOP = $37FFFF          ; Starting point of the heap
 VRAM = $B00000              ; Start of video RAM
+LOADBLOCK = $010000         ; File loading will start here
+BASIC_BOT := $360000         ; Starting point for BASIC programs
+HEAP_TOP := $37FFFF          ; Starting point of the heap
+
+.if C256_SKU == SYS_C256_USER
+BASIC_BOT := $160000         ; Starting point for BASIC programs
+HEAP_TOP := $17FFFF          ; Starting point of the heap
+.endif

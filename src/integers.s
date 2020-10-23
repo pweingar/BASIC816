@@ -120,3 +120,63 @@ OP_INT_DIV  .proc
             PLP
             RETURN
             .pend
+
+;
+; Less-than: is ARGUMENT1 < ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1 = -1 if ARGUMENT1 was < ARGUMENT2, 0 otherwise
+;
+OP_INT_LT   .proc
+            PHP
+            TRACE "OP_INT_LT"
+
+            setal
+            LDA ARGUMENT1+2
+            CMP ARGUMENT2+2
+            BLT return_true
+            LDA ARGUMENT1
+            CMP ARGUMENT2
+            BLT return_true
+
+            STZ ARGUMENT1
+            STZ ARGUMENT1+2
+            RTS
+
+return_true LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
+            PLP
+            RETURN
+            .pend
+
+;
+; greater-than: is ARGUMENT1 > ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1 = -1 if ARGUMENT1 was > ARGUMENT2, 0 otherwise
+;
+OP_INT_GT   .proc
+            PHP
+
+            TRACE "OP_INT_GT"
+
+            setal
+            LDA ARGUMENT2+2
+            CMP ARGUMENT1+2
+            BLT return_true
+            LDA ARGUMENT2
+            CMP ARGUMENT1
+            BLT return_true
+
+            STZ ARGUMENT1
+            STZ ARGUMENT1+2
+            RTS
+
+return_true LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
+
+            PLP
+            RETURN
+            .pend
