@@ -440,84 +440,108 @@ S_SETCOLOR      .proc
                 PHP
                 TRACE "S_SETCOLOR"
 
-                ; TODO: fix the temporaries
+                ; Set up local storage
+locals          .virtual 1,S
+L_LUT           .byte ?
+L_COLOR         .byte ?
+L_RED           .byte ?
+L_GREEN         .byte ?
+L_BLUE          .byte ?
+                .endv
+                SALLOC SIZE(locals)
 
                 ; Step #1... calculate the address of the LUT to update
 
                 setas
                 CALL EVALEXPR       ; Get the LUT #
                 CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
-                LDA #`GRPH_LUT0_PTR ; Get the bank Vicky is in (should always be $AF)
-                STA MTEMPPTR+2      ; MTEMPPTR will be our pointer to the LUT entry
+                CMP #10             ; And in range
+                BLT save_lut
+bad_argument    THROW ERR_ARGUMENT  ; Throw an illegal argument exception
 
-                LDA ARGUMENT1       ; Compute the offset to the LUT address
-                CMP #10
-                BGE bad_argument    ; Otherwise, throw exception
-                ASL A
-                TAX                 ; Put it in X
-
-                LDA @llut_address,X ; Get the address of the LUT
-                STA MTEMPPTR        ; Put it in MTEMPPTR 
-
-                ; Step #2... calculate the address of the specific color to change
-
+save_lut        LDA ARGUMENT1
+                STA L_LUT           ; Save as LUT
 
                 LDA #','
                 CALL EXPECT_TOK     ; Try to find the comma
 
                 CALL EVALEXPR       ; Get the color index
                 CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
-
-                LDA ARGUMENT1       ; color index *= 4
-                ASL A               ; Since each color has four bytes of data
-                ASL A
-
-                CLC                 ; Add the color offset to MTEMPPTR
-                ADC MTEMPPTR
-                STA MTEMPPTR        ; Which now points to the color entry
-
-                ; Step #3... set the red component
+                LDA ARGUMENT1
+                STA L_COLOR         ; Save as COLOR
 
                 LDA #','
                 CALL EXPECT_TOK     ; Try to find the comma
 
                 CALL EVALEXPR       ; Get the red component
                 CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
-
-                LDY #GR_LUT_RED
                 LDA ARGUMENT1
-                setas
-                STA [MTEMPPTR],Y    ; Save the red component to the color entry
-
-                ; Step #4... set the green component
+                STA L_RED           ; Save as RED
 
                 LDA #','
                 CALL EXPECT_TOK     ; Try to find the comma
 
                 CALL EVALEXPR       ; Get the green component
                 CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
-
-                LDY #GR_LUT_GREEN
                 LDA ARGUMENT1
-                setas
-                STA [MTEMPPTR],Y    ; Save the green component to the color entry
-
-                ; Step #5... set the blue component
+                STA L_GREEN         ; Save it as GREEN
 
                 LDA #','
                 CALL EXPECT_TOK     ; Try to find the comma
 
                 CALL EVALEXPR       ; Get the blue component
                 CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
+                LDA ARGUMENT1
+                STA L_BLUE          ; Save it as BLUE
+
+                ; Calculate the address of the LUT
+
+                LDA #`GRPH_LUT0_PTR ; Get the bank Vicky is in (should always be $AF)
+                STA MTEMPPTR+2      ; MTEMPPTR will be our pointer to the LUT entry
+
+                LDA L_LUT           ; Compute the offset to the LUT address
+                ASL A
+                setal
+                AND #$00FF
+                TAX                 ; Put it in X
+                LDA @llut_address,X ; Get the address of the LUT
+                STA MTEMPPTR        ; Put it in MTEMPPTR 
+                setas
+
+                ; Step #2... calculate the address of the specific color to change
+
+                LDA L_COLOR         ; color index *= 4
+                ASL A               ; Since each color has four bytes of data
+                ASL A
+                CLC                 ; Add the color offset to MTEMPPTR
+                ADC MTEMPPTR
+                STA MTEMPPTR        
+                LDA MTEMPPTR+1
+                ADC #0
+                STA MTEMPPTR+1      ; Which now points to the color entry
+
+                ; Step #3... set the red component
+
+                LDY #GR_LUT_RED
+                LDA L_RED
+                STA [MTEMPPTR],Y    ; Save the red component to the color entry
+
+                ; Step #4... set the green component
+
+                LDY #GR_LUT_GREEN
+                LDA L_GREEN
+                STA [MTEMPPTR],Y    ; Save the green component to the color entry
+
+                ; Step #5... set the blue component
 
                 LDY #GR_LUT_BLUE
-                LDA ARGUMENT1
-                setas
+                LDA L_BLUE
                 STA [MTEMPPTR],Y    ; Save the blue component to the color entry
 
+done            SFREE SIZE(locals)          ; Clean the locals from the stack
                 PLP
                 RETURN
-bad_argument    THROW ERR_ARGUMENT  ; Throw an illegal argument exception
+
 lut_address     .word <>GRPH_LUT0_PTR
                 .word <>GRPH_LUT1_PTR
                 .word <>GRPH_LUT2_PTR
@@ -531,12 +555,10 @@ lut_address     .word <>GRPH_LUT0_PTR
                 .pend
 
 
-
 ; Set the graphics mode to use... this really just sets the bits of
 ; the Vicky chip's master control register.
 ;
 ; GRAPHICS mode
-; TODO: allow for variable screen sizes: GRAPHICS mode [, width, height]
 S_GRAPHICS      .proc
                 PHX
                 PHY
