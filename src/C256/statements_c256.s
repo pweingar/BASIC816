@@ -267,6 +267,12 @@ S_TEXTCOLOR     .proc
                 PHP
                 TRACE "S_TEXTCOLOR"
 
+                ; Set up local storage
+locals          .virtual 1,S
+L_FOREGROUND    .byte ?
+                .endv
+                SALLOC SIZE(locals)
+
                 CALL EVALEXPR       ; Get the foreground index
                 CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
 
@@ -276,7 +282,8 @@ S_TEXTCOLOR     .proc
                 .rept 4
                 ASL A
                 .next
-                STA @lMARG1
+
+                STA L_FOREGROUND    ; Save the foreground color
 
                 LDA #','
                 CALL EXPECT_TOK     ; Try to find the comma
@@ -287,8 +294,10 @@ S_TEXTCOLOR     .proc
                 LDA ARGUMENT1       ; Covert the color number to the background position
                 AND #$0F
 
-                ORA @lMARG1         ; Add in the foreground
+                ORA L_FOREGROUND    ; Add in the foreground
                 STA @lCURCOLOR      ; And save the new color combination
+
+                SFREE SIZE(locals)  ; Clean the locals from the stack
 
                 PLP
                 RETURN
@@ -302,22 +311,26 @@ S_SETBGCOLOR    .proc
                 PHP
                 TRACE "S_SETBGCOLOR"
 
-                setas
+                ; Set up local storage
+locals          .virtual 1,S
+L_RED           .byte ?
+L_GREEN         .byte ?
+                .endv
+                SALLOC SIZE(locals)
 
+                setas
                 CALL EVALEXPR               ; Get the red component
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
-
                 LDA ARGUMENT1               ; Save the red component to the stack
-                PHA
+                STA L_RED
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the green component
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
-
                 LDA ARGUMENT1               ; Save the green component to the stack
-                PHA
+                STA L_GREEN
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -327,10 +340,12 @@ S_SETBGCOLOR    .proc
 
                 LDA ARGUMENT1               ; And set the actual color
                 STA @lBACKGROUND_COLOR_B
-                PLA
+                LDA L_GREEN
                 STA @lBACKGROUND_COLOR_G
-                PLA
+                LDA L_RED
                 STA @lBACKGROUND_COLOR_R
+
+                SFREE SIZE(locals)  ; Clean the locals from the stack
 
                 PLP
                 RETURN
@@ -342,11 +357,17 @@ S_SETBORDER     .proc
                 PHP
                 TRACE "S_SETBORDER"
 
+                ; Set up local storage
+locals          .virtual 1,S
+L_RED           .byte ?
+L_GREEN         .byte ?
+                .endv
+                SALLOC SIZE(locals)
+
                 setas
 
                 CALL EVALEXPR               ; Get the visible component
                 CALL ASS_ARG1_INT           ; Assert that the result is an integer value
-
                 LDA ARGUMENT1
                 BEQ hide_border
 
@@ -373,18 +394,16 @@ get_color       LDA #','
                 CALL INCBIP
                 CALL EVALEXPR               ; Get the red component
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
-
                 LDA ARGUMENT1               ; Save the red component to the stack
-                PHA
+                STA L_RED
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the green component
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
-
                 LDA ARGUMENT1               ; Save the green component to the stack
-                PHA
+                STA L_GREEN
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -394,12 +413,13 @@ get_color       LDA #','
 
                 LDA ARGUMENT1
                 STA @lBORDER_COLOR_B        ; Set the border color
-                PLA
+                LDA L_GREEN
                 STA @lBORDER_COLOR_G
-                PLA
+                LDA L_RED
                 STA @lBORDER_COLOR_R            
 
-done            PLP
+done            SFREE SIZE(locals)          ; Clean the locals from the stack
+                PLP
                 RETURN
                 .pend
 
@@ -420,13 +440,13 @@ S_SETCOLOR      .proc
                 PHP
                 TRACE "S_SETCOLOR"
 
-                setal
+                ; TODO: fix the temporaries
 
                 ; Step #1... calculate the address of the LUT to update
 
+                setas
                 CALL EVALEXPR       ; Get the LUT #
                 CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
-
                 LDA #`GRPH_LUT0_PTR ; Get the bank Vicky is in (should always be $AF)
                 STA MTEMPPTR+2      ; MTEMPPTR will be our pointer to the LUT entry
 
@@ -598,7 +618,7 @@ rowb_count      .word 52,67,22,52
 ; Find the address (to the CPU) to the bitmap given it's number
 ;
 ; Inputs:
-;   ARGUMENT1 = the number of the bitmap plane (0 or 1)
+;   A = the number 16-bit of the bitmap plane (0 or 1)
 ;
 ; Outputs:
 ;   MTEMPPTR = pointer to the first byte for that bitmap (in SRAM)
@@ -608,7 +628,6 @@ BITMAP_SRAM     .proc
                 PHP
 
                 setaxl
-                LDA ARGUMENT1           ; Get the number
                 CMP #BM_MAX
                 BGE range_err           ; Make sure it's within range
                 ASL A
@@ -672,34 +691,47 @@ S_BITMAP        .proc
                 PHP
                 TRACE "S_BITMAP"
 
-                setal
+locals          .virtual 1,S
+L_PLANE         .word ?
+L_VISIBLE       .byte ?
+L_ADDRESS       .dword ?
+                .endv
+
+                setaxl
+                TSC                         ; Allocate space for the locals on the stack
+                SEC
+                SBC #SIZE(locals)
+                TCS
+
                 CALL EVALEXPR               ; Get the bitmap number
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+
                 setal
                 LDA ARGUMENT1               ; Make sure it's in range
                 CMP #BM_MAX
                 BGE range_err               ; If not, throw an error
-                STA MARG1                   ; If so, save it to MARG1
+                STA L_PLANE                 ; If so, save it to MARG1
 
+                setas
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma 
                 CALL EVALEXPR               ; Get the visible flag
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
-                MOVE_W MARG2,ARGUMENT1      ; Save it to MARG2
+                LDA ARGUMENT1
+                STA L_VISIBLE
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
                 CALL EVALEXPR               ; Get the LUT #
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
 
-                LDA MARG1                   ; Get the number back
+                LDA L_PLANE                 ; Get the number back
                 ASL A                       ; Multiply by 8 to get the offset to the registers
                 ASL A
                 ASL A
                 TAX                         ; And save that offset to X
 
-                setas
-                LDA MARG2                   ; Check the visible flag
+                LDA L_VISIBLE               ; Check the visible flag
                 BNE is_visible              ; If <> 0, it's visible
 
                 LDA ARGUMENT1               ; Get the LUT #
@@ -730,7 +762,7 @@ get_address     setal
 
                 ; Rebase the address to the start of VRAM
 set_address     setal
-                LDA MARG1                   ; Get the bitmap number back
+                LDA L_PLANE                 ; Get the bitmap number back
                 ASL A                       ; Multiply by four to get the offset to the address variable
                 ASL A
                 TAX                         ; And put it in X
@@ -738,32 +770,38 @@ set_address     setal
                 LDA ARGUMENT1               ; Get the CPU-space address
                 STA @l GR_BM0_ADDR,X        ; And save it to the correct GR_BM?_ADDR variable
                 STA @l GR_BM0_VRAM,X
-                STA MARG3                   ; And MARG3, temporarily
+                STA L_ADDRESS               ; And L_ADDRESS, temporarily
                 LDA ARGUMENT1+2
                 STA @l GR_BM0_ADDR+2,X
 
                 SEC
                 SBC #`VRAM                  ; Rebase the upper half of the address to Vicky memory space
                 STA @l GR_BM0_VRAM+2,X
-                STA MARG3+2                 ; And to MARG3
+                STA L_ADDRESS+2             ; And to L_ADDRESS
 
-                LDA MARG1                   ; Get the bitmap number back
+                LDA L_PLANE                 ; Get the bitmap number back
                 ASL A                       ; Multiply by eight to get the offset to the registers
                 ASL A
                 ASL A
                 TAX                         ; And put it in X
 
                 setas
-                LDA MARG3                   ; Get the address in Vicky space...
+                LDA L_ADDRESS               ; Get the address in Vicky space...
                 STA @l BM0_START_ADDY_L,X   ; Save it to the Vicky registers
-                LDA MARG3+1
+                LDA L_ADDRESS+1
                 STA @l BM0_START_ADDY_M,X
-                LDA MARG3+2
+                LDA L_ADDRESS+2
                 STA @l BM0_START_ADDY_H,X
 
                 LDA #0                      ; Default offset to (0, 0)
                 STA @l BM0_X_OFFSET,X
                 STA @l BM0_Y_OFFSET,X
+
+                setaxl
+                TSC                         ; Remove the space for the locals from the stack
+                CLC
+                ADC #SIZE(locals)
+                TCS
 
                 PLP
                 RETURN
@@ -1007,6 +1045,8 @@ FILL            .proc
                 PHP
                 TRACE "FILL"
 
+                BRK
+
                 ; We're going to use Vicky's VDMA capabilities to fill the screen here.
                 ; This should be MUCH faster than the CPU can do it.
 
@@ -1043,33 +1083,37 @@ FILL            .proc
                 LDA X1
                 SBC X0
                 STA SCRATCH
-                STA @lVDMA_X_SIZE_L
+                STA @l VDMA_X_SIZE_L
 
                 SEC
-                LDA @lGR_MAX_COLS
+                LDA @l GR_MAX_COLS
                 STA @lVDMA_DST_STRIDE_L     ; And the destination stride
 
                 SEC                         ; Set the height of the FILL operation
                 LDA Y1
                 SBC Y0        
-                STA @lVDMA_Y_SIZE_L
+                STA @l VDMA_Y_SIZE_L
 
                 LDA #1
-                STA @lVDMA_SRC_STRIDE_L     ; And the source stride
+                STA @l VDMA_SRC_STRIDE_L    ; And the source stride
 
                 setas
-                LDA @lCOLOR                 ; Set the color to write
-                STA @lVDMA_BYTE_2_WRITE
+                LDA @l COLOR                ; Set the color to write
+                STA @l VDMA_BYTE_2_WRITE
 
                 ; Ask Vicky to do a 2-D fill operation
-                LDA #VDMA_CTRL_Enable | VDMA_CTRL_TRF_Fill | VDMA_CTRL_Start_TRF | VDMA_CTRL_1D_2D
+                LDA #VDMA_CTRL_Enable | VDMA_CTRL_TRF_Fill | VDMA_CTRL_1D_2D
                 STA @lVDMA_CONTROL_REG
+
+                LDA @l VDMA_CONTROL_REG
+                ORA #VDMA_CTRL_Start_TRF
+                STA @l VDMA_CONTROL_REG
 
 wait            LDA @lVDMA_STATUS_REG       ; Wait until Vicky is done
                 BMI wait
 
                 LDA #0                      ; Clear the control register so it can be used later
-                STA @lVDMA_CONTROL_REG
+                STA @l VDMA_CONTROL_REG
 
 done            PLP                
                 RETURN
@@ -1082,13 +1126,21 @@ S_PLOT          .proc
                 PHP
                 TRACE "S_PLOT"
 
+                ; Set up local storage
+locals          .virtual 1,S
+L_PLANE
+L_X             .word ?
+L_Y             .word ?
+                .endv
+                SALLOC SIZE(locals)
+
                 setdp <>GLOBAL_VARS
                 setdbr 0
                 setaxl
 
                 CALL EVALEXPR               ; Get the bitmap number
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
-                CALL BITMAP_SRAM            ; Get the address of the bitmap into MTEMPPTR
+                STA L_PLANE                 ; Save it as the plane
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1096,7 +1148,7 @@ S_PLOT          .proc
                 CALL EVALEXPR               ; Get the x coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                STA X0                      ; Save it to MARG2
+                STA L_X                     ; Save it to X
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1104,7 +1156,7 @@ S_PLOT          .proc
                 CALL EVALEXPR               ; Get the y coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                STA Y0                      ; Save it to MARG3
+                STA L_Y                     ; Save it to Y
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1114,8 +1166,17 @@ S_PLOT          .proc
                 LDA ARGUMENT1
                 STA COLOR                   ; Save it to MARG1
 
+                LDA L_X                     ; Set the (X0, Y0) coordinates
+                STA X0
+                LDA L_Y
+                STA Y0
+
+                LDA L_PLANE                 ; Get the bitmap plane back
+                CALL BITMAP_SRAM            ; Get the address of the bitmap into MTEMPPTR
+
                 CALL PLOT                   ; And draw the pixel
 
+                SFREE SIZE(locals)  ; Clean the locals from the stack
                 PLP
                 RETURN
                 .pend
@@ -1126,13 +1187,23 @@ S_LINE          .proc
                 PHP
                 TRACE "S_LINE"
 
+                ; Set up local storage
+locals          .virtual 1,S
+L_PLANE         .word ?
+L_X0            .word ?
+L_Y0            .word ?
+L_X1            .word ?
+L_Y1            .word ?           
+                .endv
+                SALLOC SIZE(locals)
+
                 setdp <>GLOBAL_VARS
                 setdbr 0
                 setaxl
 
                 CALL EVALEXPR               ; Get the bitmap number
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
-                CALL BITMAP_SRAM            ; Get the address of the bitmap into MTEMPPTR
+                STA L_PLANE                 ; Save it as the plane
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1140,7 +1211,7 @@ S_LINE          .proc
                 CALL EVALEXPR               ; Get the x0 coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                STA X0                      ; Save it to X0       
+                STA L_X0                    ; Save it to X0       
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1148,7 +1219,7 @@ S_LINE          .proc
                 CALL EVALEXPR               ; Get the y0 coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                STA Y0                      ; Save it to Y0
+                STA L_Y0                    ; Save it to Y0
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1156,7 +1227,7 @@ S_LINE          .proc
                 CALL EVALEXPR               ; Get the x1 coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                STA X1                      ; Save it to X1     
+                STA L_X1                    ; Save it to X1     
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1164,7 +1235,7 @@ S_LINE          .proc
                 CALL EVALEXPR               ; Get the y1 coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                STA Y1                      ; Save it to Y1
+                STA L_Y1                    ; Save it to Y1
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1174,9 +1245,22 @@ S_LINE          .proc
                 LDA ARGUMENT1
                 STA COLOR                   ; Save it to COLOR
 
+                LDA L_X0                    ; Set the (X0, Y0) coordinates
+                STA X0
+                LDA L_Y0
+                STA Y0
+                LDA L_X1                    ; Set the (X1, Y1) coordinates
+                STA X1
+                LDA L_Y1
+                STA Y1
+
+                LDA L_PLANE                 ; Get the bitmap plane back
+                CALL BITMAP_SRAM            ; Get the address of the bitmap into MTEMPPTR
+
                 CALL LINE                   ; Otherwise, use the generic line routine
 
-done            PLP
+done            SFREE SIZE(locals)  ; Clean the locals from the stack
+                PLP
                 RETURN
                 .pend
 
@@ -1186,13 +1270,23 @@ S_FILL          .proc
                 PHP
                 TRACE "S_FILL"
 
+                ; Set up local storage
+locals          .virtual 1,S
+L_PLANE         .word ?
+L_X0            .word ?
+L_Y0            .word ?
+L_X1            .word ?
+L_Y1            .word ?           
+                .endv
+                SALLOC SIZE(locals)
+
                 setdp <>GLOBAL_VARS
                 setdbr 0
                 setaxl
 
                 CALL EVALEXPR               ; Get the bitmap number
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
-                CALL BITMAP_VRAM            ; Get the address of the bitmap into MTEMPPTR
+                STA L_PLANE                 ; Save it as the plane
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1200,7 +1294,7 @@ S_FILL          .proc
                 CALL EVALEXPR               ; Get the x0 coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                STA X0                      ; Save it to X0       
+                STA L_X0                    ; Save it to X0       
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1208,7 +1302,7 @@ S_FILL          .proc
                 CALL EVALEXPR               ; Get the y0 coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                STA Y0                      ; Save it to Y0
+                STA L_Y0                    ; Save it to Y0
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1216,7 +1310,7 @@ S_FILL          .proc
                 CALL EVALEXPR               ; Get the x1 coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                STA X1                      ; Save it to X1     
+                STA L_X1                    ; Save it to X1     
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1224,7 +1318,7 @@ S_FILL          .proc
                 CALL EVALEXPR               ; Get the y1 coordinate
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                STA Y1                      ; Save it to Y1
+                STA L_Y1                    ; Save it to Y1
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1234,8 +1328,22 @@ S_FILL          .proc
                 LDA ARGUMENT1
                 STA COLOR                   ; Save it to COLOR
 
+                LDA L_X0                    ; Set the (X0, Y0) coordinates
+                STA X0
+                LDA L_Y0
+                STA Y0
+                LDA L_X1                    ; Set the (X1, Y1) coordinates
+                STA X1
+                LDA L_Y1
+                STA Y1
+
+                LDA L_PLANE                 ; Get the bitmap plane back
+                CALL BITMAP_SRAM            ; Get the address of the bitmap into MTEMPPTR
+
                 CALL FILL                   ; Otherwise, use the block fill routine
-done            PLP
+
+done            SFREE SIZE(locals)  ; Clean the locals from the stack
+                PLP
                 RETURN
                 .pend
 
@@ -1247,13 +1355,12 @@ done            PLP
 ; Set MTEMPPTR to the starting address of a sprite, given its number
 ;
 ; Inputs:
-;   ARGUMENT1 = the number of the sprite desired (0 - 63)
+;   A = the number (16-bit) of the sprite desired (0 - 63)
 ;
 SPADDR          .proc
                 PHP
 
-                setas
-                LDA ARGUMENT1               ; Get the sprite number
+                setal
                 CMP #SP_MAX
                 BGE error
 
@@ -1262,18 +1369,15 @@ SPADDR          .proc
                 ASL A
 
                 CLC                         ; Add it to the address of the first
-                ADC #<SP00_CONTROL_REG      ; sprite block
+                ADC #<>SP00_CONTROL_REG     ; sprite block
                 STA MTEMPPTR
-                LDA #>SP00_CONTROL_REG
-                ADC #0
-                STA MTEMPPTR+1
                 LDA #`SP00_CONTROL_REG
                 ADC #0
-                STA MTEMPPTR+2
-                STZ MTEMPPTR+3              ; And save that to MTEMPPTR
+                STA MTEMPPTR+2              ; And save that to MTEMPPTR
 
                 PLP
                 RETURN
+
 error           THROW ERR_RANGE             ; Throw a range error
                 .pend
 
@@ -1285,23 +1389,28 @@ S_SPRITE        .proc
                 PHP
                 TRACE "S_SPRITE"
 
-                setas
+                ; Set up local storage
+locals          .virtual 1,S
+L_SPRITE        .word ?
+L_LUT           .byte ?        
+                .endv
+                SALLOC SIZE(locals)
 
+                setaxl
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
-                CALL SPADDR                 ; Compute the address of the sprite's block     
-                LDA ARGUMENT1
-                STA @lGR_TEMP               ; Save sprite number in GR_TEMP
+                STA L_SPRITE                ; Save it as sprite
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
+                setas
                 CALL EVALEXPR               ; Get the LUT for the sprite
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
                 LDA ARGUMENT1
                 CMP #GR_MAX_LUT             ; Check that it's in range
                 BGE error                   ; If not: throw an error
-                PHA                         ; Save it for later
+                STA L_LUT                   ; Save it as lut
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1321,6 +1430,10 @@ S_SPRITE        .proc
                 BMI error                   ; If negative, throw an error
 
                 setal
+                LDA L_SPRITE                ; Get the sprite number back
+                TAX
+                CALL SPADDR                 ; Compute the address of the sprite's block
+
                 LDA ARGUMENT1               ; Save the lower word of the address
                 LDY #SP_ADDR
                 STA [MTEMPPTR],Y
@@ -1330,21 +1443,21 @@ S_SPRITE        .proc
                 INY
                 STA [MTEMPPTR],Y            ; Save the upper byte of the address
 
-                LDA @lGR_TEMP
-                TAX
-                LDA GS_SP_CONTROL,X         ; Get the sprite control register
+                LDA @l GS_SP_CONTROL,X      ; Get the sprite control register
                 AND #%11110001              ; Filter off the current LUT
                 STA SCRATCH
 
-                PLA                         ; Get the LUT back
+                LDA L_LUT                   ; Get the LUT back
                 ASL A                       ; Sift it into the LUT position
                 AND #%00001110              ; Make sure we don't have anything wrong there
                 ORA SCRATCH                 ; Combine it with what's in the sprite's control
                 STA [MTEMPPTR]              ; And set the register's bits
-                STA GS_SP_CONTROL,X         ; And the shadow register
+                STA @l GS_SP_CONTROL,X      ; And the shadow register
 
+done            SFREE SIZE(locals)  ; Clean the locals from the stack
                 PLP
                 RETURN
+
 error           THROW ERR_RANGE             ; Throw a range exception
                 .pend
 
@@ -1356,20 +1469,25 @@ S_SPRITEAT      .proc
                 PHP
                 TRACE "S_SPRITEAT"
 
-                setal
+                ; Set up local storage
+locals          .virtual 1,S
+L_SPRITE        .word ?
+L_X             .word ?        
+                .endv
+                SALLOC SIZE(locals)
+
+                setaxl
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
-                CALL SPADDR                 ; Compute the address of the sprite's block     
+                STA L_SPRITE                ; Save it as sprite    
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the X coordinate for the sprite
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
-
                 LDA ARGUMENT1
-                LDY #SP_X_COORD             ; Save the X coordinate for the sprite
-                STA [MTEMPPTR],Y 
+                STA L_X                     ; Save it as X
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1377,10 +1495,20 @@ S_SPRITEAT      .proc
                 CALL EVALEXPR               ; Get the Y coordinate for the sprite
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
 
+                LDA L_SPRITE                ; Get the sprite number back
+                CALL SPADDR                 ; Compute the address of the sprite's block
+
+                LDA L_X                     ; Get the X coordinate
+                LDY #SP_X_COORD             ; Save the X coordinate for the sprite
+                STA [MTEMPPTR],Y             
+
                 LDA ARGUMENT1
                 LDY #SP_Y_COORD             ; Save the Y coordinate for the sprite
                 STA [MTEMPPTR],Y            
 
+                ; BRK
+
+done            SFREE SIZE(locals)  ; Clean the locals from the stack
                 PLP
                 RETURN
                 .pend
@@ -1394,41 +1522,56 @@ S_SPRITESHOW    .proc
                 PHP
                 TRACE "S_SPRITESHOW"
 
-                setal
+                ; Set up local storage
+locals          .virtual 1,S
+L_SPRITE        .word ?
+L_VISIBLE       .byte ?        
+                .endv
+                SALLOC SIZE(locals)
+
+                setaxl
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
-                CALL SPADDR                 ; Compute the address of the sprite's block 
-                LDA ARGUMENT1
-                STA GR_TEMP                 ; GR_TEMP := sprite #
+                STA L_SPRITE                ; Save it as sprite
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
+                setas
                 CALL EVALEXPR               ; Get the visibility
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                PHA                         ; And save it
+                BNE is_visible
+
+                STA L_VISIBLE               ; Set visible := 0 (not visible)
+                BRA chk_layer
+is_visible      LDA #1
+                STA L_VISIBLE               ; Set visible := 1 (visible)
    
-                LDA #','
+chk_layer       LDA #','
                 STA TARGETTOK
                 CALL OPT_TOK                ; Is there a comma?
                 BCS get_layer               ; Yes: get the layer
 
-no_layer        LDA @lGR_TEMP
+no_layer        setaxl
+                LDA L_SPRITE                ; Get the sprite number back
                 TAX
-                LDA @lGS_SP_CONTROL,X       ; Get the current control register value
+                CALL SPADDR                 ; Compute the address of the sprite registers
+
+                setas
+                LDA @l GS_SP_CONTROL,X      ; Get the current control register value
                 AND #$FE                    ; Filter out the enable bit
                 STA SCRATCH
 
-                PLA                         ; Get the desired enable bit
+                LDA L_VISIBLE               ; Get the visible byte
                 AND #$01                    ; Make sure it's just the bit
                 ORA SCRATCH                 ; Combine it with the current values
-                STA @lGS_SP_CONTROL,X       ; And save it
-                setas
+                STA @l GS_SP_CONTROL,X      ; And save it
+
                 STA [MTEMPPTR]              ; ... and to Vicky
                 BRA done
 
-get_layer       setal
+get_layer       setaxl
                 CALL INCBIP
                 CALL EVALEXPR               ; Get the sprite's layer
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
@@ -1442,22 +1585,26 @@ get_layer       setal
                 ASL A
                 STA SCRATCH                 ; And save it in SCRATCH
 
-                PLA                         ; Get the desired enable bit
+                LDA L_SPRITE                ; Get the sprite number back
+                TAX
+                CALL SPADDR                 ; Compute the address of the sprite registers
+
+                setas
+                LDA L_VISIBLE               ; Get the visible byte
                 AND #$01                    ; Make sure it's just the bit
                 ORA SCRATCH                 ; Combine it with the current values
                 STA SCRATCH
 
-                LDA @lGR_TEMP
-                TAX
-                setas
-                LDA GS_SP_CONTROL,X         ; Get the current control register value
+                LDA @l GS_SP_CONTROL,X      ; Get the current control register value
                 AND #%10001110              ; Filter out the enable and layer bits
                 ORA SCRATCH                 ; Combine with the provided layer and enable
                 STA [MTEMPPTR]              ; And set the bits in Vicky
-                STA GS_SP_CONTROL,X         ; And to the shadow registers
+                STA @l GS_SP_CONTROL,X      ; And to the shadow registers
 
-done            PLP
+done            SFREE SIZE(locals)  ; Clean the locals from the stack
+                PLP
                 RETURN
+
 error           THROW ERR_RANGE             ; Throw an out of range error
                 .pend
 
@@ -1465,7 +1612,7 @@ error           THROW ERR_RANGE             ; Throw an out of range error
 ; Calculate the address of a tile set's registers given its number
 ;
 ; Inputs:
-;   ARGUMENT1 = the number of the tile set
+;   A = the number of the tile set (16-bit)
 ;
 ; Outputs:
 ;   MTEMPPTR = the address of the first byte in the tile set's register space
@@ -1474,7 +1621,6 @@ TILESET_ADDR    .proc
                 PHP
 
                 setal
-                LDA ARGUMENT1               ; Get the tile set number
                 CMP #4                      ; Make sure it's 0 - 4
                 BGE out_of_range            ; If not, throw a range error
 
@@ -1499,7 +1645,7 @@ out_of_range    THROW ERR_RANGE             ; Throw an out of range error
 ; Calculate the address of a tile map's registers given its number
 ;
 ; Inputs:
-;   ARGUMENT1 = the number of the tile set
+;   A = the number of the tile set
 ;
 ; Outputs:
 ;   MTEMPPTR = the address of the first byte in the tile map's register space
@@ -1508,7 +1654,6 @@ TILEMAP_ADDR    .proc
                 PHP
 
                 setal
-                LDA ARGUMENT1               ; Get the tile map number
                 CMP #4                      ; Make sure it's 0 - 4
                 BGE out_of_range            ; If not, throw a range error
 
@@ -1540,98 +1685,73 @@ S_TILESET       .proc
                 PHP
                 TRACE "S_TILESET"
 
+                ; Set up local storage
+locals          .virtual 1,S
+L_TILENUM       .word ?
+L_LUT           .word ? 
+L_IS_SQUARE     .word ?       
+                .endv
+                SALLOC SIZE(locals)
+
                 setal
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
-                CALL TILESET_ADDR           ; Compute the address of the tile set's block
-                setal
-                LDA MTEMPPTR+2              ; Save the address
-                PHA
-                LDA MTEMPPTR
-                PHA
+                LDA ARGUMENT1
+                STA L_TILENUM               ; Save it as the tile set/map number
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the LUT
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
-                setal
                 LDA ARGUMENT1
-                PHA                         ; And save it
+                STA L_LUT                   ; Save it as LUT
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the square flag
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
-                setal
                 LDA ARGUMENT1
-                PHA                         ; And save it               
+                STA L_IS_SQUARE             ; Save it as IS_SQUARE       
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the address
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
-                setal
-                LDA ARGUMENT1
-                STA MARG3                   ; Save it to MARG3
-                LDA ARGUMENT1+2
-                STA MARG3+2
 
-                PLA                         ; Get the square flag back
-                STA MARG2                   ; Save it to MARG2
+                LDA L_TILENUM
+                CALL TILESET_ADDR           ; Get the address of the tile set registers
 
-                PLA                         ; Get the LUT
-                STA MARG1                   ; Save it to MARG1
-
-                PLA                         ; Get the register address
-                STA MTEMPPTR                ; Save it to MTEMPPTR
-                PLA
-                STA MTEMPPTR+2
-
-                ; PLA                         ; Get the register address
-                ; STA MTEMPPTR                ; Save it to MTEMPPTR
-                ; STA $020010
-                ; PLA
-                ; STA MTEMPPTR+2
-                ; STA $020012
-
-                ; LDA #0
-                ; STA MTEMPPTR
-                ; LDA #2
-                ; STA MTEMPPTR+2
-
-                LDA MARG3                   ; Get the bitmap address - the address of the start of VRAM
+                LDA ARGUMENT1               ; Get the bitmap address - the address of the start of VRAM
                 STA [MTEMPPTR]              ; And save it to the registers
                 setas
                 SEC
-                LDA MARG3+2
+                LDA ARGUMENT1+2
                 SBC #`VRAM
                 LDY #TILESET_ADDY_H
                 STA [MTEMPPTR],Y
-                setal
 
-                LDA MARG2                   ; Check if is_square == 0?
-                BNE is_square
-                LDA MARG2+2
+                LDA L_IS_SQUARE             ; Check if is_square == 0?
                 BNE is_square
 
 not_square      setas
-                LDA MARG1                   ; Get the LUT
+                LDA L_LUT                   ; Get the LUT
                 AND #$07                    ; Force it to be in range
                 LDY #TILESET_ADDY_CFG
                 STA [MTEMPPTR],Y            ; Save it to the registers
                 BRA done
 
 is_square       setas
-                LDA MARG1                   ; Get the LUT
+                LDA L_LUT                   ; Get the LUT
                 AND #$07                    ; Force it to be in range
                 ORA #TILESET_SQUARE_256     ; Turn on the 256x256 flag
                 LDY #TILESET_ADDY_CFG
                 STA [MTEMPPTR],Y            ; Save it to the registers
 
-done            PLP
+done            SFREE SIZE(locals)  ; Clean the locals from the stack
+                PLP
                 RETURN
                 .pend
 
@@ -1646,88 +1766,66 @@ S_TILEMAP       .proc
                 PHP
                 TRACE "S_TILEMAP"
 
+                ; Set up local storage
+locals          .virtual 1,S
+L_TILENUM       .word ?
+L_WIDTH         .word ? 
+L_HEIGHT        .word ?       
+                .endv
+                SALLOC SIZE(locals)
+
                 setal
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
-                CALL TILEMAP_ADDR           ; Compute the address of the tile set's block
-                setal
-                LDA MTEMPPTR+2              ; Save the address
-                PHA
-                LDA MTEMPPTR
-                PHA
+                LDA ARGUMENT1
+                STA L_TILENUM               ; Save as TILENUM
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the width
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
-                setal
                 LDA ARGUMENT1
-                PHA                         ; And save it
+                STA L_WIDTH                 ; Save it as WIDTH
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the height
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
-                setal
                 LDA ARGUMENT1
-                PHA                         ; And save it               
+                STA L_HEIGHT                ; Save it as HEIGHT            
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the address
                 CALL ASS_ARG1_INT           ; Make sure it's an integers
-                setal
-                LDA ARGUMENT1
-                STA MARG3                   ; Save it to MARG3
-                LDA ARGUMENT1+2
-                STA MARG3+2
 
-                PLA                         ; Get the height back
-                STA MARG2                   ; Save it to MARG2
+                LDA L_TILENUM
+                CALL TILEMAP_ADDR           ; Get the address of the tile map registers
 
-                PLA                         ; Get the width
-                STA MARG1                   ; Save it to MARG1
-
-                PLA                         ; Get the register address
-                STA MTEMPPTR                ; Save it to MTEMPPTR
-                PLA
-                STA MTEMPPTR+2
-
-                ; PLA                         ; Get the register address
-                ; STA MTEMPPTR                ; Save it to MTEMPPTR
-                ; STA $020010
-                ; PLA
-                ; STA MTEMPPTR+2
-                ; STA $020012
-
-                ; LDA #0
-                ; STA MTEMPPTR
-                ; LDA #2
-                ; STA MTEMPPTR+2
-
-                LDA MARG3                   ; Get the map address - the address of the start of VRAM
+                LDA ARGUMENT1               ; Get the map address - the address of the start of VRAM
                 LDY #TILEMAP_START_ADDY
                 STA [MTEMPPTR],Y            ; And save it to the registers
                 setas
                 SEC
-                LDA MARG3+2
+                LDA ARGUMENT1+2
                 SBC #`VRAM
                 INY
                 INY
                 STA [MTEMPPTR],Y
                 setal
 
-                LDA MARG1                   ; Set the width
+                LDA L_WIDTH                 ; Set the width
                 LDY #TILEMAP_TOTAL_X
                 STA [MTEMPPTR],Y
 
-                LDA MARG2                   ; Set the height
+                LDA L_HEIGHT                ; Set the height
                 LDY #TILEMAP_TOTAL_Y
                 STA [MTEMPPTR],Y
 
+done            SFREE SIZE(locals)  ; Clean the locals from the stack
                 PLP
                 RETURN
                 .pend
@@ -1741,39 +1839,26 @@ S_TILESHOW      .proc
                 PHP
                 TRACE "S_TILESHOW"
 
+                ; Set up local storage
+locals          .virtual 1,S
+L_TILENUM       .word ?     
+                .endv
+                SALLOC SIZE(locals)
+
                 setal
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
-                CALL TILEMAP_ADDR           ; Compute the address of the tile set's block
-                setal
-                LDA MTEMPPTR+2              ; Save the address
-                PHA
-                LDA MTEMPPTR
-                PHA
+                LDA ARGUMENT1
+                STA L_TILENUM               ; Save as TILENUM
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the visible flag
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
-                setal
 
-                PLA                         ; Get the register address
-                STA MTEMPPTR                ; Save it to MTEMPPTR
-                PLA
-                STA MTEMPPTR+2
-
-                ; PLA                         ; Get the register address
-                ; STA MTEMPPTR                ; Save it to MTEMPPTR
-                ; STA $020010
-                ; PLA
-                ; STA MTEMPPTR+2
-                ; STA $020012
-
-                ; LDA #0
-                ; STA MTEMPPTR
-                ; LDA #2
-                ; STA MTEMPPTR+2
+                LDA L_TILENUM
+                CALL TILEMAP_ADDR           ; Compute the address of the tile set's block
 
                 LDA ARGUMENT1               ; CHeck the visible parameter
                 BNE is_visible              ; If it's <> 0, make it visible
@@ -1789,6 +1874,7 @@ set_control     setas
                 LDY #TILEMAP_CONTROL        ; Set the control register
                 STA [MTEMPPTR],Y
 
+done            SFREE SIZE(locals)  ; Clean the locals from the stack
                 PLP
                 RETURN
                 .pend
@@ -1804,14 +1890,18 @@ S_TILEAT        .proc
                 PHP
                 TRACE "S_TILEMAP"
 
+                ; Set up local storage
+locals          .virtual 1,S
+L_TILENUM       .word ?     
+L_X             .word ?
+                .endv
+                SALLOC SIZE(locals)
+
                 setal
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
-                CALL TILEMAP_ADDR           ; Compute the address of the tile set's block
-                LDA MTEMPPTR+2              ; Save the address
-                PHA
-                LDA MTEMPPTR
-                PHA
+                LDA ARGUMENT1
+                STA L_TILENUM               ; Save as TILENUM
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
@@ -1819,44 +1909,26 @@ S_TILEAT        .proc
                 CALL EVALEXPR               ; Get the X position
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
                 LDA ARGUMENT1
-                PHA                         ; And save it
+                STA L_X                     ; Save as X
 
                 LDA #','
                 CALL EXPECT_TOK             ; Try to find the comma
 
                 CALL EVALEXPR               ; Get the Y position
                 CALL ASS_ARG1_INT           ; Make sure it's an integer
-                LDA ARGUMENT1
-                STA MARG2                   ; Save it to MARG2
 
-                PLA                         ; Get the X position
-                STA MARG1                   ; Save it to MARG1
+                LDA L_TILENUM
+                CALL TILEMAP_ADDR           ; Get the address of the tile map registers
 
-                PLA                         ; Get the register address
-                STA MTEMPPTR                ; Save it to MTEMPPTR
-                PLA
-                STA MTEMPPTR+2
-
-                ; PLA                         ; Get the register address
-                ; STA MTEMPPTR                ; Save it to MTEMPPTR
-                ; STA $020010
-                ; PLA
-                ; STA MTEMPPTR+2
-                ; STA $020012
-
-                ; LDA #0
-                ; STA MTEMPPTR
-                ; LDA #2
-                ; STA MTEMPPTR+2
-
-                LDA MARG1                   ; Set the X position
-                LDY #TILEMAP_WINDOW_X
-                STA [MTEMPPTR],Y
-
-                LDA MARG2                   ; Set the Y position
+                LDA ARGUMENT1               ; Set the Y position
                 LDY #TILEMAP_WINDOW_Y
                 STA [MTEMPPTR],Y
 
+                LDA L_X                     ; Set the X position
+                LDY #TILEMAP_WINDOW_X
+                STA [MTEMPPTR],Y
+
+done            SFREE SIZE(locals)  ; Clean the locals from the stack
                 PLP
                 RETURN
                 .pend

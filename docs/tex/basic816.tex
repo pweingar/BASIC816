@@ -8,7 +8,7 @@
     \newcommand{\param}[1]{{\tt <{#1}>}}
     \title{The \BASIC\  Language Manual}
     \author{PJW}
-    \date{9 August 2020}
+    \date{2 November 2020}
     \maketitle
 
     \section*{About \BASIC}
@@ -24,7 +24,7 @@
         \item It should be expandable, allowing advanced users to customize it or extend it.
         \item It should be a clean-room implementation, unencumbered by copy-right. 
         \item It need not be the fastest programming language available.
-        \item It need not provide all the advancements in programming languages developed since the 1980s.
+        \item It need provide all the advancements in programming languages developed since the 1980s.
     \end{itemize}
 
     As such, \BASIC\ is a fairly traditional, tokenized, line-number based implementation of BASIC, similar to those
@@ -60,6 +60,12 @@
         \item[Integer]  The integers in \BASIC\ are 32-bit signed integers and may have values from $-2,147,483,648$ to $2,147,483,647$.
                         Examples of integers are $0$, $1$, $42$, $-1$, $-128$.
 
+        \item[Float]    The floating point numbers in \BASIC\ are 32-bit floating points using the IEEE-754 format,
+                        which uses an 8-bit exponent, a 23-bit mantissa, and a single sign bit. Given a mantissa of $m$ and an exponent of
+                        $x$, the value of the floating point number is $m \times 2^x$. Floating point numbers in \BASIC\ are represented in one
+                        of two ways, either as a decimal number or using scientific notation:
+                        \verb+1.0+, \verb+-23.45+, \verb+1.0e-03+, \verb+3.0e08+.
+
         \item[String]   Text data are stored in strings. A string may be entered into a \BASIC\ program by enclosing it in double quote marks.
                         Strings are represented internally as null-terminated ASCII strings, that is, there is no length data on the string,
                         the end of which is marked by a 0 byte.
@@ -71,17 +77,27 @@
                         where each element has a unique combination of numbers serving as an index.
     \end{itemize}
 
-    Note: when \BASIC\ leaves the alpha stage of development, it will include a fourth type: 32-bit floating point numbers as well
-    as arrays of 32-bit floating point numbers.
+    Unlike many implementations of BASIC, \BASIC\ treats floating point numbers differently from integer numbers.
+    Operations on integer values or integer variables are performed using integer code and result in an integer value.
+    Operations on floating point values or variables are performed using floating point code and result in a floating point value.
+    On the C256, integer code generally uses the integer math coprocessor, while floating point code uses the floating point math
+    coprocessor.
+    Integers and floating point numbers can be converted between each other. If an operation is expecting a floating point value,
+    the interpreter will attempt to convert an integer to floating point. If it is expecting an integer, it will attempt to
+    convert a floating point value to an integer.
+    One caveat to converting between integers and floating point numbers is that \BASIC\ integers have 32-bits of precision, but
+    the floating point numbers have only 23 bits of precision for the mantissa.
 
     \subsection*{Literal Values}
 
-    Integers and strings may both be entered directly into programs as literal values.
+    Integers, floats, and strings may be entered directly into programs as literal values.
     Strings are designated with double quote marks, but there is no character escape
     syntax as in other languages. If you need to enter a character you cannot type,
     you will have to use the \verb+CHR$+ function. Integers may be entered as a sequence
     of digits with an optional minus sign at the start. The default base for integers
     is decimal, but hexadecimal numbers may be entered with the \verb+&H+ prefix.
+    Floating point numbers may only be entered using decimal digits and must include a
+    decimal point.
 
     \begin{itemize}
         \item \verb+"Hello, world!"+
@@ -99,7 +115,9 @@
     Variable names may be up to eight characters long. The first character must be an alphabetic character from A through Z.
     Subsequent characters of the name may be A--Z, 0--9, or the underscore character (\_). The type of the variable is indicated
     by a character at the end of the variable name. Integer variables are indicated by the percent sign (\%), and string
-    variables are indicated by the dollar sign (\$). These type designations must be used in all references to the variable and may
+    variables are indicated by the dollar sign (\$).
+    Floating point variables have no type character.
+    These type designations must be used in all references to the variable and may
     be considered as part of the name. This means that a program can have six different variables with the same ``name'' but different
     types (e.g. \verb+A+, \verb+A%+, \verb+A$+, \verb+A()+, \verb+A%()+, and \verb+A$()+).
 
@@ -130,6 +148,9 @@
         \end{center}
     \end{table}
 
+    NOTE: the division operator performs a floating point division always results in a floating point value,
+    even if the numerator and denominator are divisible.
+
     \section*{Commands}
 
     Commands in \BASIC\ are keywords which triggers some action but which may only be used at the interactive prompt.
@@ -144,6 +165,10 @@
     \subsection*{\keyword{DIR}}
 
     Print a listing of the files on the current file device.
+
+    \subsection*{\keyword{DEL} \param{filename}}
+
+    Delete a file from a file device.
 
     \subsection*{\keyword{NEW}}
 
@@ -441,6 +466,13 @@
     must be a number. If it is 0, the bitmap will be hidden. If it is any other
     value, it will be shown.
 
+    The number of the color lookup table to use must be provided as \param{lut},
+    which must be the number of one of the graphics color lookup tables.
+
+    Optionally, an address may be provided for the first byte of the bitmap.
+    This address must be in the video memory starting at 0xB00000.
+    If no address is provided, the it will default to 0xB00000.
+
     \subsection*{\keyword{CLRBITMAP} \param{plane}}
 
     Sets all pixels in the bitmap to 0 (transparent).
@@ -517,18 +549,14 @@
     The \keyword{BITMAP} statement must have been used before using
     this statement.
 
+    \param{plane} is the number of the bitmap plane (0 or 1).
+
+    The number of the color lookup table to use must also be provided as \param{color},
+    which must be the number of one of the graphics color lookup tables.
+
     \subsection*{\keyword{MONITOR}}
 
     Enter the machine language monitor.
-
-    \param{plane} is the number of the bitmap plane (0 or 1).
-
-    The number of the color lookup table to use must also be provided as \param{lut},
-    which must be the number of one of the graphics color lookup tables.
-
-    Optionally, an address may be provided for the first byte of the bitmap.
-    This address must be in the video memory area starting at B00000.
-    If no address is provided, it will default to B00000.
 
     \subsection*{\keyword{MEMCOPY} \param{source} \keyword{TO} \param{destination}}
 
@@ -738,7 +766,8 @@ MEMCOPY LINEAR &h010000, 1024 TO RECT &h020000, 32, 32, 640
 
     \subsection*{\keyword{TILESET} \param{number}, \param{lut}, \param{is\_square}, \param{address}}
 
-    Sets the bitmap to use for a tile map.
+    Sets the bitmap to use for a tile map. The pixel data for each tile comes from the tileset.
+
     \param{number} is the number of the tile set or tile map (0--3).
     \param{lut} is the number of the color look up table the tile set uses (0--7).
     \param{is\_square} is a boolean indicating if the tiles are laid out on a 256 by 256 pixel
@@ -748,7 +777,9 @@ MEMCOPY LINEAR &h010000, 1024 TO RECT &h020000, 32, 32, 640
 
     \subsection*{\keyword{TILEMAP} \param{number}, \param{columns}, \param{rows}, \param{address}}
 
-    Sets the tile map to use.
+    Sets the tile map to use. The tile map indicates which tile is displayed at each position on the screen.
+    The actual bitmap to be displayed for each tile comes from the tile set.
+
     \param{number} is the number of the tile set or tile map (0--3).
     \param{columns} is the number tiles across in the tile map.
     \param{rows} is the number of tiles vertically in the tile map.

@@ -47,12 +47,23 @@ FN_NEGATIVE     .proc
                 PHP
                 TRACE "FN_NEGATIVE"
                 
-                setal
+                setas
                 CALL EVALEXPR               ; Get the argument
-                ; CALL POPARGUMENT
-                CALL ASS_ARG1_INT           ; Make sure it is an integer
+                LDA ARGTYPE1                ; Check the type of the argument
+                CMP #TYPE_INTEGER
+                BEQ int_negate              ; If integer: negate the integer
+                CMP #TYPE_FLOAT
+                BEQ float_negate            ; If floating point: negate the floating point
 
-                setal
+type_error      THROW ERR_TYPE              ; Otherwise, throw an error
+
+float_negate    setas
+                LDA ARGUMENT1+3             ; Flip the sign bit of the floating point number
+                EOR #$80
+                STA ARGUMENT1+3
+                BRA done
+
+int_negate      setal
                 LDA ARGUMENT1               ; Invert ARGUMENT1
                 EOR #$FFFF
                 STA ARGUMENT1
@@ -814,13 +825,19 @@ err_limit       THROW ERR_RANGE     ; Throw an argument range error
 FN_ABS          .proc
                 FN_START "FN_ABS"
 
-                ; TODO: add support for floats
-
                 CALL EVALEXPR       ; Evaluate the first expression
-                ; CALL POPARGUMENT
-                CALL ASS_ARG1_INT   ; Make sure it's an integer
+                setas
+                LDA ARGTYPE1        ; Check the type
+                CMP #TYPE_INTEGER
+                BEQ abs_int         ; If integer, get the absolute value of the integer
+                CMP #TYPE_FLOAT
+                BEQ abs_float       ; If float, get the absolute value of the float
 
-                setal
+type_err        THROW ERR_TYPE      ; Otherwise, throw a type error
+
+                ; Absolute value of an integer
+
+abs_int         setal
                 LDA ARGUMENT1+2     ; Is it positive already?
                 BPL done            ; Yes: we don't need to do anythign further
 
@@ -834,8 +851,14 @@ FN_ABS          .proc
                 LDA ARGUMENT1+2
                 ADC #0
                 STA ARGUMENT1+2
+                BRA done
 
-                TRACE "/FN_ABS"
+                ; Absolute value of a floating point number
+
+abs_float       setas
+                LDA ARGUMENT1+3     ; Just clear the sign bit
+                AND #$7F
+                STA ARGUMENT1+3
 
 done            FN_END
                 RETURN
@@ -875,6 +898,21 @@ is_positive     LDA #0              ; It's positive: return 1
 is_negative     LDA #$FFFF          ; It's negative: return -1
                 STA ARGUMENT1+2
                 STA ARGUMENT1
+
+done            FN_END
+                RETURN
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
+;
+; LOG(value) -- Compute the natural logrithm of value
+;
+FN_LOG          .proc
+                FN_START "FN_LOG"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+                CALL ASS_ARG1_FLOAT ; Make sure the input is a float
+                CALL FP_LOG         ; Compute the natural log
 
 done            FN_END
                 RETURN

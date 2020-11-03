@@ -316,6 +316,8 @@ PARSENUM        .proc
                 PHY
                 PHP
 
+                TRACE "PARSENUM"
+
                 setaxl
                 STZ ARGUMENT1       ; This will be the accumulator for building the number
                 STZ ARGUMENT1+2
@@ -353,9 +355,9 @@ s1_drop         INY                 ; Drop the character...
                 LDA [BIP],Y         ; Get the next
                 CMP #'&'
                 BEQ s2_drop         ; '&' --> S2, drop the '&'
-                CALL ISNUMERAL      
-                BCS s7_shift        ; '0'-'9' --> S7, shift
-                BRA syntax_err
+                CALL ISNUMERAL
+                BCC syntax_err     
+                BRL s7_shift        ; '0'-'9' --> S7, shift
 
 s2_drop         INY                 ; Drop the character
                 LDA [BIP],Y         ; Get the next character
@@ -738,6 +740,120 @@ ret_result      PLX                         ; Restore ARGUMENT1
                 RETURN
                 .pend
 
+; Compare two floating point numbers and return true if ARGUMENT1 < ARGUMENT2
+OP_FP_LT        .proc
+                PHP
+                TRACE "OP_FP_LT"
+
+                setaxl
+                CALL FP_COMPARE
+                CMP #$FFFF
+                BNE ret_false
+
+                CALL SET_TRUE
+                BRA done
+
+ret_false       CALL SET_FALSE
+
+done            PLP
+                RETURN
+                .pend
+
+; Compare two floating point numbers and return true if ARGUMENT1 > ARGUMENT2
+OP_FP_GT        .proc
+                PHP
+                TRACE "OP_FP_GT"
+
+                setaxl
+                CALL FP_COMPARE
+                CMP #1
+                BNE ret_false
+
+                CALL SET_TRUE
+                BRA done
+
+ret_false       CALL SET_FALSE
+
+done            PLP
+                RETURN
+                .pend
+
+; Compare two floating point numbers and return true if ARGUMENT1 = ARGUMENT2
+OP_FP_EQ        .proc
+                PHP
+                TRACE "OP_FP_EQ"
+
+                setaxl
+                CALL FP_COMPARE
+                CMP #0
+                BNE ret_false
+
+                CALL SET_TRUE
+                BRA done
+
+ret_false       CALL SET_FALSE
+
+done            PLP
+                RETURN
+                .pend
+
+; Compare two floating point numbers and return true if ARGUMENT1 <= ARGUMENT2
+OP_FP_LTE       .proc
+                PHP
+                TRACE "OP_FP_LTE"
+
+                setaxl
+                CALL FP_COMPARE
+                CMP #1
+                BEQ ret_false
+
+                CALL SET_TRUE
+                BRA done
+
+ret_false       CALL SET_FALSE
+
+done            PLP
+                RETURN
+                .pend
+
+; Compare two floating point numbers and return true if ARGUMENT1 >= ARGUMENT2
+OP_FP_GTE       .proc
+                PHP
+                TRACE "OP_FP_GTE"
+
+                setaxl
+                CALL FP_COMPARE
+                CMP #$FFFF
+                BEQ ret_false
+
+                CALL SET_TRUE
+                BRA done
+
+ret_false       CALL SET_FALSE
+
+done            PLP
+                RETURN
+                .pend
+
+; Compare two floating point numbers and return true if ARGUMENT1 != ARGUMENT2
+OP_FP_NE        .proc
+                PHP
+                TRACE "OP_FP_NE"
+
+                setaxl
+                CALL FP_COMPARE
+                CMP #0
+                BEQ ret_false
+
+                CALL SET_TRUE
+                BRA done
+
+ret_false       CALL SET_FALSE
+
+done            PLP
+                RETURN
+                .pend
+
 ;
 ; Add the character in A to the next position in a temporary string
 ;
@@ -1052,4 +1168,185 @@ done            setas
                 RETURN
 
 ten_d_1         .dword $47c35000            ; 10^(FP_D-1), where FP_D=5
+                .pend
+
+;
+; Evaluate a polynomial of the form: a_n*x^n + ... + a_2*x^2 + a_1*x + a_0
+;
+; This routine uses Horner's method to calculate the result of the polynomial
+; https://en.wikipedia.org/wiki/Horner%27s_method
+;
+; Inputs:
+;   ARGUMENT1 = the floating point "x" value for the polynomial
+;   MTEMPPTR = a pointer to the list of coeffients a_n ... a_0, four bytes each
+;   MCOUNT = the number of coefficients
+;
+; Outputs:
+;   ARGUMENT1 = the result of the polynomial
+;
+FP_POLY2        .proc
+                PHP
+
+                TRACE "FP_POLY2"
+
+locals          .virtual 1,S
+L_B             .dword ?                    ; Temporary result variable
+L_X             .dword ?                    ; Temporary copy of X
+                .endv
+                
+                setaxl
+                TSC                         ; Make room for the locals
+                SEC
+                SBC #SIZE(locals)
+                TCS
+
+                LDA ARGUMENT1+2             ; Save X to the stack
+                STA L_X+2
+                LDA ARGUMENT1
+                STA L_X
+
+                LDY #0                      ; Initialize b to the first coefficient
+                LDA [MTEMPPTR],Y
+                STA L_B
+                INY
+                INY
+                LDA [MTEMPPTR],Y
+                STA L_B+2
+                INY
+                INY
+
+                DEC MCOUNT                  ; --i
+
+loop            setas
+                LDA #'.'
+                CALL PRINTC
+                
+                setal
+                LDA L_X                     ; ARGUMENT1 <-- X
+                STA ARGUMENT1
+                LDA L_X+2
+                STA ARGUMENT1+2
+
+                LDA L_B                     ; ARGUMENT2 <-- B
+                STA ARGUMENT2
+                LDA L_B+2
+                STA ARGUMENT2+2
+
+                CALL OP_FP_MUL              ; ARGUMENT1 <-- X*B
+
+                LDA [MTEMPPTR],Y            ; ARGUMENT2 <-- a_i
+                STA ARGUMENT2
+                INY
+                INY
+                LDA [MTEMPPTR],Y
+                STA ARGUMENT2+2
+                INY
+                INY
+
+                CALL OP_FP_ADD              ; ARGUMENT1 <-- a_i + x*b
+
+                LDA ARGUMENT1               ; b <-- a_i + x*b
+                STA L_B
+                LDA ARGUMENT1+2
+                STA L_B+2
+
+                setas              
+                DEC MCOUNT                  ; Until --i = 0
+                BNE loop
+
+                setal
+                LDA L_B                     ; Return b
+                STA ARGUMENT1
+                LDA L_B+2
+                STA ARGUMENT1+2
+
+                TSC                         ; Clean the locals off the stack
+                CLC
+                ADC #SIZE(locals)
+                TCS
+
+                PLP
+                RETURN
+                .pend
+
+;
+; Evaluate a polynomial of the form: a_n*x^n + ... + a_2*x^2 + a_1*x + a_0,
+;   where a_i is 0, if i is even.
+;
+; This routine uses Horner's method to calculate the result of the polynomial
+; https://en.wikipedia.org/wiki/Horner%27s_method
+;
+; Inputs:
+;   ARGUMENT1 = the floating point "x" value for the polynomial
+;   MTEMPPTR = a pointer to the list of coeffients a_n ... a_0, four bytes each
+;   MCOUNT = the number of coefficients
+;
+; Outputs:
+;   ARGUMENT1 = the result of the polynomial
+;
+FP_POLY1        .proc
+                PHP
+
+                TRACE "FP_POLY1"
+
+                setas
+                LDA #TYPE_FLOAT         ; ARGUMENT2 will be a float
+                STA ARGTYPE2
+
+                setaxl
+                LDA ARGUMENT1+2         ; Save a copy of X to the stack and ARGUMENT2
+                STA ARGUMENT2+2
+                PHA
+                LDA ARGUMENT1
+                STA ARGUMENT2
+                PHA
+
+                CALL OP_FP_MUL          ; ARGUMENT1 <-- X^2
+
+                CALL FP_POLY2           ; ARGUMENT1 <-- POLY2(table, X^2)
+
+                PLA                     ; Get X back
+                STA ARGUMENT2
+                PLA
+                STA ARGUMENT2+2
+
+                CALL OP_FP_MUL          ; ARGUMENT1 <-- POLY2(table, X^2) * X
+
+                PLP
+                RETURN
+                .pend
+
+;
+; Calculate the natural log of X
+;
+; Inputs:
+;   ARGUMENT1 = X
+;
+; Outputs:
+;   ARGUMENT1 = ln(X)
+;
+FP_LOG          .proc
+                PHP
+
+                TRACE "FP_LOG"
+
+                setas
+                LDA #4              ; Set the number of coefficients
+                STA MCOUNT
+
+                setaxl
+                LDA #<>log_coeff    ; Point to our coeffients
+                STA MTEMPPTR
+                LDA #`log_coeff
+                STA MTEMPPTR+2
+
+                CALL FP_POLY1       ; Evaluate the polynomial
+
+                PLP
+                RETURN
+
+log_coeff       .dword $3ede56cb    ; a_7 = 0.43425594189
+                .dword $3f139b0b    ; a_5 = 0.57658454124
+                .dword $3f763893    ; a_3 = 0.96180075919
+                .dword $4038aa3b    ; a_1 = 2.8853900731
                 .pend

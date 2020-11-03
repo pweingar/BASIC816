@@ -40,6 +40,8 @@ OP_INT_ADD  .proc
 ;
 OP_INT_SUB  .proc
             PHP
+            TRACE "OP_INT_SUB"
+
             setal
 
             SEC
@@ -141,12 +143,13 @@ OP_INT_LT   .proc
 
             STZ ARGUMENT1
             STZ ARGUMENT1+2
-            RTS
+            BRA done
 
 return_true LDA #$FFFF
             STA ARGUMENT1
             STA ARGUMENT1+2
-            PLP
+
+done        PLP
             RETURN
             .pend
 
@@ -171,12 +174,133 @@ OP_INT_GT   .proc
 
             STZ ARGUMENT1
             STZ ARGUMENT1+2
-            RTS
+            BRA done
 
 return_true LDA #$FFFF
             STA ARGUMENT1
             STA ARGUMENT1+2
 
-            PLP
+done        PLP
+            RETURN
+            .pend
+
+;
+; equal-to: is ARGUMENT1 = ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1 = -1 if ARGUMENT1 was = ARGUMENT2, 0 otherwise
+OP_INT_EQ   .proc
+            PHP
+            TRACE "OP_INT_EQ"
+
+            setal
+            LDA ARGUMENT2+2
+            CMP ARGUMENT1+2
+            BNE ret_false
+            LDA ARGUMENT2
+            CMP ARGUMENT1
+            BNE ret_false
+
+            LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
+            BRA done
+
+ret_false   STZ ARGUMENT1
+            STZ ARGUMENT1+2
+
+done        PLP
+            RETURN
+            .pend
+
+;
+; not-equal-to: is ARGUMENT1 <> ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1 = -1 if ARGUMENT1 was <> ARGUMENT2, 0 otherwise
+OP_INT_NE   .proc
+            PHP
+            TRACE "OP_INT_NE"
+
+            setal
+            LDA ARGUMENT2+2
+            CMP ARGUMENT1+2
+            BNE ret_false
+            LDA ARGUMENT2
+            CMP ARGUMENT1
+            BNE ret_false
+
+            LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
+            BRA done
+
+ret_false   STZ ARGUMENT1
+            STZ ARGUMENT1+2
+            
+done        PLP
+            RETURN
+            .pend
+
+;
+; greater-than-equal: is ARGUMENT1 >= ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1 = -1 if ARGUMENT1 was >= ARGUMENT2, 0 otherwise
+OP_INT_GTE  .proc
+            PHP
+            TRACE "OP_INT_GTE"
+
+            setal
+            LDA ARGUMENT1+2
+            CMP ARGUMENT2+2
+            BLT ret_false
+            BNE ret_true
+            
+            LDA ARGUMENT1
+            CMP ARGUMENT2
+            BLT ret_false
+
+ret_true    LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
+            BRA done
+
+ret_false   STZ ARGUMENT1
+            STZ ARGUMENT1+2
+            
+done        PLP
+            RETURN
+            .pend
+
+;
+; less-than-equal: is ARGUMENT1 <= ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1 = -1 if ARGUMENT1 was <= ARGUMENT2, 0 otherwise
+OP_INT_LTE  .proc
+            PHP
+            TRACE "OP_INT_LTE"
+
+            setal
+            LDA ARGUMENT1+2
+            CMP ARGUMENT2+2
+            BLT ret_true
+            BEQ check_low
+
+ret_false   STZ ARGUMENT1
+            STZ ARGUMENT1+2
+            BRA done
+
+check_low   LDA ARGUMENT1
+            CMP ARGUMENT2
+            BEQ ret_true
+            BGE ret_false
+
+ret_true    LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
+            
+done        PLP
             RETURN
             .pend

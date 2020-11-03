@@ -405,6 +405,44 @@ return_false    PLP
                 .pend
 
 ;
+; Set ARGUMENT1 to TRUE
+;
+SET_TRUE        .proc
+                PHP
+
+                setaxl
+                LDA #$FFFF
+                STA ARGUMENT1
+                STA ARGUMENT1+2
+
+                setas
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+
+                PLP
+                RETURN
+                .pend
+
+;
+; Set ARGUMENT1 to FALSE
+;
+SET_FALSE       .proc
+                PHP
+
+                setaxl
+                LDA #0
+                STA ARGUMENT1
+                STA ARGUMENT1+2
+
+                setas
+                LDA #TYPE_INTEGER
+                STA ARGTYPE1
+
+                PLP
+                RETURN
+                .pend
+
+;
 ; Assert that ARGUMENT1 contains an integer. Throw a type mismatch error.
 ;
 ; TODO: if ARGUMENT1 is a float, convert it to an integer
@@ -613,6 +651,8 @@ done            PLP
                 .pend
 
 CAST_ARG2_FLOAT .proc
+                TRACE "CAST_ARG2_FLOAT"
+
                 PUSH_D ARGUMENT1            ; Save ARGUMENT1
 
                 MOVE_D ARGUMENT1,ARGUMENT2  ; ARGUMENT1 := ARGUMENT2
@@ -633,10 +673,15 @@ CAST_ARG2_FLOAT .proc
 ; If either is a FLOAT, cast the other to FLOAT from INTEGER.
 ;
 ; Inputs:
-;   ARGUMENT1 = the first argument, must be a number
+;   ARGUMENT1, ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1, ARGUMENT2 are the same type
+;   A = the type of the arguments
 ;
 ASS_ARGS_NUM    .proc
                 PHP
+                TRACE "ASS_ARGS_NUM"
 
                 setas
                 LDA ARGTYPE1                ; Check ARGUMENT1
@@ -666,6 +711,42 @@ arg1_float      LDA ARGTYPE2                ; Check argument 2
 
                 CALL CAST_ARG2_FLOAT        ; Convert integer to float
 
+done            setas
+                LDA ARGTYPE1                ; Return the type code in A
+                PLP
+                RETURN
+                .pend
+
+;
+; Assert that ARGUMENT1 and ARGUMENT2 are the same type.
+; If both are numbers, and one is a float, cast both to floats.
+;
+; Inputs:
+;   ARGUMENT1, ARGUMENT2
+;
+; Outputs:
+;   ARGUMENT1, ARGUMENT2 are the same type
+;   A = the type of the arguments
+;
+ASS_ARGS_NUMSTR .proc
+                PHP
+                TRACE "ASS_ARGS_NUMSTR"
+
+                setas
+                LDA ARGTYPE1                ; Check to see if ARGUMENT1 is a string
+                CMP #TYPE_STRING
+                BNE numbers
+
+                LDA ARGTYPE2                ; If ARGUMENT1 is a string, make sure ARGUMENT2 is
+                CMP #TYPE_STRING
+                BEQ done
+
+TYPE_ERR        THROW ERR_TYPE              ; If not: there is a type mismatch
+
+numbers         CALL ASS_ARGS_NUM           ; If ARGUMENT1 isn't a string, assert that both are numbers
+                                            ; and make sure they're the same type
+
+                LDA ARGTYPE1                ; Make sure A is the type
 done            PLP
                 RETURN
                 .pend

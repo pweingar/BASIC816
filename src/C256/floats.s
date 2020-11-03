@@ -253,8 +253,10 @@ fp_mul_error    CALL FP_MATH_ERROR           ; Jump to the handler for math erro
 ; Handle any FP math statuses
 ;
 FP_MATH_ERROR   .proc
+                setas
                 BIT #FP_ADD_STAT_NAN        ; Is there a NaN condition?
                 BEQ check_over              ; No: check for overflow
+                BRK
                 THROW ERR_NAN               ; Yes: Throw NAN error
 
 check_over      BIT #FP_ADD_STAT_OVF        ; Is ther an overflow condition?

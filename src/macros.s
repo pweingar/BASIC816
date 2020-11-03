@@ -79,6 +79,40 @@ RETURN      .macro
             RTS
             .endm
 
+; Allocate space on the stack for local storage
+SALLOC      .macro size
+.if \size = 1
+            setas
+            PHA
+.elsif \size = 2
+            setal
+            PEA #0
+.elsif \size > 2
+            setal
+            TSC
+            SEC
+            SBC #\size
+            TCS
+.endif
+            .endm
+
+; Remove local storage from the stack
+SFREE       .macro size
+.if \size = 1
+            setas
+            PLA
+.elsif \size = 2
+            setal
+            PLA
+.elsif \size > 2
+            setal
+            TSC
+            CLC
+            ADC #\size
+            TCS
+.endif
+            .endm            
+
 ;;
 ;;      +-------------+
 ;; 01fd | param       |

@@ -35,29 +35,23 @@ OP_PLUS     .proc
             TRACE "OP_PLUS"
 
             setas
-            LDA ARGTYPE1            ; Are both inputs strings?
+            CALL ASS_ARGS_NUMSTR    ; Make sure the types are the same
+            CMP #TYPE_INTEGER       ; And dispatch on the type
+            BEQ is_integer
+            CMP #TYPE_FLOAT
+            BEQ is_float
             CMP #TYPE_STRING
-            BNE numbers
-            LDA ARGTYPE2
-            CMP #TYPE_STRING
-            BNE type_error
+            BEQ is_string
+
+type_error  THROW ERR_TYPE          ; If the types can't be cast...
 
 is_string   CALL STRCONCAT          ; Yes: evaluate string concatenation
             BRA done
 
-type_error  THROW ERR_TYPE          ; If the types can't be cast...
-
-numbers     CALL ASS_ARGS_NUM       ; Check that both inputs are numbers and castable
-
-            LDA ARGTYPE1            ; Get the type...
-            CMP #TYPE_INTEGER       ; Is it integer?
-            BNE chk_float
-            CALL OP_INT_ADD         ; Yes: evaluate integer addition
+is_integer  CALL OP_INT_ADD         ; Yes: evaluate integer addition
             BRA done
 
-chk_float   CMP #TYPE_FLOAT         ; Is it a float?
-            BNE type_error          ; No: it's a type error
-            CALL OP_FP_ADD          ; Yes: do a floating point add
+is_float    CALL OP_FP_ADD          ; Yes: do a floating point add
 
 done        PLP
             RETURN
@@ -67,23 +61,24 @@ done        PLP
 OP_MINUS    .proc
             PHP
 
-            CALL ASS_ARGS_NUM       ; Check that both inputs are numbers and castable
+            TRACE "OP_MINUS"
 
             setas
-            LDA ARGTYPE1            ; Get the type...
-            CMP #TYPE_INTEGER       ; Is it integer?
-            BNE chk_float
-            CALL OP_INT_SUB         ; Yes: evaluate integer subtraction
+            CALL ASS_ARGS_NUM       ; Make sure the types are the same
+            CMP #TYPE_INTEGER       ; And dispatch on the type
+            BEQ is_integer
+            CMP #TYPE_FLOAT
+            BEQ is_float
+
+type_error  THROW ERR_TYPE
+
+is_integer  CALL OP_INT_SUB         ; Yes: evaluate integer subtraction
             BRA done
 
-chk_float   CMP #TYPE_FLOAT         ; Is it a float?
-            BNE type_error          ; No: it's a type error
-            CALL OP_FP_SUB          ; Yes: do a floating point subtraction
+is_float    CALL OP_FP_SUB          ; Yes: do a floating point subtraction
 
 done        PLP
             RETURN
-
-type_error  THROW ERR_TYPE
             .pend
 
 ;
@@ -99,23 +94,24 @@ type_error  THROW ERR_TYPE
 OP_MULTIPLY .proc
             PHP
 
-            CALL ASS_ARGS_NUM       ; Check that both inputs are numbers and castable
+            TRACE "OP_MULTIPLY"
 
             setas
-            LDA ARGTYPE1            ; Get the type...
-            CMP #TYPE_INTEGER       ; Is it integer?
-            BNE chk_float
-            CALL OP_INT_MUL         ; Yes: evaluate integer multiplication
+            CALL ASS_ARGS_NUM       ; Make sure the types are the same
+            CMP #TYPE_INTEGER       ; And dispatch on the type
+            BEQ is_integer
+            CMP #TYPE_FLOAT
+            BEQ is_float
+
+type_error  THROW ERR_TYPE
+
+is_integer  CALL OP_INT_MUL         ; Yes: evaluate integer multiplication
             BRA done
 
-chk_float   CMP #TYPE_FLOAT         ; Is it a float?
-            BNE type_error          ; No: it's a type error
-            CALL OP_FP_MUL          ; Yes: do a floating point multiplication
+is_float    CALL OP_FP_MUL          ; Yes: do a floating point multiplication
 
 done        PLP
             RETURN
-
-type_error  THROW ERR_TYPE
             .pend
 
 ;
@@ -158,6 +154,7 @@ OP_MOD      .proc
 
 ; Bitwise AND
 OP_AND      .proc
+            PHP
             TRACE "OP_AND"
 
             CALL ASS_ARG1_INT       ; Make sure ARGUMENT1 is an integer
@@ -171,11 +168,13 @@ OP_AND      .proc
             AND ARGUMENT2+2
             STA ARGUMENT1+2
 
-            RTS
+            PLP
+            RETURN
             .pend
 
 ; Bitwise OR
 OP_OR       .proc
+            PHP
             TRACE "OP_OR"
 
             CALL ASS_ARG1_INT       ; Make sure ARGUMENT1 is an integer
@@ -189,11 +188,13 @@ OP_OR       .proc
             ORA ARGUMENT2+2
             STA ARGUMENT1+2
 
-            RTS
+done        PLP
+            RETURN
             .pend
 
 ; Bitwise NOT
 OP_NOT      .proc
+            PHP
             TRACE "OP_NOT"
 
             CALL ASS_ARG1_INT       ; Make sure ARGUMENT1 is an integer
@@ -206,7 +207,8 @@ OP_NOT      .proc
             EOR #$FFFF
             STA ARGUMENT1+2
 
-            RTS
+done        PLP
+            RETURN
             .pend
 
 ;
@@ -215,27 +217,32 @@ OP_NOT      .proc
 ; Outputs:
 ;   ARGUMENT1 = -1 if ARGUMENT1 was < ARGUMENT2, 0 otherwise
 OP_LT       .proc
+            PHP
             TRACE "OP_LT"
 
-            ; TODO: handle floating point and string comparisons
+            setas
+            CALL ASS_ARGS_NUMSTR    ; Make sure the types are the same
+            CMP #TYPE_INTEGER       ; And dispatch on the type
+            BEQ is_integer
+            CMP #TYPE_FLOAT
+            BEQ is_float
+            CMP #TYPE_STRING
+            BEQ is_string
 
-            setal
-            LDA ARGUMENT1+2
-            CMP ARGUMENT2+2
-            BLT return_true
-            LDA ARGUMENT1
-            CMP ARGUMENT2
-            BLT return_true
+type_error  THROW ERR_TYPE
 
-            STZ ARGUMENT1
-            STZ ARGUMENT1+2
-            RTS
+is_string   CALL OP_STR_LT          ; Yes: evaluate the string operator
+            BRA done
 
-return_true LDA #$FFFF
-            STA ARGUMENT1
-            STA ARGUMENT1+2
-            RTS
+is_integer  CALL OP_INT_LT          ; Yes: evaluate the integer operator
+            BRA done
+
+is_float    CALL OP_FP_LT           ; Yes: evaluate the floating point operator
+
+done        PLP
+            RETURN
             .pend
+
 
 ;
 ; greater-than: is ARGUMENT1 > ARGUMENT2
@@ -243,26 +250,30 @@ return_true LDA #$FFFF
 ; Outputs:
 ;   ARGUMENT1 = -1 if ARGUMENT1 was > ARGUMENT2, 0 otherwise
 OP_GT       .proc
+            PHP
             TRACE "OP_GT"
 
-            ; TODO: handle floating point and string comparisons
+            setas
+            CALL ASS_ARGS_NUMSTR    ; Make sure the types are the same
+            CMP #TYPE_INTEGER       ; And dispatch on the type
+            BEQ is_integer
+            CMP #TYPE_FLOAT
+            BEQ is_float
+            CMP #TYPE_STRING
+            BEQ is_string
 
-            setal
-            LDA ARGUMENT2+2
-            CMP ARGUMENT1+2
-            BLT return_true
-            LDA ARGUMENT2
-            CMP ARGUMENT1
-            BLT return_true
+type_error  THROW ERR_TYPE
 
-            STZ ARGUMENT1
-            STZ ARGUMENT1+2
-            RTS
+is_string   CALL OP_STR_GT          ; Yes: evaluate the string operator
+            BRA done
 
-return_true LDA #$FFFF
-            STA ARGUMENT1
-            STA ARGUMENT1+2
-            RTS
+is_integer  CALL OP_INT_GT          ; Yes: evaluate the integer operator
+            BRA done
+
+is_float    CALL OP_FP_GT           ; Yes: evaluate the floating point operator
+
+done        PLP
+            RETURN
             .pend
 
 ;
@@ -271,26 +282,30 @@ return_true LDA #$FFFF
 ; Outputs:
 ;   ARGUMENT1 = -1 if ARGUMENT1 was = ARGUMENT2, 0 otherwise
 OP_EQ       .proc
-            TRACE "OP_GT"
+            PHP
+            TRACE "OP_EQ"
 
-            ; TODO: handle floating point and string comparisons
+            setas
+            CALL ASS_ARGS_NUMSTR    ; Make sure the types are the same
+            CMP #TYPE_INTEGER       ; And dispatch on the type
+            BEQ is_integer
+            CMP #TYPE_FLOAT
+            BEQ is_float
+            CMP #TYPE_STRING
+            BEQ is_string
 
-            setal
-            LDA ARGUMENT2+2
-            CMP ARGUMENT1+2
-            BNE ret_false
-            LDA ARGUMENT2
-            CMP ARGUMENT1
-            BNE ret_false
+type_error  THROW ERR_TYPE
 
-            LDA #$FFFF
-            STA ARGUMENT1
-            STA ARGUMENT1+2
-            RTS
+is_string   CALL OP_STR_EQ          ; Yes: evaluate the string operator
+            BRA done
 
-ret_false   STZ ARGUMENT1
-            STZ ARGUMENT1+2
-            RTS
+is_integer  CALL OP_INT_EQ          ; Yes: evaluate the integer operator
+            BRA done
+
+is_float    CALL OP_FP_EQ           ; Yes: evaluate the floating point operator
+
+done        PLP
+            RETURN
             .pend
 
 ;
@@ -299,26 +314,30 @@ ret_false   STZ ARGUMENT1
 ; Outputs:
 ;   ARGUMENT1 = -1 if ARGUMENT1 was <> ARGUMENT2, 0 otherwise
 OP_NE       .proc
+            PHP
             TRACE "OP_NE"
 
-            ; TODO: handle floating point and string comparisons
+            setas
+            CALL ASS_ARGS_NUMSTR    ; Make sure the types are the same
+            CMP #TYPE_INTEGER       ; And dispatch on the type
+            BEQ is_integer
+            CMP #TYPE_FLOAT
+            BEQ is_float
+            CMP #TYPE_STRING
+            BEQ is_string
 
-            setal
-            LDA ARGUMENT2+2
-            CMP ARGUMENT1+2
-            BNE ret_false
-            LDA ARGUMENT2
-            CMP ARGUMENT1
-            BNE ret_false
+type_error  THROW ERR_TYPE
 
-            LDA #$FFFF
-            STA ARGUMENT1
-            STA ARGUMENT1+2
-            RTS
+is_string   CALL OP_STR_NE          ; Yes: evaluate the string operator
+            BRA done
 
-ret_false   STZ ARGUMENT1
-            STZ ARGUMENT1+2
-            RTS
+is_integer  CALL OP_INT_NE          ; Yes: evaluate the integer operator
+            BRA done
+
+is_float    CALL OP_FP_NE           ; Yes: evaluate the floating point operator
+
+done        PLP
+            RETURN
             .pend
 
 ;
@@ -327,28 +346,30 @@ ret_false   STZ ARGUMENT1
 ; Outputs:
 ;   ARGUMENT1 = -1 if ARGUMENT1 was >= ARGUMENT2, 0 otherwise
 OP_GTE      .proc
+            PHP
             TRACE "OP_GTE"
 
-            ; TODO: handle floating point and string comparisons
+            setas
+            CALL ASS_ARGS_NUMSTR    ; Make sure the types are the same
+            CMP #TYPE_INTEGER       ; And dispatch on the type
+            BEQ is_integer
+            CMP #TYPE_FLOAT
+            BEQ is_float
+            CMP #TYPE_STRING
+            BEQ is_string
 
-            setal
-            LDA ARGUMENT1+2
-            CMP ARGUMENT2+2
-            BLT ret_false
-            BNE ret_true
-            
-            LDA ARGUMENT1
-            CMP ARGUMENT2
-            BLT ret_false
+type_error  THROW ERR_TYPE
 
-ret_true    LDA #$FFFF
-            STA ARGUMENT1
-            STA ARGUMENT1+2
-            RTS
+is_string   CALL OP_STR_GTE         ; Yes: evaluate the string operator
+            BRA done
 
-ret_false   STZ ARGUMENT1
-            STZ ARGUMENT1+2
-            RTS
+is_integer  CALL OP_INT_GTE         ; Yes: evaluate the integer operator
+            BRA done
+
+is_float    CALL OP_FP_GTE          ; Yes: evaluate the floating point operator
+
+done        PLP
+            RETURN
             .pend
 
 ;
@@ -357,27 +378,28 @@ ret_false   STZ ARGUMENT1
 ; Outputs:
 ;   ARGUMENT1 = -1 if ARGUMENT1 was <= ARGUMENT2, 0 otherwise
 OP_LTE      .proc
+            PHP
             TRACE "OP_LTE"
 
-            ; TODO: handle floating point and string comparisons
+            setas
+            CALL ASS_ARGS_NUMSTR    ; Make sure the types are the same
+            CMP #TYPE_INTEGER       ; And dispatch on the type
+            BEQ is_integer
+            CMP #TYPE_FLOAT
+            BEQ is_float
+            CMP #TYPE_STRING
+            BEQ is_string
 
-            setal
-            LDA ARGUMENT1+2
-            CMP ARGUMENT2+2
-            BLT ret_true
-            BEQ check_low
+type_error  THROW ERR_TYPE
 
-ret_false   STZ ARGUMENT1
-            STZ ARGUMENT1+2
-            RTS
+is_string   CALL OP_STR_LTE         ; Yes: evaluate the string operator
+            BRA done
 
-check_low   LDA ARGUMENT1
-            CMP ARGUMENT2
-            BEQ ret_true
-            BGE ret_false
+is_integer  CALL OP_INT_LTE         ; Yes: evaluate the integer operator
+            BRA done
 
-ret_true    LDA #$FFFF
-            STA ARGUMENT1
-            STA ARGUMENT1+2
-            RTS
+is_float    CALL OP_FP_LTE          ; Yes: evaluate the floating point operator
+
+done        PLP
+            RETURN
             .pend

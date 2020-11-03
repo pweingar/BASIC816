@@ -13,7 +13,7 @@ REM 1 = C64 with SuperCPU, 2 = C256
 set SYSTEM=2
 
 REM C256 Foenix SKU: 1 = FMX, 2 = User
-set C256_SKU = 1
+set C256_SKU=1
 
 REM 0 = Interactive, 1 = Generate Unit Tests
 set UNITTEST=0

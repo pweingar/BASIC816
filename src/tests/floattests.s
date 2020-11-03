@@ -425,6 +425,19 @@ TST_FLOAT_OPS       .proc
                     UT_END
                     .pend
 
+; Validate that we can compute natural log
+TST_LOG             .proc
+                    UT_BEGIN "TST_LOG"
+
+                    LD_Q ARGUMENT1, $3f800000                               ; 1.0
+                    LD_B ARGTYPE1, TYPE_FLOAT       
+                    CALL FP_LOG                                             ; LOG
+                    UT_M_EQ_LIT_B ARGTYPE1,TYPE_FLOAT, "Expected FLOAT"     ; Verify we got an float
+                    UT_M_EQ_LIT_D ARGUMENT1,0,"Expected 0.0"                ; Verify we got a 0.0
+
+                    UT_END
+                    .pend
+
 ; Validate we can print floating point numbers
 TST_PRINTFLOAT      .proc
                     UT_BEGIN "TST_PRINTFLOAT"
@@ -479,6 +492,7 @@ TST_FLOATS          .proc
                     CALL TST_FP_PARSEFLOATS
                     CALL TST_FP_FTOS
                     CALL TST_FLOAT_OPS
+                    ; CALL TST_LOG
                     ; CALL TST_PRINTFLOAT
 
                     UT_PASSED "TST_FLOATS"

@@ -20,8 +20,10 @@ SYS_C256_USER = 2       ; System SKU for C256 Foenix User
 ; Section of memory for the BASIC interpreter's code
 .if C256_SKU == SYS_C256_FMX
 * = $3A0000
-.else
+.elsif C256_SKU == SYS_C256_USER
 * = $1A0000
+.else
+.error "Undefined C256_SKU"
 .endif
 .dsection code
 

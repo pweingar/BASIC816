@@ -537,3 +537,135 @@ done        TRACE "done"
             PLP
             RETURN
             .pend
+
+;
+; Compare two strings and return TRUE if ARGUMENT1 < ARGUMENT2
+;
+OP_STR_LT   .proc
+            PHP
+            TRACE "OP_STR_LT"
+
+            setaxl
+            CALL STRCMP                 ; Compare the two strings
+            LDA ARGUMENT1
+            CMP #$FFFF                  ; ARGUMENT1 < ARGUMENT2?
+            BNE ret_false               ; No: return false
+
+ret_true    CALL SET_TRUE               ; Return TRUE
+            BRA done
+
+ret_false   CALL SET_FALSE              ; Return FALSE
+
+done        PLP
+            RETURN
+            .pend
+
+;
+; Compare two strings and return TRUE if ARGUMENT1 > ARGUMENT2
+;
+OP_STR_GT   .proc
+            PHP
+            TRACE "OP_STR_GT"
+
+            setaxl
+            CALL STRCMP                 ; Compare the two strings
+            LDA ARGUMENT1
+            CMP #1                      ; ARGUMENT1 > ARGUMENT2?
+            BNE ret_false               ; No: return false
+
+ret_true    CALL SET_TRUE               ; Return TRUE
+            BRA done
+
+ret_false   CALL SET_FALSE              ; Return FALSE
+
+done        PLP
+            RETURN
+            .pend
+
+;
+; Compare two strings and return TRUE if ARGUMENT1 = ARGUMENT2
+;
+OP_STR_EQ   .proc
+            PHP
+            TRACE "OP_STR_EQ"
+
+            setaxl
+            CALL STRCMP                 ; Compare the two strings
+            LDA ARGUMENT1
+            CMP #0                      ; ARGUMENT1 = ARGUMENT2?
+            BNE ret_false               ; No: return false
+
+ret_true    CALL SET_TRUE               ; Return TRUE
+            BRA done
+
+ret_false   CALL SET_FALSE              ; Return FALSE
+
+done        PLP
+            RETURN
+            .pend
+
+;
+; Compare two strings and return TRUE if ARGUMENT1 != ARGUMENT2
+;
+OP_STR_NE   .proc
+            PHP
+            TRACE "OP_STR_NE"
+
+            setaxl
+            CALL STRCMP                 ; Compare the two strings
+            LDA ARGUMENT1
+            CMP #0                      ; ARGUMENT1 = ARGUMENT2?
+            BEQ ret_false               ; Yes: return false
+
+ret_true    CALL SET_TRUE               ; Return TRUE
+            BRA done
+
+ret_false   CALL SET_FALSE              ; Return FALSE
+
+done        PLP
+            RETURN
+            .pend
+
+;
+; Compare two strings and return TRUE if ARGUMENT1 >= ARGUMENT2
+;
+OP_STR_GTE  .proc
+            PHP
+            TRACE "OP_STR_GTE"
+
+            setaxl
+            CALL STRCMP                 ; Compare the two strings
+            LDA ARGUMENT1
+            CMP #$FFFF                  ; ARGUMENT1 < ARGUMENT2?
+            BEQ ret_false               ; Yes: return false
+
+ret_true    CALL SET_TRUE               ; Return TRUE
+            BRA done
+
+ret_false   CALL SET_FALSE              ; Return FALSE
+
+done        PLP
+            RETURN
+            .pend
+
+;
+; Compare two strings and return TRUE if ARGUMENT1 <= ARGUMENT2
+;
+OP_STR_LTE  .proc
+            PHP
+            TRACE "OP_STR_GTE"
+
+            setaxl
+            CALL STRCMP                 ; Compare the two strings
+            LDA ARGUMENT1
+            CMP #1                      ; ARGUMENT1 > ARGUMENT2?
+            BEQ ret_false               ; Yes: return false
+
+ret_true    CALL SET_TRUE               ; Return TRUE
+            BRA done
+
+ret_false   CALL SET_FALSE              ; Return FALSE
+
+done        PLP
+            RETURN
+            .pend
