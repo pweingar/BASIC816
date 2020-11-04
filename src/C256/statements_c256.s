@@ -676,7 +676,7 @@ range_err       THROW ERR_RANGE         ; Throw an out of range error
 ; Find the address to the bitmap given it's number
 ;
 ; Inputs:
-;   ARGUMENT1 = the number of the bitmap plane (0 or 1)
+;   A = the number of the bitmap plane (0 or 1) (16-bit)
 ;
 ; Outputs:
 ;   MTEMPPTR = pointer to the first byte for that bitmap (in VRAM)
@@ -686,7 +686,6 @@ BITMAP_VRAM     .proc
                 PHP
 
                 setaxl
-                LDA ARGUMENT1           ; Get the number
                 CMP #BM_MAX
                 BGE range_err           ; Make sure it's within range
                 ASL A
@@ -839,6 +838,7 @@ S_CLRBITMAP     .proc
                 setal
                 CALL EVALEXPR               ; Get the bitmap number
                 CALL ASS_ARG1_BYTE          ; Assert that the result is a byte value
+                LDA ARGUMENT1
                 CALL BITMAP_VRAM            ; Get the address of the bitmap into MTEMPPTR
 
                 ; We're going to use Vicky's VDMA capabilities to fill the screen here.
@@ -1067,26 +1067,25 @@ FILL            .proc
                 PHP
                 TRACE "FILL"
 
-                BRK
-
                 ; We're going to use Vicky's VDMA capabilities to fill the screen here.
                 ; This should be MUCH faster than the CPU can do it.
 
-                LDA #0                      ; Clear the control register so it can be used later
-                STA @lVDMA_CONTROL_REG
+                ; Ask Vicky to do a 2-D fill operation
+                LDA #VDMA_CTRL_Enable | VDMA_CTRL_TRF_Fill | VDMA_CTRL_1D_2D
+                STA @l VDMA_CONTROL_REG
 
                 setal
                 LDA Y0                      ; Get the row          
-                STA @lM1_OPERAND_A
+                STA @l M1_OPERAND_A
                 LDA @lGR_MAX_COLS          
-                STA @lM1_OPERAND_B          ; Multiply by the number of columns in the pixmap
+                STA @l M1_OPERAND_B         ; Multiply by the number of columns in the pixmap
 
                 CLC                         ; Add the column
-                LDA @lM1_RESULT
+                LDA @l M1_RESULT
                 ADC X0
                 STA SCRATCH
                 setas
-                LDA @lM1_RESULT+2
+                LDA @l M1_RESULT+2
                 ADC #0
                 STA SCRATCH+2
 
@@ -1094,11 +1093,11 @@ FILL            .proc
                 CLC                         ; Set the destination address
                 LDA MTEMPPTR
                 ADC SCRATCH
-                STA @lVDMA_DST_ADDY_L
+                STA @l VDMA_DST_ADDY_L
                 setas
                 LDA MTEMPPTR+2
                 ADC SCRATCH+2
-                STA @lVDMA_DST_ADDY_H
+                STA @l VDMA_DST_ADDY_H
 
                 setal          
                 SEC                         ; Set the width of the FILL operation
@@ -1109,23 +1108,16 @@ FILL            .proc
 
                 SEC
                 LDA @l GR_MAX_COLS
-                STA @lVDMA_DST_STRIDE_L     ; And the destination stride
+                STA @l VDMA_DST_STRIDE_L    ; And the destination stride
 
                 SEC                         ; Set the height of the FILL operation
                 LDA Y1
                 SBC Y0        
                 STA @l VDMA_Y_SIZE_L
 
-                LDA #1
-                STA @l VDMA_SRC_STRIDE_L    ; And the source stride
-
                 setas
                 LDA @l COLOR                ; Set the color to write
                 STA @l VDMA_BYTE_2_WRITE
-
-                ; Ask Vicky to do a 2-D fill operation
-                LDA #VDMA_CTRL_Enable | VDMA_CTRL_TRF_Fill | VDMA_CTRL_1D_2D
-                STA @lVDMA_CONTROL_REG
 
                 LDA @l VDMA_CONTROL_REG
                 ORA #VDMA_CTRL_Start_TRF
@@ -1298,7 +1290,8 @@ L_PLANE         .word ?
 L_X0            .word ?
 L_Y0            .word ?
 L_X1            .word ?
-L_Y1            .word ?           
+L_Y1            .word ?  
+L_COLOR         .word ?         
                 .endv
                 SALLOC SIZE(locals)
 
@@ -1348,21 +1341,69 @@ L_Y1            .word ?
                 CALL EVALEXPR               ; Get the color index            
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
                 LDA ARGUMENT1
-                STA COLOR                   ; Save it to COLOR
-
-                LDA L_X0                    ; Set the (X0, Y0) coordinates
-                STA X0
-                LDA L_Y0
-                STA Y0
-                LDA L_X1                    ; Set the (X1, Y1) coordinates
-                STA X1
-                LDA L_Y1
-                STA Y1
+                STA L_COLOR                 ; Save it to COLOR
 
                 LDA L_PLANE                 ; Get the bitmap plane back
-                CALL BITMAP_SRAM            ; Get the address of the bitmap into MTEMPPTR
+                CALL BITMAP_VRAM            ; Get the address of the bitmap into MTEMPPTR
 
-                CALL FILL                   ; Otherwise, use the block fill routine
+                ; Ask Vicky to do a 2-D fill operation
+                LDA #VDMA_CTRL_Enable | VDMA_CTRL_TRF_Fill | VDMA_CTRL_1D_2D
+                STA @l VDMA_CONTROL_REG
+
+                setal
+                LDA L_Y0                    ; Get the row          
+                STA @l M0_OPERAND_A
+                LDA @l GR_MAX_COLS          
+                STA @l M0_OPERAND_B         ; Multiply by the number of columns in the pixmap
+
+                CLC                         ; Add the column
+                LDA @l M0_RESULT
+                ADC L_X0
+                STA SCRATCH
+                setas
+                LDA @l M0_RESULT+2
+                ADC #0
+                STA SCRATCH+2
+
+                setal
+                CLC                         ; Set the destination address
+                LDA MTEMPPTR
+                ADC SCRATCH
+                STA @l VDMA_DST_ADDY_L
+                setas
+                LDA MTEMPPTR+2
+                ADC SCRATCH+2
+                STA @l VDMA_DST_ADDY_H
+
+                setal          
+                SEC                         ; Set the width of the FILL operation
+                LDA L_X1
+                SBC L_X0
+                STA SCRATCH
+                STA @l VDMA_X_SIZE_L
+
+                SEC
+                LDA @l GR_MAX_COLS
+                STA @l VDMA_DST_STRIDE_L    ; And the destination stride
+
+                SEC                         ; Set the height of the FILL operation
+                LDA L_Y1
+                SBC L_Y0        
+                STA @l VDMA_Y_SIZE_L
+
+                setas
+                LDA L_COLOR                 ; Set the color to write
+                STA @l VDMA_BYTE_2_WRITE
+
+                LDA @l VDMA_CONTROL_REG
+                ORA #VDMA_CTRL_Start_TRF
+                STA @l VDMA_CONTROL_REG
+
+wait            LDA @lVDMA_STATUS_REG       ; Wait until Vicky is done
+                BMI wait
+
+                LDA #0                      ; Clear the control register so it can be used later
+                STA @l VDMA_CONTROL_REG
 
 done            SFREE SIZE(locals)  ; Clean the locals from the stack
                 PLP
@@ -1527,8 +1568,6 @@ L_X             .word ?
                 LDA ARGUMENT1
                 LDY #SP_Y_COORD             ; Save the Y coordinate for the sprite
                 STA [MTEMPPTR],Y            
-
-                ; BRK
 
 done            SFREE SIZE(locals)  ; Clean the locals from the stack
                 PLP
