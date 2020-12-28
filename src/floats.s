@@ -1328,7 +1328,70 @@ FP_POLY1        .proc
 FP_LOG          .proc
                 PHP
 
+locals          .virtual 1,S
+L_N             .byte ?             ; Exponent
+                .endv
+                SALLOC SIZE(locals)
+
                 TRACE "FP_LOG"
+
+                CALL IS_ARG1_Z      ; Is input 0.0?
+                BNE compute
+
+                setal               ; Yes: return 1.0
+                LDA FP_1_0
+                STA ARGUMENT1
+                LDA FP_1_0+2
+                STA ARGUMENT1+2
+
+                BRL done
+                
+compute         setas
+                LDA ARGUMENT1+2     ; Save the exponent
+                ASL A
+                LDA ARGUMENT1+3
+                ROL A
+                STA L_N
+
+                LDA #$3F            ; Convert input to 1.0 > XF > 0.5
+                STA ARGUMENT1+3
+                LDA #$7F
+                AND ARGUMENT1+2
+                STA ARGUMENT1+2
+
+                setal
+                LDA FP_SQR_0_5
+                STA ARGUMENT2
+                LDA FP_SQR_0_5+2
+                STA ARGUMENT2+2
+
+                CALL OP_FP_ADD      ; XF + SQRT(0.5)
+
+                LDA ARGUMENT1
+                STA ARGUMENT2
+                LDA ARGUMENT1+2
+                STA ARGUMENT2+2
+
+                LDA FP_SQR_2_0
+                STA ARGUMENT1
+                LDA FP_SQR_2_0+2
+                STA ARGUMENT1+2
+
+                CALL OP_FP_DIV      ; SQRT(2.0) / (XF + SQRT(0.5))
+
+                LDA ARGUMENT1
+                STA ARGUMENT2
+                LDA ARGUMENT1+2
+                STA ARGUMENT2+2
+
+                LDA FP_1_0
+                STA ARGUMENT1
+                LDA FP_1_0+2
+                STA ARGUMENT1+2
+
+                CALL OP_FP_SUB      ; 1.0 - SQRT(2.0) / (XF + SQRT(0.5))
+
+                ; Evaluate the polynomial approximation
 
                 setas
                 LDA #4              ; Set the number of coefficients
@@ -1342,6 +1405,39 @@ FP_LOG          .proc
 
                 CALL FP_POLY1       ; Evaluate the polynomial
 
+                ; Add N
+
+                LDA ARGUMENT1
+                STA ARGUMENT2
+                LDA ARGUMENT1+2
+                STA ARGUMENT2+2
+
+                setas
+                SEC                 ; Express N as a sign extended INT
+                LDA L_N
+                SBC #127
+                STA ARGUMENT1
+                ASL A
+                BCS n_is_neg
+                
+                STZ ARGUMENT1+1
+                STZ ARGUMENT1+2
+                STZ ARGUMENT1+3
+                BRA convert
+
+n_is_neg        LDA #$FF
+                STA ARGUMENT1+1
+                STA ARGUMENT1+2
+                STA ARGUMENT1+3                
+
+convert         CALL ITOF           ; Convert N to float
+                CALL OP_FP_ADD      ; Add N to get the log
+
+done            setas
+                LDA #TYPE_FLOAT
+                STA ARGTYPE1
+                
+                SFREE SIZE(locals)
                 PLP
                 RETURN
 
@@ -1350,3 +1446,7 @@ log_coeff       .dword $3ede56cb    ; a_7 = 0.43425594189
                 .dword $3f763893    ; a_3 = 0.96180075919
                 .dword $4038aa3b    ; a_1 = 2.8853900731
                 .pend
+
+FP_1_0          .dword $3f800000    ; Floating point constant: 1.0
+FP_SQR_2_0      .dword $3fb504f3    ; Floating point constant: sqrt(2.0)
+FP_SQR_0_5      .dword $3f3504f3    ; Floating point constant: sqrt(0.2)
