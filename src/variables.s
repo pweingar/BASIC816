@@ -364,8 +364,22 @@ VAR_CREATE      .proc
                 setas
                 LDA ARGTYPE1            ; Validate that our types match
                 CMP TOFINDTYPE
-                BEQ chk_string
-                THROW ERR_TYPE          ; If not: throw an error
+                BEQ chk_string          ; If so: check to see if it's a string
+
+                ; Otherwise: types are different... try to cast types, if possible
+
+                LDA TOFINDTYPE          ; Check the variable type
+                CMP #TYPE_INTEGER       ; If it's INTEGER
+                BNE chk_float
+                CALL ASS_ARG1_INT       ; Validate that ARGUMENT1 is an integer (or can be cast)
+                BRA alloc_binding       ; And bind the variable
+
+chk_float       CMP #TYPE_FLOAT         ; If it's FLOAT
+                BNE type_error
+                CALL ASS_ARG1_FLOAT     ; Validate that ARGUMENT1 is an float (or can be cast)
+                BRA alloc_binding       ; And bind the variable
+
+type_error      THROW ERR_TYPE          ; If not: throw an error
 
 chk_string      CMP #TYPE_STRING        ; Is it a string?
                 BNE alloc_binding       ; No: just go ahead and bind it
@@ -482,9 +496,29 @@ use_create      CALL VAR_CREATE
                 BRA done
 
 found           setas
-                LDA ARGTYPE1
-                CMP #TYPE_STRING
-                BEQ set_string
+                LDA ARGTYPE1            ; Do the types match?
+                CMP TOFINDTYPE
+                BEQ chk_string          ; Yes: check to see if it's string
+
+                ; Types don't match... try to cast
+
+                LDA TOFINDTYPE          ; Check the variable
+                CMP #TYPE_INTEGER       ; Is it INTEGER?
+                BNE chk_float
+                CALL ASS_ARG1_INT       ; Try to cast the input to INTEGER
+                BRA set_val
+
+chk_float       CMP #TYPE_FLOAT         ; Is it FLOAT?
+                BNE type_error          ; No: throw an error
+                CALL ASS_ARG1_FLOAT     ; Try to cast the input to FLOAT
+                BRA set_val
+
+type_error      THROW ERR_TYPE
+
+chk_string      CMP #TYPE_STRING
+                BEQ set_string          ; Yes: set the string value of the variable
+
+                ; The types don't match, 
 
 set_val         setaxl
                 LDY #BINDING.VALUE
