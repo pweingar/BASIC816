@@ -129,6 +129,7 @@ start_cnvt  ; Convert the binary number in ARGUMENT1 into a BCD
 
             STZ SCRATCH2        ; SCRATCH2 will be our BCD version of the number
             STZ SCRATCH2+2
+            STZ SCRATCH2+4
 
             LDX #31
             SED                 ; Yes, we're really using BCD mode
@@ -142,6 +143,9 @@ shift_loop  ASL ARGUMENT1       ; Shift ARGUMENT1 left one bit
             LDA SCRATCH2+2
             ADC SCRATCH2+2
             STA SCRATCH2+2
+            LDA SCRATCH2+4
+            ADC SCRATCH2+4
+            STA SCRATCH2+4
 
             DEX
             BPL shift_loop      ; Loop through all 32 bits of ARGUMENT1
@@ -166,7 +170,7 @@ wr_lead     STA [STRPTR],Y
             INY
 
             ; Skip over leading 0s
-            LDX #3
+            LDX #5
 
             ; Process first nybble
 ascii_loop  LDA SCRATCH2,X
