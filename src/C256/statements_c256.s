@@ -2492,3 +2492,29 @@ verify          setal
                 RETURN
 size_err        THROW ERR_ARGUMENT          ; Throw an illegal argument error
                 .pend
+
+; LOCATE column, row -- position the text cursor
+S_LOCATE        .proc
+                PHP
+                TRACE "S_LOCATE"
+
+                setaxl
+
+                CALL EVALEXPR               ; Get the column
+                CALL ASS_ARG1_BYTE          ; Make sure the value is a byte
+                LDA ARGUMENT1
+                PHA                         ; Save it for later
+
+                LDA #','                    ; Check for the comma separator
+                CALL EXPECT_TOK
+
+                CALL EVALEXPR               ; Get the row
+                CALL ASS_ARG1_BYTE          ; Make sure the value is a byte
+
+                LDY ARGUMENT1               ; Set Y to the row
+                PLX                         ; Set X to the column
+                CALL CURSORXY
+                
+                PLP
+                RETURN
+                .pend

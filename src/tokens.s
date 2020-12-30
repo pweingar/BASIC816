@@ -905,6 +905,7 @@ LISTTOK     DEFTOK "LIST", TOK_TY_CMD, 0, CMD_LIST, 0
             DEFTOK "MEMCOPY", TOK_TY_STMNT, 0, S_MEMCOPY, 0             ; Token for MEMCOPY statement
             DEFTOK "LINEAR", TOK_TY_BYWRD, 0, 0, 0                      ; E6 - Keyword for MEMCOPY statement
             DEFTOK "RECT", TOK_TY_BYWRD, 0, 0, 0                        ; E7 - Keyword for MEMCOPY statement
+            DEFTOK "LOCATE", TOK_TY_STMNT, 0, S_LOCATE, 0               ; Token for LOCATE statement
 
             ; DEFTOK "LOG", TOK_TY_FUNC, 0, FN_LOG, 0
 
