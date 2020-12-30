@@ -189,7 +189,10 @@ IMWIDTH         .proc
 ;
 ; Arguments: none
 ; Modifies: A,X,Y
-IMREGISTERS     ; Print the MONITOR prompt (registers header)
+IMREGISTERS     ; Make sure text is displayed
+                CALL ENSURETEXT
+
+                ; Print the MONITOR prompt (registers header)
                 setdbr `mregisters_msg
                 LDX #<>mregisters_msg
                 CALL PRINTS

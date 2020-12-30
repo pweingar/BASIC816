@@ -3,6 +3,32 @@
 ;;;
 
 ;
+; Ensure that text mode is enabled
+;
+ENSURETEXT  .proc
+            PHP
+
+            setas
+            LDA @l MASTER_CTRL_REG_L            ; Get the current display mode
+
+            ; Check if we have any graphics mode enabled
+            BIT #Mstr_Ctrl_Graph_Mode_En | Mstr_Ctrl_Bitmap_En | Mstr_Ctrl_TileMap_En | Mstr_Ctrl_Sprite_En
+            BEQ textonly                        ; If not, make sure text is enabled
+
+overlay     ; Make sure text and text overlay are turned on
+            ORA #Mstr_Ctrl_Text_Mode_En | Mstr_Ctrl_Text_Overlay
+            STA @l MASTER_CTRL_REG_L
+            BRA done
+
+textonly    ; Make sure text mode is on
+            ORA #Mstr_Ctrl_Text_Mode_En
+            STA @l MASTER_CTRL_REG_L
+
+done        PLP
+            RETURN
+            .pend
+
+;
 ; Show or hide the cursor
 ;
 ; Inputs:

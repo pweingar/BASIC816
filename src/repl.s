@@ -153,7 +153,9 @@ PRREADY         .proc
                 PHB
                 PHP
 
-                setdbr `MPROMPT
+                CALL ENSURETEXT         ; Make sure we have text displayed
+
+                setdbr `MPROMPT         ; Print the prompt
                 LDX #<>MPROMPT
                 CALL PRINTS
 
