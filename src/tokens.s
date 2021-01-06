@@ -360,9 +360,9 @@ nul_scan    LDA [BIP],Y
             ; Check for keyword delimiters
             ; Tokens longer than one character need a whitespace in front of them
             ; or have to be the first thing on the line
-chk_keyword LDA CURTOKLEN           ; If the token length is 1
-            CMP #1
-            BEQ try_match           ; ... we don't need a delimiter, go ahead and convert it
+chk_keyword LDA CURTOKLEN           ; If the token length is <=2
+            CMP #3
+            BLT try_match           ; ... we don't need a delimiter, go ahead and convert it
 
             setal
             LDA BIP                 ; Check to see if we're at the start of the line   
@@ -456,14 +456,22 @@ done        PLP
 ;   A = token that matches (0 if none)
 ;
 TKMATCH     .proc
-            PHP
-            PHD
-            setaxl
             PHX
             PHY
+            PHP
+            PHD
 
             setdp GLOBAL_VARS
-                  
+
+            ; Store in SIGN1 if the previous character could be part of a variable name
+            setas
+            LDA [BIPPREV]           ; Get the previous character
+            CALL ISVARCHAR          ; Is it a possible variable name character?
+            LDA #0
+            ROL A
+            STA SIGN1               ; SIGN1 := 1 if it is a variable name character
+
+            setaxl
             LDA #<>TOKENS           ; Set INDEX to point to the first token record
             STA INDEX
             setas
@@ -487,10 +495,17 @@ token_loop  setas
             LDA #`DATA_BLOCK
             STA SCRATCH+2
 
-            ;CALL PRSTSCRATCH        ; Print the token name
+            ; If the previous character could be part of a variable name,
+            ; Make sure this token starts with a special character
+            LDA SIGN1               ; Is previous character a variable name character?
+            BEQ cmp_keyword         ; No: we can check for this token
+
+            LDA [SCRATCH]           ; Get the token's first character
+            CALL ISVARCHAR          ; Is it a variable name character?
+            BCS next_token          ; Yes: skip this token
 
             ; Check to see if the window contains the token's name
-            setxs
+cmp_keyword setxs
             LDY #0
 cmp_loop    LDA [BIP],Y             ; Get the character in the window
             CALL TOUPPERA           ; Convert the character to upper case for a case insensitive search
@@ -502,11 +517,11 @@ cmp_loop    LDA [BIP],Y             ; Get the character in the window
 
             ; We found the matching token
             TXA                     ; Move the token ID to A
-no_match    setxl
+
+no_match    PLD
+            PLP
             PLY
             PLX
-            PLD
-            PLP
             RETURN
 
 next_token  setaxl                  ; Point INDEX to the next token record
@@ -749,36 +764,8 @@ TOKTYPE     .proc
 ;;;
 
 TOK_EOL = $00
-TOK_FUNC_OPEN = $01         ; A pseudo-token to push to the operator stack to mark
-                            ; the left parenthesis of a function argument list
-
-TOK_PLUS = $80
-TOK_MINUS = $81
-TOK_MULT = $82
-TOK_DIVIDE = $83
-TOK_MOD = $84
-
-TOK_EQ = $87
-
-TOK_LPAREN = $8C
-TOK_RPAREN = $8D
-
-TOK_REM = $8E
-TOK_PRINT = $8F
-TOK_LET = $90
-TOK_END = $92
-TOK_THEN = $94
-TOK_FOR = $98
-TOK_TO = $99
-TOK_STEP = $9A
-TOK_NEXT = $9B
-TOK_DO = $9C
-TOK_LOOP = $9D
-TOK_DATA = $A8
-TOK_NEGATIVE = $AF
-
-TOK_LINEAR = $E6
-TOK_RECT = $E7
+TOK_FUNC_OPEN = $01     ; A pseudo-token to push to the operator stack to mark
+                        ; the left parenthesis of a function argument list
 
 TOK_TY_OP = $00         ; The token is an operator
 TOK_TY_CMD = $10        ; The token is a command (e.g. RUN, LIST, etc.)
@@ -787,126 +774,231 @@ TOK_TY_FUNC = $30       ; The token is a function (e.g. SIN, COS, TAB, etc.)
 TOK_TY_PUNCT = $40      ; The token is a punctuation mark (e.g. "(", ")")
 TOK_TY_BYWRD = $50      ; The token is a by-word (e.g. STEP, TO, WEND, etc.)
 
-TOKENS      DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
+;
+; The token table
+;
+
+TOKENS      
+TOK_PLUS = $80
+            DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
+TOK_MINUS = $81
             DEFTOK "-", TOK_TY_OP, 3, OP_MINUS, 0
+TOK_MULT = $82
             DEFTOK "*", TOK_TY_OP, 2, OP_MULTIPLY, 0
+TOK_DIVIDE = $83
             DEFTOK "/", TOK_TY_OP, 2, OP_DIVIDE, 0
+TOK_MOD = $84
             DEFTOK "MOD", TOK_TY_OP, 2, OP_MOD, 0
-            DEFTOK "^", TOK_TY_OP, 0, 0, 0
+; $85
+            DEFTOK "^", TOK_TY_OP, 0, 0, 0  
+TOK_LE = $86
+            DEFTOK "<=", TOK_TY_OP, 4, OP_LTE, 0
+TOK_GE = $87
+            DEFTOK ">=", TOK_TY_OP, 4, OP_GTE, 0
+TOK_NE = $88
+            DEFTOK "<>", TOK_TY_OP, 4, OP_NE, 0
+; $89
             DEFTOK "<", TOK_TY_OP, 4, OP_LT, 0
+TOK_EQ = $8A
             DEFTOK "=", TOK_TY_OP, 4, OP_EQ, 0
+; TOK_GT = $8B
             DEFTOK ">", TOK_TY_OP, 4, OP_GT, 0
-            DEFTOK "NOT", TOK_TY_OP, 5, OP_NOT, 0 
+; TOK_NOT = $8C
+            DEFTOK "NOT", TOK_TY_OP, 5, OP_NOT, 0
+; $8D
             DEFTOK "AND", TOK_TY_OP, 6, OP_AND, 0 
+; $8E
             DEFTOK "OR", TOK_TY_OP, 7, OP_OR, 0 
+TOK_LPAREN = $8F
             DEFTOK "(", TOK_TY_PUNCT, $FF, 0, 0
+TOK_RPAREN = $90
             DEFTOK ")", TOK_TY_PUNCT, 0, 0, 0
 
             ; Statements
+TOK_REM = $91
             DEFTOK "REM", TOK_TY_STMNT, 0, S_REM, 0
+TOK_PRINT = $92
             DEFTOK "PRINT", TOK_TY_STMNT, 0, S_PRINT, 0
+TOK_LET = $93
             DEFTOK "LET", TOK_TY_STMNT, 0, S_LET, 0
+; $94
             DEFTOK "GOTO", TOK_TY_STMNT, 0, S_GOTO, 0
+TOK_END = $95
             DEFTOK "END", TOK_TY_STMNT, 0, S_END, 0
+; $96
             DEFTOK "IF", TOK_TY_STMNT, 0, S_IF, 0
+TOK_THEN = $97
             DEFTOK "THEN", TOK_TY_BYWRD, 0, 0, 0
+; $98
             DEFTOK "ELSE", TOK_TY_BYWRD, 0, 0, 0
+; $99
             DEFTOK "GOSUB", TOK_TY_STMNT, 0, S_GOSUB, 0
+; $9A
             DEFTOK "RETURN", TOK_TY_STMNT, 0, S_RETURN, 0
+TOK_FOR = $9B
             DEFTOK "FOR", TOK_TY_STMNT, 0, S_FOR, 0
+TOK_TO = $9C
             DEFTOK "TO", TOK_TY_BYWRD, 0, 0, 0
+TOK_STEP = $9D
             DEFTOK "STEP", TOK_TY_BYWRD, 0, 0, 0
+TOK_NEXT = $9E
             DEFTOK "NEXT", TOK_TY_STMNT, 0, S_NEXT, 0
+TOK_DO = $9F
             DEFTOK "DO", TOK_TY_STMNT, 0, S_DO, 0
+TOK_LOOP = $A0
             DEFTOK "LOOP", TOK_TY_STMNT, 0, S_LOOP, 0
+; $A1
             DEFTOK "WHILE", TOK_TY_BYWRD, 0, 0, 0
+; $A2
             DEFTOK "UNTIL", TOK_TY_BYWRD, 0, 0, 0
+; $A3
             DEFTOK "EXIT", TOK_TY_STMNT, 0, S_EXIT, 0
+; $A4
             DEFTOK "CLR", TOK_TY_STMNT, 0, S_CLR, 0
+; $A5
             DEFTOK "STOP", TOK_TY_STMNT, 0, S_STOP, 0
+; $A6
             DEFTOK "POKE", TOK_TY_STMNT, 0, S_POKE, 0
+; $A7
             DEFTOK "POKEW", TOK_TY_STMNT, 0, S_POKEW, 0
+; $A8
             DEFTOK "POKEL", TOK_TY_STMNT, 0, S_POKEL, 0
+; $A9
             DEFTOK "CLS", TOK_TY_STMNT, 0, S_CLS, 0
+; $AA
             DEFTOK "READ", TOK_TY_STMNT, 0, S_READ, 0
+TOK_DATA = $AB
             DEFTOK "DATA", TOK_TY_STMNT, 0, S_DATA, 0
+; $AC
             DEFTOK "RESTORE", TOK_TY_STMNT, 0, S_RESTORE, 0
+; $AD
             DEFTOK "DIM", TOK_TY_STMNT, 0, S_DIM, 0
+; $AE
             DEFTOK "CALL", TOK_TY_STMNT, 0, S_CALL, 0
-
-            ; More operators I forgot
-            DEFTOK "<=", TOK_TY_OP, 4, OP_LTE, 0
-            DEFTOK ">=", TOK_TY_OP, 4, OP_GTE, 0
-            DEFTOK "<>", TOK_TY_OP, 4, OP_NE, 0
 
             ; Functions
 
-            DEFTOK "-", TOK_TY_FUNC, 0, FN_NEGATIVE, 0          ; AF
-            DEFTOK "LEN", TOK_TY_FUNC, 0, FN_LEN, 0             ; B0
+TOK_NEGATIVE = $AF
+            DEFTOK "-", TOK_TY_FUNC, 0, FN_NEGATIVE, 0
+; $B0
+            DEFTOK "LEN", TOK_TY_FUNC, 0, FN_LEN, 0
+; $B1
             DEFTOK "PEEK", TOK_TY_FUNC, 0, FN_PEEK, 0
+; $B2
             DEFTOK "PEEKW", TOK_TY_FUNC, 0, FN_PEEKW, 0
+; $B3
             DEFTOK "PEEKL", TOK_TY_FUNC, 0, FN_PEEKL, 0
+; $B4
             DEFTOK "CHR$", TOK_TY_FUNC, 0, FN_CHR, 0
+; $B5
             DEFTOK "ASC", TOK_TY_FUNC, 0, FN_ASC, 0
+; $B6
             DEFTOK "SPC", TOK_TY_FUNC, 0, FN_SPC, 0
+; $B7
             DEFTOK "TAB", TOK_TY_FUNC, 0, FN_TAB, 0
+; $B8
             DEFTOK "ABS", TOK_TY_FUNC, 0, FN_ABS, 0
+; $B9
             DEFTOK "SGN", TOK_TY_FUNC, 0, FN_SGN, 0
+; $BA
             DEFTOK "HEX$", TOK_TY_FUNC, 0, FN_HEX, 0
+; $BB
             DEFTOK "DEC", TOK_TY_FUNC, 0, FN_DEC, 0
+; $BC
             DEFTOK "STR$", TOK_TY_FUNC, 0, FN_STR, 0
+; $BD
             DEFTOK "VAL", TOK_TY_FUNC, 0, FN_VAL, 0
+; $BE
             DEFTOK "LEFT$", TOK_TY_FUNC, 0, FN_LEFT, 0
+; $BF
             DEFTOK "RIGHT$", TOK_TY_FUNC, 0, FN_RIGHT, 0
-            DEFTOK "MID$", TOK_TY_FUNC, 0, FN_MID, 0            ; C0
+; $C0
+            DEFTOK "MID$", TOK_TY_FUNC, 0, FN_MID, 0
 
             ; Commands
 
+; $C1
             DEFTOK "RUN", TOK_TY_CMD, 0, CMD_RUN, 0
+; $C2
             DEFTOK "NEW", TOK_TY_CMD, 0, CMD_NEW, 0
+; $C3
             DEFTOK "LOAD", TOK_TY_CMD, 0, CMD_LOAD, 0
-LISTTOK     DEFTOK "LIST", TOK_TY_CMD, 0, CMD_LIST, 0
+; $C4
+            DEFTOK "LIST", TOK_TY_CMD, 0, CMD_LIST, 0
+; $C5
             DEFTOK "DIR", TOK_TY_CMD, 0, CMD_DIR, 0
+; $C6
             DEFTOK "BLOAD", TOK_TY_STMNT, 0, S_BLOAD, 0
+; $C7
             DEFTOK "BRUN", TOK_TY_CMD, 0, CMD_BRUN, 0
+; $C8
             DEFTOK "BSAVE", TOK_TY_STMNT, 0, S_BSAVE, 0
+; $C9
             DEFTOK "DEL", TOK_TY_STMNT, 0, S_DEL, 0
+; $CA
             DEFTOK "SAVE", TOK_TY_CMD, 0, CMD_SAVE, 0
+; $CB
             DEFTOK "RENAME", TOK_TY_STMNT, 0, S_RENAME, 0
+; $CC
             DEFTOK "COPY", TOK_TY_STMNT, 0, S_COPY, 0
+; $CD
             DEFTOK "MONITOR", TOK_TY_CMD, 0, CMD_MONITOR, 0
 
+; $CE
             DEFTOK "GET", TOK_TY_STMNT, 0, S_GET, 0
+; $CF
             DEFTOK "INPUT", TOK_TY_STMNT, 0, S_INPUT, 0
-
-            DEFTOK "SETBORDER", TOK_TY_STMNT, 0, S_SETBORDER, 0     ; D0
+; $D0
+            DEFTOK "SETBORDER", TOK_TY_STMNT, 0, S_SETBORDER, 0
+; $D1
             DEFTOK "TEXTCOLOR", TOK_TY_STMNT, 0, S_TEXTCOLOR, 0
+; $D2
             DEFTOK "SETBGCOLOR", TOK_TY_STMNT, 0, S_SETBGCOLOR, 0
+; $D3
             DEFTOK "SETDATE", TOK_TY_STMNT, 0, S_SETDATE, 0
+; $D4
             DEFTOK "GETDATE$", TOK_TY_FUNC, 0, F_GETDATE, 0
+; $D5
             DEFTOK "SETTIME", TOK_TY_STMNT, 0, S_SETTIME, 0
+; $D6
             DEFTOK "GETTIME$", TOK_TY_FUNC, 0, F_GETTIME, 0
+; $D7
             DEFTOK "GRAPHICS", TOK_TY_STMNT, 0, S_GRAPHICS, 0
+; $D8
             DEFTOK "SETCOLOR", TOK_TY_STMNT, 0, S_SETCOLOR, 0
+; $D9
             DEFTOK "BITMAP", TOK_TY_STMNT, 0, S_BITMAP, 0
+; $DA
             DEFTOK "CLRBITMAP", TOK_TY_STMNT, 0, S_CLRBITMAP, 0
+; $DB
             DEFTOK "PLOT", TOK_TY_STMNT, 0, S_PLOT, 0
+; $DC
             DEFTOK "LINE", TOK_TY_STMNT, 0, S_LINE, 0
+; $DD
             DEFTOK "FILL", TOK_TY_STMNT, 0, S_FILL, 0
+; $DE
             DEFTOK "SPRITE", TOK_TY_STMNT, 0, S_SPRITE, 0
+; $DF
             DEFTOK "SPRITEAT", TOK_TY_STMNT, 0, S_SPRITEAT, 0
-            DEFTOK "SPRITESHOW", TOK_TY_STMNT, 0, S_SPRITESHOW, 0   ; E0
-
+; $E0
+            DEFTOK "SPRITESHOW", TOK_TY_STMNT, 0, S_SPRITESHOW, 0
+; $E1
             DEFTOK "TILESET", TOK_TY_STMNT, 0, S_TILESET, 0
+; $E2
             DEFTOK "TILEMAP", TOK_TY_STMNT, 0, S_TILEMAP, 0
+; $E3
             DEFTOK "TILESHOW", TOK_TY_STMNT, 0, S_TILESHOW, 0
+; $E4
             DEFTOK "TILEAT", TOK_TY_STMNT, 0, S_TILEAT, 0
-
+; $E5
             DEFTOK "MEMCOPY", TOK_TY_STMNT, 0, S_MEMCOPY, 0             ; Token for MEMCOPY statement
+TOK_LINEAR = $E6
             DEFTOK "LINEAR", TOK_TY_BYWRD, 0, 0, 0                      ; E6 - Keyword for MEMCOPY statement
+TOK_RECT = $E7
             DEFTOK "RECT", TOK_TY_BYWRD, 0, 0, 0                        ; E7 - Keyword for MEMCOPY statement
+; $E8
             DEFTOK "LOCATE", TOK_TY_STMNT, 0, S_LOCATE, 0               ; Token for LOCATE statement
-
+; $E9
             ; DEFTOK "LOG", TOK_TY_FUNC, 0, FN_LOG, 0
 
             .word 0, 0, 0, 0

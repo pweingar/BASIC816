@@ -225,18 +225,18 @@ OP_INT_NE   .proc
             setal
             LDA ARGUMENT2+2
             CMP ARGUMENT1+2
-            BNE ret_false
+            BNE ret_true
             LDA ARGUMENT2
             CMP ARGUMENT1
-            BNE ret_false
-
-            LDA #$FFFF
-            STA ARGUMENT1
-            STA ARGUMENT1+2
-            BRA done
+            BNE ret_true
 
 ret_false   STZ ARGUMENT1
             STZ ARGUMENT1+2
+            BRA done
+
+ret_true    LDA #$FFFF
+            STA ARGUMENT1
+            STA ARGUMENT1+2
             
 done        PLP
             RETURN

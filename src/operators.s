@@ -318,6 +318,7 @@ OP_NE       .proc
             TRACE "OP_NE"
 
             setas
+
             CALL ASS_ARGS_NUMSTR    ; Make sure the types are the same
             CMP #TYPE_INTEGER       ; And dispatch on the type
             BEQ is_integer

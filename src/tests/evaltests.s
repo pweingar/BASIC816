@@ -335,32 +335,6 @@ TST_EVAL_MULT   .proc
 TEST1           .text "2",TOK_MULT,"3",0
                 .pend
 
-TST_EVAL_DIVIDE .proc
-                UT_BEGIN "TST_EVAL_DIVIDE"
-
-                setdp GLOBAL_VARS
-                setdbr 0
-
-                setaxl
-
-                CALL INITEVALSP
-
-                ; Test: 6 / 3 = 2
-                LDA #<>TEST1
-                STA BIP
-                LDA #`TEST1
-                STA BIP+2
-
-                CALL EVALEXPR
-                ; LDX #<>ARGUMENT1    ; Get the result into ARGUMENT1
-                ; CALL PLARGUMENT
-
-                UT_M_EQ_LIT_W ARGUMENT1,2,"EXPECTED 2"
-
-                UT_END
-TEST1           .text "6",TOK_DIVIDE,"3",0
-                .pend
-
 TST_EVAL_MOD    .proc
                 UT_BEGIN "TST_EVAL_MOD"
 
@@ -505,7 +479,6 @@ TST_EVAL        .proc
                 CALL TST_OP_MINUS
                 CALL TST_OP_MULT
                 CALL TST_DIV10
-                CALL TST_EVAL_DIVIDE
                 CALL TST_EVAL_MOD
                 CALL TST_OP_PREC
                 CALL TST_OP_PROCESS
