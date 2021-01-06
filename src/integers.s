@@ -134,18 +134,19 @@ OP_INT_LT   .proc
             TRACE "OP_INT_LT"
 
             setal
-            LDA ARGUMENT1+2
-            CMP ARGUMENT2+2
-            BLT return_true
             LDA ARGUMENT1
             CMP ARGUMENT2
-            BLT return_true
+            LDA ARGUMENT1+2
+            SBC ARGUMENT2+2
+            BVC skip_eor
+            EOR #$8000
+skip_eor    BMI ret_true
 
-            STZ ARGUMENT1
+ret_false   STZ ARGUMENT1
             STZ ARGUMENT1+2
             BRA done
 
-return_true LDA #$FFFF
+ret_true    LDA #$FFFF
             STA ARGUMENT1
             STA ARGUMENT1+2
 
@@ -165,18 +166,26 @@ OP_INT_GT   .proc
             TRACE "OP_INT_GT"
 
             setal
-            LDA ARGUMENT2+2
-            CMP ARGUMENT1+2
-            BLT return_true
-            LDA ARGUMENT2
-            CMP ARGUMENT1
-            BLT return_true
+            LDA ARGUMENT1
+            CMP ARGUMENT2
+            BNE test_fully
+            LDA ARGUMENT1+2
+            CMP ARGUMENT2+2
+            BNE test_fully
 
-            STZ ARGUMENT1
+ret_false   STZ ARGUMENT1
             STZ ARGUMENT1+2
             BRA done
 
-return_true LDA #$FFFF
+test_fully  LDA ARGUMENT2
+            CMP ARGUMENT1
+            LDA ARGUMENT2+2
+            SBC ARGUMENT1+2
+            BVC skip_eor
+            EOR #$8000
+skip_eor    BPL ret_false
+
+ret_true    LDA #$FFFF
             STA ARGUMENT1
             STA ARGUMENT1+2
 
@@ -252,19 +261,25 @@ OP_INT_GTE  .proc
             TRACE "OP_INT_GTE"
 
             setal
-            LDA ARGUMENT1+2
-            CMP ARGUMENT2+2
-            BLT ret_false
-            BNE ret_true
-            
             LDA ARGUMENT1
             CMP ARGUMENT2
-            BLT ret_false
+            BNE test_fully
+            LDA ARGUMENT1+2
+            CMP ARGUMENT2+2
+            BNE test_fully
 
 ret_true    LDA #$FFFF
             STA ARGUMENT1
             STA ARGUMENT1+2
             BRA done
+
+test_fully  LDA ARGUMENT2
+            CMP ARGUMENT1
+            LDA ARGUMENT2+2
+            SBC ARGUMENT1+2
+            BVC skip_eor
+            EOR #$8000
+skip_eor    BMI ret_true
 
 ret_false   STZ ARGUMENT1
             STZ ARGUMENT1+2
@@ -283,23 +298,28 @@ OP_INT_LTE  .proc
             TRACE "OP_INT_LTE"
 
             setal
+            LDA ARGUMENT1
+            CMP ARGUMENT2
+            BNE test_fully
             LDA ARGUMENT1+2
             CMP ARGUMENT2+2
-            BLT ret_true
-            BEQ check_low
-
-ret_false   STZ ARGUMENT1
-            STZ ARGUMENT1+2
-            BRA done
-
-check_low   LDA ARGUMENT1
-            CMP ARGUMENT2
-            BEQ ret_true
-            BGE ret_false
+            BNE test_fully
 
 ret_true    LDA #$FFFF
             STA ARGUMENT1
             STA ARGUMENT1+2
+            BRA done
+
+test_fully  LDA ARGUMENT1
+            CMP ARGUMENT2
+            LDA ARGUMENT1+2
+            SBC ARGUMENT2+2
+            BVC skip_eor
+            EOR #$8000
+skip_eor    BMI ret_true
+
+ret_false   STZ ARGUMENT1
+            STZ ARGUMENT1+2
             
 done        PLP
             RETURN
