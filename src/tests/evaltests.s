@@ -470,27 +470,54 @@ TST_EVAL_NEG    .proc
 TEST1           .null "2 ", TOK_PLUS, " ", TOK_NEGATIVE, " 1 "
                 .pend
 
+
+; We can compare -1 to 1
+TST_EVAL_NEG2   .proc
+                UT_BEGIN "TST_EVAL_NEG2"
+
+                setdp GLOBAL_VARS
+                setdbr 0
+
+                CALL INITBASIC
+                CALL INITEVALSP
+
+                setaxl
+
+                LDA #<>TEST1
+                STA BIP
+                LDA #`TEST1
+                STA BIP+2
+
+                CALL EVALEXPR
+
+                UT_M_EQ_LIT_W ARGUMENT1,0,"EXPECTED 0"
+
+                UT_END
+TEST1           .null TOK_NEGATIVE, "1", TOK_NE, "1"
+                .pend
+
 ;
 ; Run all the evaluator tests
 ;
 TST_EVAL        .proc
-                CALL TST_PUSH_ARG
-                CALL TST_PUSH_OP
-                CALL TST_OP_MINUS
-                CALL TST_OP_MULT
-                CALL TST_DIV10
-                CALL TST_EVAL_MOD
-                CALL TST_OP_PREC
-                CALL TST_OP_PROCESS
-                CALL TST_EVAL_INT
-                CALL TST_EVAL_INT2
-                CALL TST_EVAL_HEX
-                CALL TST_EVAL_ADD
-                CALL TST_EVAL_MULT
-                CALL TST_EVAL_PREC1
-                CALL TST_EVAL_PREC2
-                CALL TST_EVAL_STR
-                CALL TST_EVAL_NEG
+                ; CALL TST_PUSH_ARG
+                ; CALL TST_PUSH_OP
+                ; CALL TST_OP_MINUS
+                ; CALL TST_OP_MULT
+                ; CALL TST_DIV10
+                ; CALL TST_EVAL_MOD
+                ; CALL TST_OP_PREC
+                ; CALL TST_OP_PROCESS
+                ; CALL TST_EVAL_INT
+                ; CALL TST_EVAL_INT2
+                ; CALL TST_EVAL_HEX
+                ; CALL TST_EVAL_ADD
+                ; CALL TST_EVAL_MULT
+                ; CALL TST_EVAL_PREC1
+                ; CALL TST_EVAL_PREC2
+                ; CALL TST_EVAL_STR
+                ; CALL TST_EVAL_NEG
+                CALL TST_EVAL_NEG2
 
                 UT_LOG "TST_EVAL: PASSED"
                 RETURN

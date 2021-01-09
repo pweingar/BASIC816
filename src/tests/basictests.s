@@ -4,7 +4,7 @@
 
 ; Get the unit test framework
 .include "unittests.s"
-; .include "evaltests.s"
+.include "evaltests.s"
 ; .include "heaptests.s"
 ; .include "stringtests.s"
 ; .include "floattests.s"
@@ -30,7 +30,7 @@ TST_BASIC       .proc
                 CALL UT_MSGCOLOR
                 TRACE "TST_BASIC"
                 ; CALL TST_HEAP
-                ; CALL TST_EVAL
+                CALL TST_EVAL
                 ; CALL TST_STRINGS
                 ; CALL TST_FLOATS
                 ; CALL TST_VARIABLES

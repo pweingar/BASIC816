@@ -274,19 +274,17 @@ error       THROW ERR_SYNTAX    ; Throw a syntax error (TODO: is this the right 
 ;   C is set if the condition is true, clear otherwise.
 ;
 OPHIGHPREC  .proc
-            TRACE_A "OPHIGHPREC"
-
+            PHA
             PHP
             PHD
             PHB
-            setal
-            PHA
+
+            TRACE_A "OPHIGHPREC"
 
             setdp GLOBAL_VARS
             setdbr `GLOBAL_VARS
 
             setas
-            setxl
 
             LDY OPERATORSP
             CPY #OPERATOR_TOP       ; Is the stack empty?
@@ -303,18 +301,18 @@ OPHIGHPREC  .proc
             BCC is_true             ; A < SCRATCH (A is higher priority), return false
 
 is_false    setal
-            PLA
             PLB
             PLD
             PLP
+            PLA
             CLC
             RETURN
 
 is_true     setal
-            PLA
             PLB                     ; A > SCRATCH (A is lower priority), return true
             PLD
             PLP
+            PLA
             SEC
             RETURN
             .pend
@@ -529,25 +527,35 @@ OPSTUB      CALL INCBIP         ; Skip past the token
 ;
 PROCESSOP   .proc
             TRACE "PROCESSOP"
-
+            PHA
             PHP
             PHD
             PHB
-            setal
-            PHA
 
             setdp GLOBAL_VARS
-            setaxl
 
+            setaxl
+            CALL PLOPERATOR     ; Pull the operator from the stack
+            BIT #$80            ; Check if it's really a token
+            BPL bad_token       ; No: it's a bad token
+
+            PHA
+
+            CALL TOKEVAL        ; Get the address of the token's evaluation function
+            STA JMP16PTR
+
+            PLA
+            CALL TOKARITY       ; Get the token's arity
+            CMP #1              ; Check the operator's arity
+            BEQ pull_arg1       ; If it's 1 just pull one argument from the stack
+
+            setaxl
             LDX #<>ARGUMENT2    ; Pull argument 2 from the stack
             CALL PLARGUMENT
 
+pull_arg1   setaxl
             LDX #<>ARGUMENT1    ; Pull argument 1 from the stack
             CALL PLARGUMENT
-
-            CALL PLOPERATOR     ; Pull the operator from the stack
-            CALL TOKEVAL        ; Get the address of the token's evaluation function
-            STA JMP16PTR
 
             setdbr 0
             CALL OPSTUB         ; Call the opcode's evaluation function via the indirection stub
@@ -555,11 +563,14 @@ PROCESSOP   .proc
             LDX #<>ARGUMENT1    ; Get return result in argument 1
             CALL PHARGUMENT     ; And push it back to the argument stack
 
-            PLA
             PLB
             PLD
             PLP
+            PLA
             RETURN
+
+bad_token   BRK
+            NOP
 
 OPSTUB      JMP (JMP16PTR)      ; Annoying JMP to get around the fact we don't have an indirect JSR
             .pend

@@ -404,3 +404,44 @@ is_float    CALL OP_FP_LTE          ; Yes: evaluate the floating point operator
 done        PLP
             RETURN
             .pend
+
+;
+; Negative -- special operator to convert its argument to a negative number
+;
+; Negative is special, since it does not include parenthesis around the argument
+;
+OP_NEGATIVE     .proc
+                PHP
+                TRACE "OP_NEGATIVE"
+                
+                setas               
+                LDA ARGTYPE1                ; Check the type of the argument
+                CMP #TYPE_INTEGER
+                BEQ int_negate              ; If integer: negate the integer
+                CMP #TYPE_FLOAT
+                BEQ float_negate            ; If floating point: negate the floating point
+
+type_error      THROW ERR_TYPE              ; Otherwise, throw an error
+
+float_negate    setas
+                LDA ARGUMENT1+3             ; Flip the sign bit of the floating point number
+                EOR #$80
+                STA ARGUMENT1+3
+                BRA done
+
+int_negate      setal
+                LDA ARGUMENT1               ; Invert ARGUMENT1
+                EOR #$FFFF
+                STA ARGUMENT1
+                LDA ARGUMENT1+2
+                EOR #$FFFF
+                STA ARGUMENT1+2
+
+                INC ARGUMENT1               ; And increment to get two's complement
+                BNE done
+                INC ARGUMENT1+2
+
+done            TRACE "/OP_NEGATIVE"
+                PLP
+                RETURN
+                .pend

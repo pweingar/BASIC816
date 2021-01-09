@@ -6,19 +6,19 @@
 ; Token structure and macro
 ;
 
-TOKEN       .struct name, length, precedence, eval, print
+TOKEN       .struct name, length, precedence, eval, arity
 precedence  .byte \precedence
 length      .byte \length
 name        .word <>\name
 eval        .word <>\eval
-print       .word <>\print
+arity       .word <>\arity
             .ends
 
-DEFTOK      .macro  ; NAME, TYPE, PRECEDENCE, EVALUATE, PRINT
+DEFTOK      .macro name, type, precedence, evaluate, arity
             .section data
-TOKEN_TEXT  .null \1
+TOKEN_TEXT  .null \name
             .send data
-            .dstruct TOKEN,TOKEN_TEXT,len(\1),\2 | \3,\4,\5
+            .dstruct TOKEN,TOKEN_TEXT,len(\name),\type | \precedence,\evaluate,\arity
             .endm
 
 ;
@@ -759,6 +759,38 @@ TOKTYPE     .proc
             RETURN
             .pend
 
+;
+; Return the token arity for the given token. Only really used for operators
+;
+; Inputs:
+;   A = the token ID
+;
+; Outputs:
+;   A = the arity of the token (0, 1, 2)
+;
+TOKARITY    .proc
+            PHP
+            PHB
+            PHD
+
+            setdp GLOBAL_VARS
+            setdbr `TOKENS
+
+            setas
+            setxl
+
+            CALL GETTOKREC              ; Get the address of the token record into X
+            LDA #TOKEN.arity,B,X        ; Get the arity
+
+            setal
+            AND #$00FF
+            
+            PLD
+            PLB
+            PLP
+            RETURN
+            .pend
+
 ;;;
 ;;; Token Table
 ;;;
@@ -780,35 +812,35 @@ TOK_TY_BYWRD = $50      ; The token is a by-word (e.g. STEP, TO, WEND, etc.)
 
 TOKENS      
 TOK_PLUS = $80
-            DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 0
+            DEFTOK "+", TOK_TY_OP, 3, OP_PLUS, 2
 TOK_MINUS = $81
-            DEFTOK "-", TOK_TY_OP, 3, OP_MINUS, 0
+            DEFTOK "-", TOK_TY_OP, 3, OP_MINUS, 2
 TOK_MULT = $82
-            DEFTOK "*", TOK_TY_OP, 2, OP_MULTIPLY, 0
+            DEFTOK "*", TOK_TY_OP, 2, OP_MULTIPLY, 2
 TOK_DIVIDE = $83
-            DEFTOK "/", TOK_TY_OP, 2, OP_DIVIDE, 0
+            DEFTOK "/", TOK_TY_OP, 2, OP_DIVIDE, 2
 TOK_MOD = $84
-            DEFTOK "MOD", TOK_TY_OP, 2, OP_MOD, 0
+            DEFTOK "MOD", TOK_TY_OP, 2, OP_MOD, 2
 ; $85
-            DEFTOK "^", TOK_TY_OP, 0, 0, 0  
+            DEFTOK "^", TOK_TY_OP, 0, 0, 2
 TOK_LE = $86
-            DEFTOK "<=", TOK_TY_OP, 4, OP_LTE, 0
+            DEFTOK "<=", TOK_TY_OP, 4, OP_LTE, 2
 TOK_GE = $87
-            DEFTOK ">=", TOK_TY_OP, 4, OP_GTE, 0
+            DEFTOK ">=", TOK_TY_OP, 4, OP_GTE, 2
 TOK_NE = $88
-            DEFTOK "<>", TOK_TY_OP, 4, OP_NE, 0
+            DEFTOK "<>", TOK_TY_OP, 4, OP_NE, 2
 ; $89
-            DEFTOK "<", TOK_TY_OP, 4, OP_LT, 0
+            DEFTOK "<", TOK_TY_OP, 4, OP_LT, 2
 TOK_EQ = $8A
-            DEFTOK "=", TOK_TY_OP, 4, OP_EQ, 0
+            DEFTOK "=", TOK_TY_OP, 4, OP_EQ, 2
 ; TOK_GT = $8B
-            DEFTOK ">", TOK_TY_OP, 4, OP_GT, 0
+            DEFTOK ">", TOK_TY_OP, 4, OP_GT, 2
 ; TOK_NOT = $8C
-            DEFTOK "NOT", TOK_TY_OP, 5, OP_NOT, 0
+            DEFTOK "NOT", TOK_TY_OP, 5, OP_NOT, 1
 ; $8D
-            DEFTOK "AND", TOK_TY_OP, 6, OP_AND, 0 
+            DEFTOK "AND", TOK_TY_OP, 6, OP_AND, 2 
 ; $8E
-            DEFTOK "OR", TOK_TY_OP, 7, OP_OR, 0 
+            DEFTOK "OR", TOK_TY_OP, 7, OP_OR, 2
 TOK_LPAREN = $8F
             DEFTOK "(", TOK_TY_PUNCT, $FF, 0, 0
 TOK_RPAREN = $90
@@ -879,7 +911,7 @@ TOK_DATA = $AB
             ; Functions
 
 TOK_NEGATIVE = $AF
-            DEFTOK "-", TOK_TY_FUNC, 0, FN_NEGATIVE, 0
+            DEFTOK "-", TOK_TY_OP, 0, OP_NEGATIVE, 1
 ; $B0
             DEFTOK "LEN", TOK_TY_FUNC, 0, FN_LEN, 0
 ; $B1

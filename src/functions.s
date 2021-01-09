@@ -49,6 +49,7 @@ FN_NEGATIVE     .proc
                 
                 setas
                 CALL EVALEXPR               ; Get the argument
+                
                 LDA ARGTYPE1                ; Check the type of the argument
                 CMP #TYPE_INTEGER
                 BEQ int_negate              ; If integer: negate the integer
@@ -75,9 +76,9 @@ int_negate      setal
                 BNE done
                 INC ARGUMENT1+2
 
-                BRK
-
 done            TRACE "/FN_NEGATIVE"
+
+                BRK
 
                 PLP
                 RETURN
