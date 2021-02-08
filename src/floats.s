@@ -551,7 +551,8 @@ ITOF            .proc
                 STA ARGTYPE1
                 BRL done
 
-non_zero        BPL is_positive         ; Check if the number is negative
+non_zero        LDA ARGUMENT1+2
+                BPL is_positive         ; Check if the number is negative
 
                 ; If negative, we need to convert it to positive and set the negative flag
 
