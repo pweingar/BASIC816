@@ -537,7 +537,7 @@ PROCESSOP   .proc
             setaxl
             CALL PLOPERATOR     ; Pull the operator from the stack
             BIT #$80            ; Check if it's really a token
-            BPL bad_token       ; No: it's a bad token
+            BEQ bad_token       ; No: it's a bad token
 
             PHA
 
