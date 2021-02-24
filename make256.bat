@@ -7,7 +7,7 @@ REM The name portion of the top source file and all generated files
 set SOURCE=basic816
 
 REM The location of 64TASS
-set TASSHOME=d:\64tass
+set TASSHOME=d:\64tass\64tass-1.55.2200
 
 REM 1 = C64 with SuperCPU, 2 = C256
 set SYSTEM=2
