@@ -532,94 +532,41 @@ s11_shift       CALL SHIFTDEC           ; Shift the decimal digit onto ARGUMENT1
 ITOF            .proc
                 PHP
                 TRACE "ITOF"
-
                 setas
-; exponent = 2                            ; local: byte _exponent = 127
-                LDA #127+23
-                STA SCRATCH             ; SCRATCH is the exponent
+                ; Convert both inputs from 20:12 fixed point
+                LDA #FP_CTRL0_CONV_0 | FP_CTRL0_CONV_1
+                STA @l FP_MATH_CTRL0
 
-; negative = 1                            ; local: byte _negative = 0
-                LDA #0
-                STA SCRATCH+1           ; SCRATCH + 1 is the negative flag
+                LDA #FP_OUT_MULT
+                STA @l FP_MATH_CTRL1
 
-                setaxl
-                LDA ARGUMENT1           ; Check to see if the input is 0
-                BNE non_zero
+                setal
+                LDA ARGUMENT1               ; Send ARGUMENT1 to the math coprocessor
+                STA @l FP_MATH_INPUT0_LL
                 LDA ARGUMENT1+2
-                BNE non_zero
+                STA @l FP_MATH_INPUT0_HL
+
+	        LDA #0
+	        STA @l FP_MATH_INPUT1_LL ; ARGUMENT2 = 0100 0000 = 4096 in 20:12
+	        LDA #$0100
+                STA @l FP_MATH_INPUT1_HL
+
+                NOP
+                NOP
+                NOP
 
                 setas
-                LDA #TYPE_FLOAT         ; If so, just set the type to float
-                STA ARGTYPE1
-                BRL done
+                LDA @l FP_MATH_MULT_STAT    ; Check the status of the addition
+                AND #%00000111              ; Filter out the ZERO status
+                BEQ noerr
+                BRL fp_mul_error            ; If an issue was raise, process the math error
 
-non_zero        LDA ARGUMENT1+2
-                BPL is_positive         ; Check if the number is negative
+noerr           setal
 
-                ; If negative, we need to convert it to positive and set the negative flag
-
-                setal
-                SEC                     ; ARGUMENT1 <-- ABS(ARGUMENT1)
-                LDA #0
-                SBC ARGUMENT1
+                LDA @l FP_MATH_OUTPUT_FP_LL ; Retrieve the results into ARGUMENT1
                 STA ARGUMENT1
-                LDA #0
-                SBC ARGUMENT1+2
+                LDA @l FP_MATH_OUTPUT_FP_HL
                 STA ARGUMENT1+2
-
-                setas
-                LDA #$80                ; _negative = true
-                STA SCRATCH+1
-
-is_positive     setal
-                LDA ARGUMENT1+2         ; Check the high bits
-                AND #$FF80
-                BEQ shift_left          ; If zero... we need to shift the bits left
-                CMP #$0080              ; Is the most significant 1 in the 1's digit?
-                BEQ pack_fp             ; Yes: pack the FP up for return
-
-shift_right     LSR ARGUMENT1+2         ; Shift the integer right one bit
-                ROR ARGUMENT1
-
-                setas          
-                INC SCRATCH             ; exponent = exponent + 1
-                setal
-
-                LDA ARGUMENT1+2         ; Check to see if the most significant 1 is
-                AND #$FF80              ; Now in the 1's position
-                CMP #$0080
-                BNE shift_right         ; If not, keep shifting right
-                BRL pack_fp             ; If so, pack the floating point number
-
-shift_left      ASL ARGUMENT1           ; Shift the integer left one bit
-                ROL ARGUMENT1+2
-
-                setas          
-                DEC SCRATCH             ; exponent = exponent - 1
-                setal
-
-                LDA ARGUMENT1+2         ; Check to see if the most significant 1 is
-                AND #$FF80              ; Now in the 1's position
-                CMP #$0080
-                BNE shift_left          ; If not, keep shifting
-
-pack_fp         setas
-                LDA ARGUMENT1+2         ; Clear a spot for the LSB of the exponent
-                AND #$7F
-                STA ARGUMENT1+2
-
-                LDA SCRATCH             ; Set the exponent and sign
-                LSR A
-                ORA SCRATCH+1
-                STA ARGUMENT1+3
-
-                LDA #0                  ; Set the LSB of the exponent
-                ROR A
-                ORA ARGUMENT1+2
-                STA ARGUMENT1+2
-
-                LDA #TYPE_FLOAT         ; Set the type to float
-                STA ARGTYPE1
 
 done            TRACE "/ITOF"
                 PLP
