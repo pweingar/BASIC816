@@ -460,6 +460,8 @@ s8_shift        CALL SHIFTDEC           ; Shift the decimal digit onto ARGUMENT1
                 
                 LDA @l M0_RESULT        ; And save it back to MARG3
                 STA MARG3
+                LDA @l M0_RESULT+2
+                STA MARG3+2
                 setas
 
 s8_drop         INY
