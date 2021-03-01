@@ -558,6 +558,9 @@ ITOF            .proc
                 LDA @l FP_MATH_OUTPUT_FP_HL
                 STA ARGUMENT1+2
 
+                LDA #TYPE_FLOAT
+                STA ARGTYPE1
+
 done            TRACE "/ITOF"
                 PLP
                 RETURN
