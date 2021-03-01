@@ -451,8 +451,16 @@ s8_mantissa     ; Save the integer part of the mantissa and move to S8
 
 s8_shift        CALL SHIFTDEC           ; Shift the decimal digit onto ARGUMENT1
 
+; multiply MARG3 (the divisor of the fractional part)... by 10
                 setal
-                LDA MARG3               ; Get MARG3 (the divisor of the fractional part)...
+                LDA MARG3+2             ; high 16 bits
+                STA @l M0_OPERAND_A
+                LDA #10                 ; Multiply it by 10
+                STA @l M0_OPERAND_B
+                LDA @l M0_RESULT        ; And save it back to high 16 bits of MARG3
+                STA MARG3+2
+
+                LDA MARG3
                 STA @l M0_OPERAND_A
 
                 LDA #10                 ; Multiply it by 10
@@ -461,6 +469,8 @@ s8_shift        CALL SHIFTDEC           ; Shift the decimal digit onto ARGUMENT1
                 LDA @l M0_RESULT        ; And save it back to MARG3
                 STA MARG3
                 LDA @l M0_RESULT+2
+                CLC
+                ADC MARG3+2
                 STA MARG3+2
                 setas
 
