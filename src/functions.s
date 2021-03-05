@@ -932,3 +932,64 @@ done            FN_END
                 RETURN
 type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
+
+;
+; SIN(value) -- Compute the sine of value
+;
+FN_SIN          .proc
+                FN_START "FN_SIN"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+                CALL ASS_ARG1_FLOAT ; Make sure the input is a float
+                CALL FP_SIN         ; Compute the natural log
+
+done            FN_END
+                RETURN
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
+;
+; COS(value) -- Compute the cosine of value
+;
+FN_COS          .proc
+                FN_START "FN_COS"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+                CALL ASS_ARG1_FLOAT ; Make sure the input is a float
+                CALL FP_COS         ; Compute the natural log
+
+done            FN_END
+                RETURN
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
+;
+; TAN(value) -- Compute the tangent of value
+;
+FN_TAN          .proc
+                FN_START "FN_TAN"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+                CALL ASS_ARG1_FLOAT ; Make sure the input is a float
+                CALL FP_TAN         ; Compute the natural log
+
+done            FN_END
+                RETURN
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
+;
+; LN(value) -- Compute the natural log of value
+;
+FN_LN          .proc
+                FN_START "FN_LN"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+                CALL ASS_ARG1_FLOAT ; Make sure the input is a float
+                CALL FP_LN          ; Compute the natural log
+
+done            FN_END
+                RETURN
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
+
