@@ -995,7 +995,7 @@ L_X1            .byte ?                     ; The binary exponent
 L_EXP           .byte ?                     ; The decimal exponent
                 .endv
  
-                CALL FARG1EQ0               ; If N is zero, output a zero and end.
+                CALL FARG1EQ0               ; If N is zero, output a space, a zero and end.
                 BCC chk_negative
 
                 TRACE "is_zero"
@@ -1003,6 +1003,10 @@ L_EXP           .byte ?                     ; The decimal exponent
                 CALL TEMPSTRING
 
                 setas
+                LDY #0
+                LDA #' '
+                STA [STRPTR],Y
+                INY
                 LDA #'0'                    ; Return a "0"
                 STA [STRPTR],Y
                 INY
