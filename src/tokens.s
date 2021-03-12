@@ -1041,4 +1041,6 @@ TOK_RECT = $E7
 
             DEFTOK "LN", TOK_TY_FUNC, 0, FN_LN, 0
 
+            DEFTOK "SCALETAU", TOK_TY_FUNC, 0, FN_SCALETAU, 0
+
             .word 0, 0, 0, 0

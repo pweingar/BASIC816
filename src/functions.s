@@ -972,7 +972,19 @@ FN_TAN          .proc
                 CALL EVALEXPR       ; Evaluate the first expression
                 CALL ASS_ARG1_FLOAT ; Make sure the input is a float
                 CALL FP_TAN         ; Compute the natural log
+done            FN_END
+                RETURN
+type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
+                .pend
 
+;
+; SCALEATU(value): reduce value to the range [0, 2*pi)
+;
+FN_SCALETAU     .proc
+                FN_START "FN_SCALETAU"
+                CALL EVALEXPR
+                CALL ASS_ARG1_FLOAT
+                CALL FP_SCALE
 done            FN_END
                 RETURN
 type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
