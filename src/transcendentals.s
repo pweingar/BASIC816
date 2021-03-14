@@ -142,8 +142,10 @@ compute         LDA #FP_ADD_IN0_MUX0 | FP_ADD_IN1_MUX1
                 STA @l FP_MATH_CTRL1
                 setaxl
                 LDA @l twopi001
+                STA ARGUMENT2
                 STA @l FP_MATH_INPUT1_LL
                 LDA @l twopi001+2
+                STA ARGUMENT2+2
                 STA @l FP_MATH_INPUT1_HL
                 CALL Q_FP_SCALE
                 setas
@@ -151,9 +153,9 @@ compute         LDA #FP_ADD_IN0_MUX0 | FP_ADD_IN1_MUX1
                 setal
                 BEQ done
                 LDA ARGUMENT1
-                STA @l FP_MATH_INPUT1_LL
+                STA @l FP_MATH_INPUT0_LL
                 LDA ARGUMENT1+2
-                STA @l FP_MATH_INPUT1_HL
+                STA @l FP_MATH_INPUT0_HL
                 NOP
                 NOP
                 NOP
@@ -174,22 +176,37 @@ Q_FP_NORM_ANGLE .proc
                 CMP @l onepi
                 LDA ARGUMENT1+2
                 SBC @l onepi+2
-                BPL ltonepi
+                BCC ltonepi
         ;; between pi and 2*pi. At this point, ARGUMENT2 should already
         ;; be 2*pi, and the fp copro should be set up to subtract
         ;; input 1 (ARGUMENT2) from input 0, but we need to copy
         ;; ARGUMENT1 into input 0
-                LDA ARGUMENT1
+                ;; LDA ARGUMENT1
+                ;; STA @l FP_MATH_INPUT0_LL
+                ;; LDA ARGUMENT1+2
+                ;; STA @l FP_MATH_INPUT0_HL
+                ;; NOP
+                ;; NOP
+                ;; NOP
+                ;; LDA @l FP_MATH_OUTPUT_FP_LL
+                ;; STA ARGUMENT1
+                ;; LDA @l FP_MATH_OUTPUT_FP_HL
+                ;; AND #$7F00
+                ;; STA ARGUMENT1+2
+                LDA @l twopi001
                 STA @l FP_MATH_INPUT0_LL
-                LDA ARGUMENT1+2
+                LDA @l twopi001+2
                 STA @l FP_MATH_INPUT0_HL
+                LDA ARGUMENT1
+                STA @l FP_MATH_INPUT1_LL
+                LDA ARGUMENT1+2
+                STA @l FP_MATH_INPUT1_HL
                 NOP
                 NOP
                 NOP
                 LDA @l FP_MATH_OUTPUT_FP_LL
                 STA ARGUMENT1
                 LDA @l FP_MATH_OUTPUT_FP_HL
-                ORA #$8000
                 STA ARGUMENT1+2
                 SEC
 ltonepi         TXA
@@ -199,7 +216,7 @@ ltonepi         TXA
                 CMP @l halfpi
                 LDA ARGUMENT1+2
                 SBC @l halfpi+2
-                BPL lthalfpi
+                BCC lthalfpi
                 LDA @l onepi
                 STA @l FP_MATH_INPUT0_LL
                 LDA @l onepi+2
@@ -223,7 +240,7 @@ lthalfpi        TXA
                 CMP @l quarterpi
                 LDA ARGUMENT1+2
                 CMP @l quarterpi+2
-                BPL ltquarterpi
+                BCC ltquarterpi
                 LDA @l halfpi
                 STA @l FP_MATH_INPUT0_LL
                 LDA @l halfpi+2
@@ -443,14 +460,15 @@ FP_SIN          .proc
                 PHX
                 CALL Q_FP_SCALE_TAU
                 CALL Q_FP_NORM_ANGLE
-                BRA DONE
+                PHX
                 TXA
                 AND #1
                 BNE do_cos
                 CALL Q_FP_SIN
                 BRA maybe_neg
 do_cos          CALL Q_FP_COS
-maybe_neg       TXA
+maybe_neg       PLX
+                TXA
                 AND #4
                 BEQ done
                 setas
@@ -471,13 +489,15 @@ FP_COS          .proc
                 PHX
                 CALL Q_FP_SCALE_TAU
                 CALL Q_FP_NORM_ANGLE
+                PHX
                 TXA
-                AND #2
+                AND #1
                 BNE do_sin
                 CALL Q_FP_COS
                 BRA maybe_neg
 do_sin          CALL Q_FP_SIN
-maybe_neg       TXA
+maybe_neg       PLX
+                TXA
                 AND #2
                 BEQ done
                 setas
@@ -497,6 +517,7 @@ FP_TAN          .proc
                 PHA
                 PHX
                 CALL Q_FP_SCALE_TAU
+                CALL Q_FP_NORM_ANGLE
                 CALL Q_FP_TAN
                 PLX
                 PLA
