@@ -1142,7 +1142,7 @@ S_PLOT          .proc
 
                 ; Set up local storage
 locals          .virtual 1,S
-L_PLANE
+L_PLANE         .word ?
 L_X             .word ?
 L_Y             .word ?
                 .endv
