@@ -8,6 +8,47 @@
 .include "math_cop.s"
 
 ;
+; Take an integer in ARGUMENT1 and convert it to a floating point using the C256's coprocessor
+;
+FIXINT_TO_FP        .proc
+                    PHP
+
+                    setas
+                    ; Convert both inputs from 20:12 fixed point
+                    LDA #FP_CTRL0_CONV_0 | FP_CTRL0_CONV_1
+                    STA @l FP_MATH_CTRL0
+
+                    LDA #FP_OUT_MULT
+                    STA @l FP_MATH_CTRL1
+
+                    setal
+                    LDA ARGUMENT1               ; Send ARGUMENT1 to the math coprocessor
+                    STA @l FP_MATH_INPUT0_LL
+                    LDA ARGUMENT1+2
+                    STA @l FP_MATH_INPUT0_HL
+
+                    LDA #0
+                    STA @l FP_MATH_INPUT1_LL    ; ARGUMENT2 = 0100 0000 = 4096 in 20:12
+                    LDA #$0100
+                    STA @l FP_MATH_INPUT1_HL
+
+                    NOP
+                    NOP
+                    NOP
+
+                    LDA @l FP_MATH_OUTPUT_FP_LL ; Retrieve the results into ARGUMENT1
+                    STA ARGUMENT1
+                    LDA @l FP_MATH_OUTPUT_FP_HL
+                    STA ARGUMENT1+2
+
+                    LDA #TYPE_FLOAT
+                    STA ARGTYPE1
+
+                    PLP
+                    RETURN
+                    .pend
+
+;
 ; Take the float in ARGUMENT1 and convert it to an integer using the fixed point converter
 ;
 FP_TO_FIXINT        .proc
