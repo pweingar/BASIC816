@@ -1054,9 +1054,9 @@ shift_down      TRACE "shift_down"
                 STA L_K                     ; Increment K
 
                 CALL FP_COMPARE
-                CMP #0                      ; Is N < 10^(D-1)?
-                BGE shift_down              ; No: keep dividing
-                BRL do_digits               ; Yes: we're ready to process digits
+                CMP #$FFFF                  ; Is N < 10^(D-1)?
+                BEQ do_digits               ; Yes: we're ready to process digits
+                BRA shift_down              ; No: keep dividing           
                 
 shift_up        TRACE "shift_up"
                 ; If N < 10 ^ (D-1), then multiply N by 10 until N >= 10 ^ (D-1), and decrement K each time you multiply by 10.
