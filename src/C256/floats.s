@@ -55,20 +55,21 @@ FP_TO_FIXINT        .proc
                     PHP
 
                     setas
-                    LDA #FP_MATH_CTRL0_ADD | FP_ADD_IN0_MUX0 | FP_ADD_IN1_MUX1 | FP_CTRL0_CONV_0
+                    LDA #FP_CTRL0_CONV_1
                     STA @l FP_MATH_CTRL0
 
-                    LDA #FP_OUT_ADD
+                    LDA #FP_OUT_DIV
                     STA @l FP_MATH_CTRL1
 
                     setal
-                    LDA #0
+                    LDA ARGUMENT1
                     STA @l FP_MATH_INPUT0_LL
+                    LDA ARGUMENT1+2
                     STA @l FP_MATH_INPUT0_HL
 
-                    LDA ARGUMENT1
-                    STA @l FP_MATH_INPUT1_LL
-                    LDA ARGUMENT1+2
+                    LDA #0
+                    STA @l FP_MATH_INPUT1_LL    ; ARGUMENT2 = 0100 0000 = 4096 in 20:12
+                    LDA #$0100
                     STA @l FP_MATH_INPUT1_HL
 
                     NOP
@@ -82,27 +83,6 @@ FP_TO_FIXINT        .proc
                     STA ARGUMENT1
                     LDA @l FP_MATH_OUTPUT_FIXED_HL
                     STA ARGUMENT1+2
-
-                    setas
-                    LDA ARGUMENT1+1                 ; Shift ARGUMENT1 down by 8 bits
-                    STA ARGUMENT1
-                    LDA ARGUMENT1+2
-                    STA ARGUMENT1+1
-                    LDA ARGUMENT1+3
-                    STA ARGUMENT1+2
-                    BMI is_negative                 ; ... with sign extension
-                    STZ ARGUMENT1+3
-                    BRA shift
-is_negative         LDA #$FF
-                    STA ARGUMENT1+3
-
-shift               setal
-                    .rept 4                         ; Shift ARGUMENT1 down by another 4 bits
-                    LDA ARGUMENT1+2
-                    ASL A                           ; ... with sign extension
-                    ROR ARGUMENT1+2
-                    ROR ARGUMENT1
-                    .next
 
                     setas
                     LDA #TYPE_INTEGER
