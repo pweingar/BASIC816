@@ -141,10 +141,10 @@ compute         LDA #FP_ADD_IN0_MUX0 | FP_ADD_IN1_MUX1
                 LDA #FP_OUT_ADD
                 STA @l FP_MATH_CTRL1
                 setaxl
-                LDA @l twopi001
+                LDA @l twopi
                 STA ARGUMENT2
                 STA @l FP_MATH_INPUT1_LL
-                LDA @l twopi001+2
+                LDA @l twopi+2
                 STA ARGUMENT2+2
                 STA @l FP_MATH_INPUT1_HL
                 CALL Q_FP_SCALE
@@ -171,31 +171,17 @@ done
 Q_FP_NORM_ANGLE .proc
                 .al
                 .xl
+                PHY
                 LDX #0
-                LDA ARGUMENT1
-                CMP @l onepi
+                LDY #0
+loop            LDA ARGUMENT1
+                CMP @l onepi,x
                 LDA ARGUMENT1+2
-                SBC @l onepi+2
-                BCC ltonepi
-        ;; between pi and 2*pi. At this point, ARGUMENT2 should already
-        ;; be 2*pi, and the fp copro should be set up to subtract
-        ;; input 1 (ARGUMENT2) from input 0, but we need to copy
-        ;; ARGUMENT1 into input 0
-                ;; LDA ARGUMENT1
-                ;; STA @l FP_MATH_INPUT0_LL
-                ;; LDA ARGUMENT1+2
-                ;; STA @l FP_MATH_INPUT0_HL
-                ;; NOP
-                ;; NOP
-                ;; NOP
-                ;; LDA @l FP_MATH_OUTPUT_FP_LL
-                ;; STA ARGUMENT1
-                ;; LDA @l FP_MATH_OUTPUT_FP_HL
-                ;; AND #$7F00
-                ;; STA ARGUMENT1+2
-                LDA @l twopi001
+                SBC @l onepi+2,x
+                BCC less
+                LDA @l twopi,x
                 STA @l FP_MATH_INPUT0_LL
-                LDA @l twopi001+2
+                LDA @l twopi+2,x
                 STA @l FP_MATH_INPUT0_HL
                 LDA ARGUMENT1
                 STA @l FP_MATH_INPUT1_LL
@@ -209,57 +195,18 @@ Q_FP_NORM_ANGLE .proc
                 LDA @l FP_MATH_OUTPUT_FP_HL
                 STA ARGUMENT1+2
                 SEC
-ltonepi         TXA
+less            TYA
                 ROL
+                TAY
+                INX
+                INX
+                INX
+                INX
+                CPX #12
+                BNE loop
+                TYA
                 TAX
-                LDA ARGUMENT1
-                CMP @l halfpi
-                LDA ARGUMENT1+2
-                SBC @l halfpi+2
-                BCC lthalfpi
-                LDA @l onepi
-                STA @l FP_MATH_INPUT0_LL
-                LDA @l onepi+2
-                STA @l FP_MATH_INPUT0_HL
-                LDA ARGUMENT1
-                STA @l FP_MATH_INPUT1_LL
-                LDA ARGUMENT1+2
-                STA @l FP_MATH_INPUT1_HL
-                NOP
-                NOP
-                NOP
-                LDA @l FP_MATH_OUTPUT_FP_LL
-                STA ARGUMENT1
-                LDA @l FP_MATH_OUTPUT_FP_HL
-                STA ARGUMENT1+2
-                SEC
-lthalfpi        TXA
-                ROL
-                TAX
-                LDA ARGUMENT1
-                CMP @l quarterpi
-                LDA ARGUMENT1+2
-                CMP @l quarterpi+2
-                BCC ltquarterpi
-                LDA @l halfpi
-                STA @l FP_MATH_INPUT0_LL
-                LDA @l halfpi+2
-                STA @l FP_MATH_INPUT0_HL
-                LDA ARGUMENT1
-                STA @l FP_MATH_INPUT1_LL
-                LDA ARGUMENT1+2
-                STA @l FP_MATH_INPUT1_HL
-                NOP
-                NOP
-                NOP
-                LDA @l FP_MATH_OUTPUT_FP_LL
-                STA ARGUMENT1
-                LDA @l FP_MATH_OUTPUT_FP_HL
-                STA ARGUMENT1+2
-                SEC
-ltquarterpi     TXA
-                ROL
-                TAX
+                PLY
                 RETURN
                 .pend
 
@@ -554,9 +501,7 @@ eexp16          .dword $4B07975F
 eexp04          .dword $425A6481
 eexp01          .dword $402DF854
 
-twopi100        .dword $441D1463
-twopi010        .dword $427B53D1
-twopi001        .dword $40C90FDB
+twopi           .dword $40C90FDB
 onepi           .dword $40490FDB
 halfpi          .dword $3FC90FDB
 quarterpi       .dword $3F490FDB
