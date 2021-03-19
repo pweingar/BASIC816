@@ -12,6 +12,7 @@
 ;
 FIXINT_TO_FP        .proc
                     PHP
+                    TRACE "FIXINT_TO_FP"
 
                     setas
                     ; Convert both inputs from 20:12 fixed point
@@ -35,6 +36,9 @@ FIXINT_TO_FP        .proc
                     NOP
                     NOP
                     NOP
+                    NOP
+                    NOP
+                    NOP
 
                     LDA @l FP_MATH_OUTPUT_FP_LL ; Retrieve the results into ARGUMENT1
                     STA ARGUMENT1
@@ -51,26 +55,66 @@ FIXINT_TO_FP        .proc
 ;
 ; Take the float in ARGUMENT1 and convert it to an integer using the fixed point converter
 ;
+; NOTE: this is currently not working correctly:
+; A=1234.0
+; B%=A
+; B% will not be equal to 1234
+;
+; This error appears to have something to do either with parsing the decimal point or with calls
+; to the floating point coprocessor... adding the code below to clear the FP registers changed the results.
+;
 FP_TO_FIXINT        .proc
                     PHP
+                    TRACE "FP_TO_FIXINT"
 
                     setas
+                    LDA #0
+                    STA @l FP_MATH_CTRL0
+                    STA @l FP_MATH_CTRL1
+                    STA @l FP_MATH_INPUT0_LL
+                    STA @l FP_MATH_INPUT0_LL+1
+                    STA @l FP_MATH_INPUT0_LL+2
+                    STA @l FP_MATH_INPUT0_LL+3
+                    STA @l FP_MATH_INPUT1_LL
+                    STA @l FP_MATH_INPUT1_LL+1
+                    STA @l FP_MATH_INPUT1_LL+2
+                    STA @l FP_MATH_INPUT1_LL+3
+                    STA @l FP_MATH_INPUT1_LL+4
+
+                    NOP
+                    NOP
+                    NOP
+                    NOP
+                    NOP
+                    NOP
+                    NOP
+                    NOP
+                    NOP
+                    NOP
+                    NOP
+                    NOP
+
                     LDA #FP_CTRL0_CONV_1
                     STA @l FP_MATH_CTRL0
 
                     LDA #FP_OUT_DIV
                     STA @l FP_MATH_CTRL1
 
-                    setal
                     LDA ARGUMENT1
                     STA @l FP_MATH_INPUT0_LL
+                    LDA ARGUMENT1+1
+                    STA @l FP_MATH_INPUT0_LL+1
                     LDA ARGUMENT1+2
-                    STA @l FP_MATH_INPUT0_HL
+                    STA @l FP_MATH_INPUT0_LL+2
+                    LDA ARGUMENT1+3
+                    STA @l FP_MATH_INPUT0_LL+3
 
                     LDA #0
                     STA @l FP_MATH_INPUT1_LL    ; ARGUMENT2 = 0100 0000 = 4096 in 20:12
-                    LDA #$0100
-                    STA @l FP_MATH_INPUT1_HL
+                    STA @l FP_MATH_INPUT1_LL+1
+                    STA @l FP_MATH_INPUT1_LL+2
+                    LDA #$01
+                    STA @l FP_MATH_INPUT1_LL+3
 
                     NOP
                     NOP
@@ -81,10 +125,13 @@ FP_TO_FIXINT        .proc
 
                     LDA @l FP_MATH_OUTPUT_FIXED_LL
                     STA ARGUMENT1
-                    LDA @l FP_MATH_OUTPUT_FIXED_HL
+                    LDA @l FP_MATH_OUTPUT_FIXED_LL+1
+                    STA ARGUMENT1+1
+                    LDA @l FP_MATH_OUTPUT_FIXED_LL+2
                     STA ARGUMENT1+2
+                    LDA @l FP_MATH_OUTPUT_FIXED_LL+3
+                    STA ARGUMENT1+3
 
-                    setas
                     LDA #TYPE_INTEGER
                     STA ARGTYPE1
 

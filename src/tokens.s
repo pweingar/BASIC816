@@ -1031,6 +1031,6 @@ TOK_RECT = $E7
 ; $E8
             DEFTOK "LOCATE", TOK_TY_STMNT, 0, S_LOCATE, 0               ; Token for LOCATE statement
 ; $E9
-            ; DEFTOK "LOG", TOK_TY_FUNC, 0, FN_LOG, 0
+            DEFTOK "INT", TOK_TY_FUNC, 0, FN_INT, 0
 
             .word 0, 0, 0, 0

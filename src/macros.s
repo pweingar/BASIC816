@@ -197,6 +197,24 @@ continue
 
 ;
 ; Print trace message to the console if TRACE_LEVEL > 1
+; Print the value of the accumulator as a hex with no CR after
+;
+TRACE_CHAR  .macro  ; name
+.if TRACE_LEVEL > 0
+        .if TRACE_LEVEL > 1
+            JSR PRTRACE         ; Print the name of the trace point        
+        .endif
+            BRA continue
+TESTNAME    .null \1
+continue
+        .if TRACE_LEVEL > 1
+            CALL PRHEXB
+        .endif
+.endif
+            .endm
+
+;
+; Print trace message to the console if TRACE_LEVEL > 1
 ; Print the value of the 3 bytes in memory at the specified address
 ;
 TRACE_L     .macro  ; name, address

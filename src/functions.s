@@ -906,6 +906,19 @@ type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
 
 ;
+; INT(value) -- Convert a floating point to an integer
+;
+FN_INT          .proc
+                FN_START "FN_INT"
+
+                CALL EVALEXPR       ; Evaluate the first expression
+                CALL ASS_ARG1_INT   ; Make sure the input is a float
+
+done            FN_END
+                RETURN
+                .pend
+
+;
 ; LOG(value) -- Compute the natural logrithm of value
 ;
 FN_LOG          .proc

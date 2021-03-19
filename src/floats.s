@@ -400,7 +400,8 @@ set_int_type    setas
                 LDA #TYPE_INTEGER   ; Return an integer
                 STA ARGTYPE1
 
-stop            setal
+stop            TRACE "stop"
+                setal
                 CLC
                 TYA
                 ADC BIP
@@ -441,6 +442,7 @@ s7_shift        CALL SHIFTDEC           ; Shift the decimal digit onto ARGUMENT1
                 BRL ret_integer         ; Return integer
 
 s8_mantissa     ; Save the integer part of the mantissa and move to S8
+                TRACE "s8_mantissa"
                 setal
                 CALL ITOF               ; Convert the integer part of the mantissa to a simple float
                 MOVE_D MARG1,ARGUMENT1  ; Save the integer part of the mantissa in MARG1
@@ -449,7 +451,8 @@ s8_mantissa     ; Save the integer part of the mantissa and move to S8
                 setas
                 BRA s8_drop
 
-s8_shift        CALL SHIFTDEC           ; Shift the decimal digit onto ARGUMENT1
+s8_shift        TRACE "s8_shift"
+                CALL SHIFTDEC           ; Shift the decimal digit onto ARGUMENT1
 
 ; multiply MARG3 (the divisor of the fractional part)... by 10
                 setal
@@ -474,7 +477,8 @@ s8_shift        CALL SHIFTDEC           ; Shift the decimal digit onto ARGUMENT1
                 STA MARG3+2
                 setas
 
-s8_drop         INY
+s8_drop         TRACE "s8_drop"
+                INY
                 LDA [BIP],Y
                 CMP #'e'                ; 'E' --> S9, drop
                 BEQ s9_drop
@@ -492,7 +496,8 @@ s8_drop         INY
                 setas
                 BRL stop
 
-s9_drop         setal
+s9_drop         TRACE "s9_drop"
+                setal
                 CALL ITOF               ; Convert the fractional part of the mantissa to a simple float
                 MOVE_D MARG2,ARGUMENT1  ; Save decimal portion in MARG2
                 STZ ARGUMENT1           ; ARGUMENT1 <-- 0, will be the exponent
@@ -509,16 +514,19 @@ s9_drop         setal
                 BCS S11_shift           ; '0'-'9' --> S11, shift
                 BRL syntax_err
 
-s10_setneg      LDA #1                  ; Set that the exponent should be negative
+s10_setneg      TRACE "s10_setneg"
+                LDA #1                  ; Set that the exponent should be negative
                 STA MARG6
 
-s10_drop        INY
+s10_drop        TRACE "s10_drop"
+                INY
                 LDA [BIP],Y             ; Get the next character
                 CALL ISNUMERAL          ; '0'-'9' --> S11, shift
                 BCS s11_shift
                 BRL syntax_err
 
-s11_shift       CALL SHIFTDEC           ; Shift the decimal digit onto ARGUMENT1
+s11_shift       TRACE "s11_shift"
+                CALL SHIFTDEC           ; Shift the decimal digit onto ARGUMENT1
                 INY
                 LDA [BIP],Y             ; Get the next character
                 CALL ISNUMERAL          ; '0'-'9' --> S11, shift
@@ -630,8 +638,7 @@ pack_fp         setas
                 STA ARGTYPE1
 .endif
 
-done            TRACE "/ITOF"
-                PLP
+done            PLP
                 RETURN
                 .pend
 
@@ -645,63 +652,132 @@ done            TRACE "/ITOF"
 ;   ARGUMENT1 = the integer portion of the float
 ;
 FTOI            .proc
+                PHP
+                TRACE "FTOI"
+
+LOCALS          .virtual 1,S
+l_sign          .byte ?
+l_exponent      .byte ?
+l_mantissa      .dword ?
+                .endv
+
+                setas
+                LDA #TYPE_INTEGER       ; Set the return type to integer
+                STA @w ARGTYPE1
+               
                 setal
                 CALL FARG1EQ0
                 BCC not_zero
 
+ret_zero        LDA #0
+                STA @w ARGUMENT1        ; Return 0
+                STA @w ARGUMENT1+2
+                BRL done
+
+not_zero        PEA #0                  ; Reserve space for the locals
+                PEA #0
+                PEA #0
+
                 setas
-                LDA #TYPE_INTEGER       ; If so, return 0 as the result
-                STA ARGTYPE1
-                STZ SIGN1               ; Set sign to positive as a default
-                BRA done
+                LDA @w ARGUMENT1+3      ; Preserve the sign bit
+                AND #$80
+                STA l_sign
 
-                ; TODO: recognize infinities and NaN and throw an error
+                LDA @w ARGUMENT1+2      ; Preserve the exponent
+                ROL A
+                LDA @w ARGUMENT1+3
+                ROL A
+                STA l_exponent
 
-not_zero        setal
+                CMP #128                ; If < 1.0, return 0
+                BGE save_mantissa
+                LDA #0
+                STA @w ARGUMENT1
+                STA @w ARGUMENT1+1
+                STA @w ARGUMENT1+2
+                STA @w ARGUMENT1+3
 
-.if SYSTEM = SYSTEM_C256
-                CALL FP_TO_FIXINT
-.else
-                ; Has a number... so start shifting it into SCRATCH
-                LDA #1
-                STA SCRATCH
-                STZ SCRATCH+2
+                LDA #TYPE_INTEGER
+                STA @w ARGTYPE1
+                BRL clean
 
-                setas                  
-                ASL MANTISSA1           ; Shift out the sign bit
-                ROL MANTISSA1+1
-                ROL MANTISSA1+2
+save_mantissa   LDA #0                  ; Save the mantissa (with the implied 1)
+                STA l_mantissa+3
+                LDA @w ARGUMENT1+2
+                ORA #$80
+                STA l_mantissa+2
+                LDA @w ARGUMENT1+1
+                STA l_mantissa+1
+                LDA @w ARGUMENT1
+                STA l_mantissa
 
-                LDA #$80
-                STA SIGN1               ; Remember that the number was negative
+                LDA l_exponent
+loop            CMP #150
+                BEQ adj_sign
+                BLT shift_right
 
-shift_loop      setas
-                LDA EXPONENT1           ; Check to see if the exponent is 0
-                BEQ shift_done          ; If so: we're done and can package the result
+shift_left      setal
+                LDA l_mantissa
+                ASL A
+                STA l_mantissa
+                LDA l_mantissa+2
+                ROL A
+                STA l_mantissa+2
+                setas
 
-                DEC EXPONENT1           ; If not: decrement the exponent and
+                LDA l_exponent
+                DEC A
+                STA l_exponent
 
-                seta2                   ; ... shift a bit into SCRATCH
-                ASL MANTISSA1
-                ROL MANTISSA1+1
-                ROL MANTISSA1+2
-                setal
-                ROL SCRATCH
-                ROL SCRATCH+2
+                CMP #150
+                BEQ adj_sign
+                BRA shift_left
 
-                BRA shift_loop          ; and try again
+shift_right     setal
+                LDA l_mantissa+2
+                LSR A
+                STA l_mantissa+2
+                LDA l_mantissa
+                ROR A
+                STA l_mantissa
+                setas
 
-shift_done      setas
-                LDA #TYPE_INTEGER       ; If so, return 0 as the result
-                STA ARGTYPE1
+                LDA l_exponent
+                INC A
+                STA l_exponent
                 
+                CMP #150
+                BEQ adj_sign
+                BRA shift_right
+
+adj_sign        LDA l_sign
+                BEQ ret_positive
+
                 setal
-                LDA SCRATCH             ; SCRATCH contains the integer
-                STA ARGUMENT1           ; Copy it to ARGUMENT1
-                LDA SCRATCH+2
-                STA ARGUMENT1+2
-.endif
-done            RETURN
+                LDA l_mantissa
+                EOR #$FFFF
+                CLC
+                ADC #1
+                STA @w ARGUMENT1
+                LDA l_mantissa+2
+                EOR #$FFFF
+                ADC #0
+                STA @w ARGUMENT1+2
+                BRA clean
+
+ret_positive    setal
+                LDA l_mantissa
+                STA @w ARGUMENT1
+                LDA l_mantissa+2
+                STA @w ARGUMENT1+2
+
+clean           setal
+                PLA                     ; Clean up the locals
+                PLA
+                PLA
+                
+done            PLP
+                RETURN
                 .pend
 
 ;
