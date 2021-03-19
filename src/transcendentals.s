@@ -164,7 +164,7 @@ loop            LDA ARGUMENT1
                 CMP ARGUMENT2
                 LDA ARGUMENT1+2
                 SBC ARGUMENT2+2
-                BMI done
+                BCC done
                 LDA ARGUMENT1
                 STA @l FP_MATH_INPUT0_LL
                 LDA ARGUMENT1+2
@@ -471,7 +471,8 @@ Q_FP_LN         .proc
                 STA ARGUMENT1
                 LDA @l FP_MATH_OUTPUT_FP_HL
                 STA ARGUMENT1+2
-                ;; send MUX0 to both adder inputs
+                ;; send MUX0 to both adder inputs (slightly cheaper
+                ;; way of multiplying by two).
                 setas
                 LDA #FP_MATH_CTRL0_ADD | FP_ADD_IN0_MUX0 | FP_ADD_IN1_MUX0
                 STA @l FP_MATH_CTRL0
@@ -604,7 +605,135 @@ no_neg          setal
                 .pend
 
 FP_LN           .proc
+                PHP
+                setaxl
+                PHA
+                PHX
+                PHY
+                LDA ARGUMENT1+2
+                BPL arg_ok
+                THROW ERR_DOMAIN
+arg_ok          setaxl
+                LDA ARGUMENT1
+                CMP @l fp_one
+                LDA ARGUMENT1+2
+                CMP @l fp_one+2
+                BCS gtone
+                CALL Q_INV
+                CLC
+gtone           LDA #0
+                TAY
+                ROL             ; Rotate Carry into A; 0 means negate
+                                ; final result.
+                PHA
+                setas
+                LDA #0
+                STA @l FP_MATH_CTRL0
+                LDA #FP_OUT_DIV
+                STA @l FP_MATH_CTRL1
+                setal
+
+                ;; Reduce argument by e^64
+                LDA @l eexp64
+                STA ARGUMENT2
+                STA @l FP_MATH_INPUT1_LL
+                LDA @l eexp64+2
+                STA ARGUMENT2+2
+                STA @l FP_MATH_INPUT1_HL
+
+                CALL Q_FP_SCALE
+
+                TXA
+                BEQ chk16
+                ASL             ; multiply counter by 64
+                ASL
+                ASL
+                ASL
+                ASL
+                ASL
+                TAY
+
+                ;; Reduce argument by e^16
+chk16           LDA @l eexp16
+                STA ARGUMENT2
+                STA @l FP_MATH_INPUT1_LL
+                LDA @l eexp16+2
+                STA ARGUMENT2+2
+                STA @l FP_MATH_INPUT1_HL
+                CALL Q_FP_SCALE
+
+                TXA
+                BEQ chk04
+                ASL             ; multiply counter by 16
+                ASL
+                ASL
+                ASL
+                STA ARGUMENT2   ; and add into total
+                CLC
+                TYA
+                ADC ARGUMENT2
+                TAY
+
+                ;; Reduce argument by e^4
+chk04           LDA @l eexp04
+                STA ARGUMENT2
+                STA @l FP_MATH_INPUT1_LL
+                LDA @l eexp04+2
+                STA ARGUMENT2+2
+                STA @l FP_MATH_INPUT1_HL
+                CALL Q_FP_SCALE
+
+                TXA
+                BEQ chk01
+                ASL             ;multiply counter by 4
+                ASL
+                STA ARGUMENT2   ;and add to total
+                CLC
+                TYA
+                ADC ARGUMENT2
+                TAY
+
+                ;; reduce argument by e
+chk01           LDA @l eexp01
+                STA ARGUMENT2
+                STA @l FP_MATH_INPUT1_LL
+                LDA @l eexp01+2
+                STA ARGUMENT2+2
+                STA @l FP_MATH_INPUT1_HL
+                CALL Q_FP_SCALE
+
+                STX ARGUMENT2   ; add counter to total
+                CLC
+                TYA
+                ADC ARGUMENT2
+                TAY
+
                 CALL Q_FP_LN
+
+                ;; Move result of ln of reduced value to argument2
+                LDA ARGUMENT1
+                STA ARGUMENT2
+                LDA ARGUMENT1+2
+                STA ARGUMENT2+2
+                ;; Convert integer part of ln to argument 1
+                TYA
+                STA ARGUMENT1
+                STZ ARGUMENT1+2
+                ;; ... and convert to float
+                CALL ITOF
+                ;; ... and add the integer and float parts
+                CALL OP_FP_ADD
+                ;; Check if we need to negate (i.e, original argument
+                ;; was < 1.0)
+                PLA
+                BNE done
+                LDA ARGUMENT1+2
+                ORA #$8000
+                STA ARGUMENT1+2
+done            PLY
+                PLX
+                PLA
+                PLP
                 RETURN
                 .pend
 
