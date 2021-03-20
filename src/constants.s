@@ -72,3 +72,4 @@ ERR_DELETE = 19         ; Could not delete a file
 ERR_FILENOTFOUND = 20   ; Could not find the file
 ERR_DIRNOTWRITE = 21    ; Could not update the directory entry
 ERR_NOTCOPIED = 22      ; Could not copy the file
+ERR_DOMAIN = 23         ; Mathematical functions domain error

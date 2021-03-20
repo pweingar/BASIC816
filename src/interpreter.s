@@ -187,6 +187,7 @@ ERRORMSG    .word <>MSG_OK
             .word <>MSG_FILENOTFND
             .word <>MSG_DIRNOTWRITE
             .word <>MSG_NOTCOPIED
+            .word <>MSG_DOMAIN
 
 MSG_AT          .null " at"
 
@@ -213,6 +214,7 @@ MSG_DELETE      .null "Unable to delete file"
 MSG_FILENOTFND  .null "Could not find file"
 MSG_DIRNOTWRITE .null "Could not update directory"
 MSG_NOTCOPIED   .null "Could not copy the file"
+MSG_DOMAIN      .null "Argument outside domain"
             .pend
 
 ;
