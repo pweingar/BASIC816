@@ -10,6 +10,7 @@
 .include "RTC_inc.s"
 .include "keyboard.s"
 .include "screen.s"
+.include "gabe_defs.s"
 
 BORDER_WIDTH = 32               ; The width of the border (when it is on)
 TEXT_COLS_WB = 72               ; Number of columns of text with the border enabled
@@ -20,7 +21,7 @@ TEXT_ROWS_WOB = 60              ; Number of rows of text with no border enabled
 INITIO      .proc
             setas
 
-            ; CALL INITFONT       ; Set up the BASIC font
+            CALL INITRNG        ; Initialize the random number generator
 
             LDA #TEXT_COLS_WB   ; Make sure the screen size is right
             STA @lCOLS_VISIBLE  ; TODO: remove this when the kernel is correct
@@ -57,6 +58,41 @@ sp_loop     STA GS_SP_CONTROL,X
             STA @l TL3_CONTROL_REG
 
 done        RETURN
+            .pend
+
+;
+; Initialize the random number generator
+; Set the seed from the RTC
+;
+INITRNG     .proc
+            PHP
+
+            setas
+            LDA @l RTC_CTRL         ; Pause updates to the clock registers
+            ORA #%00001000
+            STA @l RTC_CTRL
+
+            LDA @l RTC_SEC          ; Set the random number generator seed
+            STA @l GABE_RNG_SEED_LO
+            LDA @l RTC_MIN
+            STA @l GABE_RNG_SEED_HI
+
+            LDA #GABE_RNG_CTRL_DV | GABE_RNG_CTRL_EN
+            STA @l GABE_RNG_CTRL    ; Load the seed into the RNG
+
+            LDA @l RTC_CTRL         ; Re-enable updates to the clock registers
+            AND #%11110111
+            STA @l RTC_CTRL
+
+            NOP                     ; Give the RNG some time... not sure if needed, really
+            NOP
+            NOP
+
+            LDA #GABE_RNG_CTRL_EN   ; Turn on the random number genertator
+            STA @l GABE_RNG_CTRL
+
+            PLP
+            RETURN
             .pend
 
 ;

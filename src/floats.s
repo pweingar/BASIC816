@@ -655,26 +655,40 @@ FTOI            .proc
                 PHP
                 TRACE "FTOI"
 
+;
+; Currently, there seems to be an issue trying to use the floating point
+; coprocessor to conver floating point to integer
+;
+; .if SYSTEM = SYSTEM_C256
+;                 CALL FP_TO_FIXINT
+; .else
 LOCALS          .virtual 1,S
 l_sign          .byte ?
 l_exponent      .byte ?
 l_mantissa      .dword ?
                 .endv
-
-                setas
-                LDA #TYPE_INTEGER       ; Set the return type to integer
-                STA @w ARGTYPE1
-               
+    
+                ; Check to see if ARGUMENT1 < 1.0
                 setal
-                CALL FARG1EQ0
-                BCC not_zero
+                LDA #<>FP_1_0
+                STA ARGUMENT2
+                LDA #(FP_1_0 >> 16)
+                STA ARGUMENT2+2
+                setas
+                LDA #TYPE_FLOAT
+                STA ARGTYPE2
+                setal
+                
+                CALL FP_COMPARE         ; Is ARGUMENT1 < 1.0?
+                CMP #$FFFF
+                BNE alloc_locals        ; No: get ready to do the full conversion
 
-ret_zero        LDA #0
-                STA @w ARGUMENT1        ; Return 0
+                LDA #0
+                STA @w ARGUMENT1        ; Yes: Return 0
                 STA @w ARGUMENT1+2
                 BRL done
 
-not_zero        PEA #0                  ; Reserve space for the locals
+alloc_locals    PEA #0                  ; Reserve space for the locals
                 PEA #0
                 PEA #0
 
@@ -688,18 +702,6 @@ not_zero        PEA #0                  ; Reserve space for the locals
                 LDA @w ARGUMENT1+3
                 ROL A
                 STA l_exponent
-
-                CMP #128                ; If < 1.0, return 0
-                BGE save_mantissa
-                LDA #0
-                STA @w ARGUMENT1
-                STA @w ARGUMENT1+1
-                STA @w ARGUMENT1+2
-                STA @w ARGUMENT1+3
-
-                LDA #TYPE_INTEGER
-                STA @w ARGTYPE1
-                BRL clean
 
 save_mantissa   LDA #0                  ; Save the mantissa (with the implied 1)
                 STA l_mantissa+3
@@ -716,22 +718,24 @@ loop            CMP #150
                 BEQ adj_sign
                 BLT shift_right
 
-shift_left      setal
-                LDA l_mantissa
-                ASL A
-                STA l_mantissa
-                LDA l_mantissa+2
-                ROL A
-                STA l_mantissa+2
-                setas
+                THROW ERR_OVERFLOW      ; Throw an overflow error if the magnitude is too great.
 
-                LDA l_exponent
-                DEC A
-                STA l_exponent
+; shift_left      setal
+;                 LDA l_mantissa
+;                 ASL A
+;                 STA l_mantissa
+;                 LDA l_mantissa+2
+;                 ROL A
+;                 STA l_mantissa+2
+;                 setas
 
-                CMP #150
-                BEQ adj_sign
-                BRA shift_left
+;                 LDA l_exponent
+;                 DEC A
+;                 STA l_exponent
+
+;                 CMP #150
+;                 BEQ adj_sign
+;                 BRA shift_left
 
 shift_right     setal
                 LDA l_mantissa+2
@@ -775,8 +779,13 @@ clean           setal
                 PLA                     ; Clean up the locals
                 PLA
                 PLA
+; .endif
+
+done            setas
+                LDA #TYPE_INTEGER       ; Set the return type to integer
+                STA @w ARGTYPE1
                 
-done            PLP
+                PLP
                 RETURN
                 .pend
 

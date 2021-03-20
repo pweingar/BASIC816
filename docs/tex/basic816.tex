@@ -8,7 +8,7 @@
     \newcommand{\param}[1]{{\tt <{#1}>}}
     \title{The \BASIC\  Language Manual}
     \author{PJW}
-    \date{2 November 2020}
+    \date{19 March 2021}
     \maketitle
 
     \section*{About \BASIC}
@@ -384,6 +384,11 @@
     Returns a string that is the hexadecimal representation of the integer value passed.
     Example: \verb+HEX$(160) + returns \verb+"A0"+.
 
+    \subsection*{\keyword{INT(\param{value})}}
+
+    Converts a floating point \param{value} to an integer by truncating the fractional part.
+    The value returned is of integer type.
+
     \subsection*{\keyword{LEFT\$(\param{text}, \param{count})}}
 
     Returns the left-most \param{count} characters of the string \param{text}.
@@ -421,6 +426,11 @@
     Returns the right-most \param{count} characters of the string \param{text}.
 
     Example: \verb+LEFT$("Hello", 3)+ returns \verb+"llo"+.
+
+    \subsection*{\keyword{RND(\param{value})}}
+
+    Returns a pseudo-random floating point number between 0.0 and 1.0.
+    Note that the input value is not used and can be any number.
     
     \subsection*{\keyword{SGN(\param{value})}}
 
