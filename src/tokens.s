@@ -1034,15 +1034,15 @@ TOK_RECT = $E7
             DEFTOK "INT", TOK_TY_FUNC, 0, FN_INT, 0
 ; $EA
             DEFTOK "RND", TOK_TY_FUNC, 0, FN_RND, 0
-
+; $EB
             DEFTOK "SIN", TOK_TY_FUNC, 0, FN_SIN, 0
-
+; $EC
             DEFTOK "COS", TOK_TY_FUNC, 0, FN_COS, 0
-
+; $ED
             DEFTOK "TAN", TOK_TY_FUNC, 0, FN_TAN, 0
-
+; $EF
             DEFTOK "LN", TOK_TY_FUNC, 0, FN_LN, 0
-
+; $F0
             DEFTOK "SCALETAU", TOK_TY_FUNC, 0, FN_SCALETAU, 0
 
             .word 0, 0, 0, 0
