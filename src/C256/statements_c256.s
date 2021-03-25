@@ -455,12 +455,13 @@ L_BLUE          .byte ?
                 setas
                 CALL EVALEXPR       ; Get the LUT #
                 CALL ASS_ARG1_BYTE  ; Assert that the result is a byte value
+
+                LDA ARGUMENT1
                 CMP #10             ; And in range
                 BLT save_lut
 bad_argument    THROW ERR_ARGUMENT  ; Throw an illegal argument exception
 
-save_lut        LDA ARGUMENT1
-                STA L_LUT           ; Save as LUT
+save_lut        STA L_LUT           ; Save as LUT
 
                 LDA #','
                 CALL EXPECT_TOK     ; Try to find the comma
@@ -511,14 +512,14 @@ save_lut        LDA ARGUMENT1
                 ; Step #2... calculate the address of the specific color to change
 
                 LDA L_COLOR         ; color index *= 4
+                setal
+                AND #$00FF
                 ASL A               ; Since each color has four bytes of data
                 ASL A
                 CLC                 ; Add the color offset to MTEMPPTR
                 ADC MTEMPPTR
                 STA MTEMPPTR        
-                LDA MTEMPPTR+1
-                ADC #0
-                STA MTEMPPTR+1      ; Which now points to the color entry
+                setas
 
                 ; Step #3... set the red component
 

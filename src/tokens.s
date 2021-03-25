@@ -126,6 +126,9 @@ PREVCHAR    .proc
             TRACE "PREVCHAR"
 
             setaxl
+            LDA BIPPREV
+            BEQ ret_false
+
             SEC
             LDA BIPPREV
             SBC CURLINE
@@ -463,13 +466,23 @@ TKMATCH     .proc
 
             setdp GLOBAL_VARS
 
-            ; Store in SIGN1 if the previous character could be part of a variable name
+            setal
+            LDA BIPPREV
+            BNE check_prev
             setas
+            LDA BIPPREV
+            BNE check_prev
+
+            LDA #0
+            BRA save_delim
+
+            ; Store in SIGN1 if the previous character could be part of a variable name
+check_prev  setas
             LDA [BIPPREV]           ; Get the previous character
             CALL ISVARCHAR          ; Is it a possible variable name character?
             LDA #0
             ROL A
-            STA SIGN1               ; SIGN1 := 1 if it is a variable name character
+save_delim  STA SIGN1               ; SIGN1 := 1 if it is a variable name character
 
             setaxl
             LDA #<>TOKENS           ; Set INDEX to point to the first token record
