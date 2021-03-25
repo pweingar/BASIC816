@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.55.2200 listing file
-; 64tass -D SYSTEM=2 -D C256_SKU=1 -D UARTSUPPORT= -D UNITTEST=0 -D TRACE_LEVEL=0 --long-address --flat -b --m65816 -b -o basic816_3A0000.bin --list=basic816_3A0000.lst --labels=basic816_3A0000.lbl src\basic816.s
-; Thu Mar 25 15:24:41 2021
+; 64tass -D SYSTEM=2 -D C256_SKU=1 -D UARTSUPPORT= -D UNITTEST=0 -D TRACE_LEVEL=0 --long-address --flat -b --m65816 --intel-hex -o basic816_3A0000.hex --list=basic816_3A0000.lst --labels=basic816_3A0000.lbl src\basic816.s
+; Thu Mar 25 19:24:43 2021
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -18811,8 +18811,8 @@
 
 ;******  Processing file: src\version.s
 
->3ad278	76 30 2e 32 2e 30 2d 61		.text "v0.2.0-alpha+248"
->3ad280	6c 70 68 61 2b 32 34 38
+>3ad278	76 30 2e 32 2e 30 2d 61		.text "v0.2.0-alpha+250"
+>3ad280	6c 70 68 61 2b 32 35 30
 
 ;******  Return to file: src\basic816.s
 
