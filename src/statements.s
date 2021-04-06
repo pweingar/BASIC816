@@ -123,17 +123,20 @@ varloop         CALL SKIPWS
                 CALL VAR_FINDNAME   ; Try to find the variable name
                 BCC syntax_err      ; If we didn't get a variable, throw a syntax error
 
+                CALL TEMPSTRING     ; Get a temporary string
                 CALL GETKEY         ; Get a key from the keyboard, without echoing it
 
                 setas               ; Save the character as a temporary string
-                STA @lTEMPBUF
+                LDY #0
+                STA [STRPTR],Y
                 LDA #0
-                STA @lTEMPBUF+1
+                INY
+                STA [STRPTR],Y
 
                 setal
-                LDA #<>TEMPBUF
+                LDA STRPTR
                 STA ARGUMENT1
-                LDA #`TEMPBUF
+                LDA STRPTR+2
                 STA ARGUMENT1+2
                 setas
                 LDA #TYPE_STRING
