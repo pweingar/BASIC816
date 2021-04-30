@@ -835,7 +835,7 @@ TOK_DIVIDE = $83
 TOK_MOD = $84
             DEFTOK "MOD", TOK_TY_OP, 2, OP_MOD, 2
 ; $85
-            DEFTOK "^", TOK_TY_OP, 0, 0, 2
+            DEFTOK "^", TOK_TY_OP, 0, OP_POW, 2
 TOK_LE = $86
             DEFTOK "<=", TOK_TY_OP, 4, OP_LTE, 2
 TOK_GE = $87
