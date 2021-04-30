@@ -152,6 +152,35 @@ OP_MOD      .proc
             RTS
             .pend
 
+; ^ (x to power y)
+OP_POW      .proc
+            PHP
+            TRACE "OP_POW"
+.if SYSTEM = SYSTEM_C256
+            setaxl
+            PHA
+            CALL ASS_ARG1_FLOAT
+            LDA ARGTYPE2
+            CMP #TYPE_INTEGER
+            BNE flt_exp
+            LDA ARGUMENT2+2
+            BNE flt_exp
+            PHX
+            LDX ARGUMENT2
+            CALL Q_FP_POW_INT
+            PLX
+            BRA done
+flt_exp     CALL ASS_ARG2_FLOAT
+            PUSH_D ARGUMENT2
+            CALL FP_LN
+            PULL_D ARGUMENT2
+            CALL OP_FP_MUL
+            CALL FP_EXP
+done        PLA
+.endif
+            PLP
+            RETURN
+            .pend
 ; Bitwise AND
 OP_AND      .proc
             PHP

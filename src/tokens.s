@@ -835,7 +835,7 @@ TOK_DIVIDE = $83
 TOK_MOD = $84
             DEFTOK "MOD", TOK_TY_OP, 2, OP_MOD, 2
 ; $85
-            DEFTOK "^", TOK_TY_OP, 0, 0, 2
+            DEFTOK "^", TOK_TY_OP, 0, OP_POW, 2
 TOK_LE = $86
             DEFTOK "<=", TOK_TY_OP, 4, OP_LTE, 2
 TOK_GE = $87
@@ -1056,6 +1056,13 @@ TOK_RECT = $E7
 ; $EF
             DEFTOK "LN", TOK_TY_FUNC, 0, FN_LN, 0
 ; $F0
-            DEFTOK "SCALETAU", TOK_TY_FUNC, 0, FN_SCALETAU, 0
-
+            DEFTOK "ACOS", TOK_TY_FUNC, 0, FN_ACOS, 0
+; $F2 
+            DEFTOK "ASIN", TOK_TY_FUNC, 0, FN_ASIN, 0
+; $F3 
+            DEFTOK "ATAN", TOK_TY_FUNC, 0, FN_ATAN, 0
+; $F4 
+            DEFTOK "EXP", TOK_TY_FUNC, 0, FN_EXP, 0
+; $F5
+            DEFTOK "SQR", TOK_TY_FUNC, 0, FN_SQR, 0
             .word 0, 0, 0, 0

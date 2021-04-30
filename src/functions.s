@@ -930,7 +930,6 @@ FN_LOG          .proc
 
 done            FN_END
                 RETURN
-type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
 
 ;
@@ -945,7 +944,6 @@ FN_SIN          .proc
 
 done            FN_END
                 RETURN
-type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
 
 ;
@@ -960,7 +958,6 @@ FN_COS          .proc
 
 done            FN_END
                 RETURN
-type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
 
 ;
@@ -974,20 +971,6 @@ FN_TAN          .proc
                 CALL FP_TAN         ; Compute the natural log
 done            FN_END
                 RETURN
-type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
-                .pend
-
-;
-; SCALEATU(value): reduce value to the range [0, 2*pi)
-;
-FN_SCALETAU     .proc
-                FN_START "FN_SCALETAU"
-                CALL EVALEXPR
-                CALL ASS_ARG1_FLOAT
-                CALL FP_SCALE
-done            FN_END
-                RETURN
-type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
 
 ;
@@ -1002,6 +985,65 @@ FN_LN          .proc
 
 done            FN_END
                 RETURN
-type_mismatch   THROW ERR_TYPE      ; Throw a type-mismatch error
                 .pend
 
+;
+; ACOS(value) -- inverse of COS
+;
+FN_ACOS          .proc
+                FN_START "FN_ACOS"
+                CALL EVALEXPR
+                CALL ASS_ARG1_FLOAT
+                CALL FP_ACOS
+done            FN_END
+                RETURN
+                .pend
+
+;
+; ASIN(value) -- inverse of SIN
+;
+FN_ASIN         .proc
+                FN_START "FN_ASIN"
+                CALL EVALEXPR
+                CALL ASS_ARG1_FLOAT
+                CALL FP_ASIN
+done            FN_END
+                RETURN
+                .pend
+
+;
+; ATAN(value) -- inverse of TAN
+;
+FN_ATAN         .proc
+                FN_START "FN_ATAN"
+                CALL EVALEXPR
+                CALL ASS_ARG1_FLOAT
+                CALL FP_ATAN
+done            FN_END
+                RETURN
+                .pend
+
+;
+; EXP(value) -- e^x
+;
+FN_EXP          .proc
+                FN_START "FN_EXP"
+                CALL EVALEXPR
+                CALL ASS_ARG1_FLOAT
+                CALL FP_EXP
+done            FN_END
+                RETURN
+                .pend
+
+;
+; SQR(value) -- square root
+;
+
+FN_SQR          .proc
+                FN_START "FN_SQR"
+                CALL EVALEXPR
+                CALL ASS_ARG1_FLOAT
+                CALL FP_SQR
+done            FN_END
+                RETURN
+                .pend
