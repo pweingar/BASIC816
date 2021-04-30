@@ -908,7 +908,6 @@ FP_SQR          .proc
                 PHP
                 setaxl
                 PHA
-                PHX
                 LDA ARGUMENT1+2
                 BPL arg_ok
                 THROW ERR_DOMAIN
@@ -924,14 +923,18 @@ arg_ok          setaxl
                 MOVE_D ARGUMENT2,@l fp_two
                 setas
                 LDA #TYPE_FLOAT
-                STA ARGTYPE1
+                STA ARGTYPE2
                 setal
-                LDX #5
                 PUSH_D ARGUMENT1
 loop            CALL OP_FP_DIV
-                DEX
+                LDA ARGUMENT1+2
+                CMP ARGUMENT2+2
+                BNE more
+                LDA ARGUMENT1
+                EOR ARGUMENT2
+                AND #$FFF8
                 BEQ exitloop
-                CALL OP_FP_ADD
+more            CALL OP_FP_ADD
                 MOVE_D ARGUMENT2,@l fp_two
                 CALL OP_FP_DIV
                 MOVE_D ARGUMENT2,ARGUMENT1
@@ -939,8 +942,7 @@ loop            CALL OP_FP_DIV
                 PUSH_D ARGUMENT1
                 BRA loop
 exitloop        PULL_D ARGUMENT2 ; discard
-done            PLX
-                PLA
+done            PLA
                 PLP
                 RETURN
                 .pend
