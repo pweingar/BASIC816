@@ -13,8 +13,8 @@ class FoenixDebugPort:
             bytesize=serial.EIGHTBITS,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
-            timeout=2000,
-            write_timeout=2000)
+            timeout=60,
+            write_timeout=60)
         try:
             self.connection.open()
         except:
@@ -37,6 +37,21 @@ class FoenixDebugPort:
         This will make the C256 reset.
         """
         self.transfer(0x81, 0, 0, 0)
+
+    def erase_flash(self):
+        """Send the command to have the C256 Foenix erase its flash memory."""
+        self.transfer(0x11, 0, 0, 0)
+
+    def get_revision(self):
+        """Gets the revision code for the debug interface.
+        RevB2's revision code is 0, RevC4A is 1."""
+        self.transfer(0xFE, 0, 0, 0)
+        return self.status1
+
+    def program_flash(self, address):
+        """Send the command to have the C256 Foenix reprogram its flash memory.
+        Data to be written should already be in the C256's RAM at address."""
+        self.transfer(0x10, address, 0, 0)
 
     def write_block(self, address, data):
         """Write a block of data to the specified starting address in the C256's memory."""
