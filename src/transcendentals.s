@@ -13,13 +13,13 @@
 ;;; Q_POLY_HR - Horner's rule
 ;;;
 ;;; On entry: as, xl
-;;; X points to coefficient table of 5 values. These are stored in the
+;;; Y contains the number of coefficients
+;;; X points to coefficient table of <Y> values. These are stored in the
 ;;; reverse order.
 ;;; ARGUMENT1 contains a floating-point argument (which may be x,
 ;;; or x*x, depending on the actual function being approximated.)
 ;;; Leaves the value in ARGUMENT1
 Q_POLY_HR       .proc
-                PHY
                 setas
                 ;; Set up adder for input from input muxes and ADD operation.
                 ;; Set the muxes to take fp input.
@@ -32,7 +32,7 @@ Q_POLY_HR       .proc
                 STA @l FP_MATH_INPUT0_LL
                 LDA 2,X
                 STA @l FP_MATH_INPUT0_HL
-                LDY #4          ; 4 more coefficients.
+                DEY             ; (Y-1) more coefficients.
 loop            INX             ; point to the next coefficient
                 INX
                 INX
@@ -85,7 +85,6 @@ done            LDA @l FP_MATH_OUTPUT_FP_LL
                 STA @l ARGUMENT1
                 LDA @l FP_MATH_OUTPUT_FP_HL
                 STA @l ARGUMENT1+2
-                PLY
                 RTS
                 .pend
 
@@ -306,7 +305,7 @@ less            TYA             ; carry already cleared if we branched
                                 ; sets of values (or 12 bytes).
                 BNE loop
                 TYA             ; copy Y to X, as that's what we have
-                                ; said that we want tro return the
+                                ; said that we want to return the
                                 ; value in.
                 TAX
                 PLY
@@ -345,7 +344,10 @@ Q_FP_COS        .proc
                 PLB
                 setal
                 LDX #<>cos_coeff
+                PHY
+                LDY #5
                 CALL Q_POLY_HR
+                PLY
                 LDA #TYPE_FLOAT
                 STA @l ARGTYPE1
                 PLB
@@ -378,7 +380,10 @@ Q_FP_SIN        .proc
                 PLB
                 setal
                 LDX #<>sin_coeff
+                PHY
+                LDY #5
                 CALL Q_POLY_HR
+                PLY
                 PLB
                 CALL OP_FP_MUL
                 PLX
@@ -406,7 +411,10 @@ Q_FP_TAN        .proc
                 PLB
                 setal
                 LDX #<>tan_coeff
+                PHY
+                LDY #5
                 CALL Q_POLY_HR
+                PLY
                 PLB
                 CALL OP_FP_MUL
                 PLX
@@ -498,10 +506,13 @@ Q_FP_LN         .proc
                 PLB
                 setal
                 LDX #<>ln_coeff
+                PHY
+                LDY #8
                 CALL Q_POLY_HR
+                PLY
                 LDA #TYPE_FLOAT
                 STA @l ARGTYPE1
-                STA @l ARGTYPE1
+                STA @l ARGTYPE2
                 CALL OP_FP_MUL
                 PLB
                 PLX
@@ -737,6 +748,203 @@ done            PLY
                 RETURN
                 .pend
 
+FP_ASIN         .proc
+                PHP
+                setaxl
+                PHA
+                PHX
+                LDA ARGUMENT1
+                STA ARGUMENT2
+                LDA ARGUMENT1+2
+                STA ARGUMENT2+2
+                CALL Q_SQ
+                PHB
+                setas
+                LDA #`asin_coeff
+                PHA
+                PLB
+                setal
+                LDX #<>asin_coeff
+                LDY #5
+                CALL Q_POLY_HR
+                PLB
+                CALL OP_FP_MUL
+                PLX
+                PLA
+                PLP
+                RETURN
+                .pend
+
+FP_ACOS         .proc
+                PHP
+                setaxl
+                PHA
+                PHX
+                CALL FP_ASIN
+                LDA @l halfpi
+                STA ARGUMENT2
+                LDA @l halfpi+2
+                STA ARGUMENT2+2
+                CALL OP_FP_SUB
+                LDA ARGUMENT1+2
+                EOR #$8000
+                STA ARGUMENT1+2
+                PLX
+                PLA
+                PLP
+                RETURN
+                .pend
+        
+FP_ATAN         .proc
+                PHP
+                setaxl
+                PHA
+                PHX
+                LDA ARGUMENT1
+                STA ARGUMENT2
+                LDA ARGUMENT1+2
+                STA ARGUMENT2+2
+                CALL Q_SQ
+                PHB
+                setas
+                LDA #`atan_coeff
+                PHA
+                PLB
+                setal
+                LDX #<>atan_coeff
+                LDY #5
+                CALL Q_POLY_HR
+                PLB
+                CALL OP_FP_MUL
+                PLX
+                PLA
+                PLP
+                RETURN
+                .pend
+
+Q_FP_POW_INT    .proc
+                MOVE_D ARGUMENT2,ARGUMENT1
+                MOVE_D ARGUMENT1,@l fp_one
+loop            TXA
+                BEQ done
+                LSR
+                TAX
+                BCC next
+                CALL OP_FP_MUL
+next            PUSH_D ARGUMENT1
+                MOVE_D ARGUMENT1,ARGUMENT2
+                CALL Q_SQ
+                MOVE_D ARGUMENT2,ARGUMENT1
+                PULL_D ARGUMENT1
+                BRA loop
+done            RETURN
+                .pend
+
+Q_FP_EXP        .proc
+                PHP
+                setaxl
+                PHA
+                PHX
+                PHB
+                setas
+                LDA #`exp_coeff
+                PHA
+                PLB
+                setal
+                LDX #<>exp_coeff
+                PHY
+                LDY #10
+                CALL Q_POLY_HR
+                PLY
+                PLB
+                PLX
+                PLA
+                PLP
+                RETURN
+                .pend
+
+FP_EXP          .proc
+                PHP
+                setaxl
+                PHA
+                PHX
+                PHY
+                LDA ARGUMENT1   ; special case for x==0
+                ORA ARGUMENT1+2
+                BNE notzero
+                MOVE_D ARGUMENT1,@l fp_one
+                BRA done
+notzero         LDA ARGUMENT1+2 ; check if negative
+                AND #$8000
+                TAY             ; Y != 0 -> arg was negative
+                BEQ notneg
+                LDA ARGUMENT1+2 ; negate x
+                AND #$7FFF
+                STA ARGUMENT1+2
+notneg          PUSH_D ARGUMENT1 ;at this point, x>0
+                CALL ASS_ARG1_INT
+                LDX ARGUMENT1              ; INT(x) now in ARGUMENT1; low 16 bits into X
+                CALL ASS_ARG1_FLOAT        ; and convert to FP again
+                MOVE_D ARGUMENT2,ARGUMENT1 ; Copy int part to ARGUMENT2
+                PULL_D ARGUMENT1           ; get original value of x...
+                CALL OP_FP_SUB             ; and subtract integer part...
+                CALL Q_FP_EXP              ; compute EXP(fractional part)
+                PUSH_D ARGUMENT1
+                MOVE_D ARGUMENT1,@leexp01
+                CALL Q_FP_POW_INT
+                PULL_D ARGUMENT2
+                CALL OP_FP_MUL
+                TYA
+                BEQ done
+                CALL Q_INV
+done            PLY
+                PLX
+                PLA
+                PLP
+                RETURN
+                .pend
+
+FP_SQR          .proc
+                PHP
+                setaxl
+                PHA
+                PHX
+                LDA ARGUMENT1+2
+                BPL arg_ok
+                THROW ERR_DOMAIN
+arg_ok          setaxl
+                ORA ARGUMENT1
+                BEQ done
+                ;; LDA ARGUMENT1+2
+                ;; LSR
+                ;; STA ARGUMENT2+2
+                ;; LDA ARGUMENT1
+                ;; ROR
+                ;; STA ARGUMENT2
+                MOVE_D ARGUMENT2,@l fp_two
+                setas
+                LDA #TYPE_FLOAT
+                STA ARGTYPE1
+                setal
+                LDX #5
+                PUSH_D ARGUMENT1
+loop            CALL OP_FP_DIV
+                DEX
+                BEQ exitloop
+                CALL OP_FP_ADD
+                MOVE_D ARGUMENT2,@l fp_two
+                CALL OP_FP_DIV
+                MOVE_D ARGUMENT2,ARGUMENT1
+                PULL_D ARGUMENT1
+                PUSH_D ARGUMENT1
+                BRA loop
+exitloop        PULL_D ARGUMENT2 ; discard
+done            PLX
+                PLA
+                PLP
+                RETURN
+                .pend
+
 cos_coeff
                 .dword $37D00D01
                 .dword $BAB60B61
@@ -758,11 +966,43 @@ tan_coeff
                 .dword $3EAAAAAB
                 .dword $3F800000
 
-ln_coeff        .dword $3DE38E39
+ln_coeff
+                .dword $3D888889
+                .dword $3D9D89D9
+                .dword $3DBA2E8C
+                .dword $3DE38E39
                 .dword $3E124925
                 .dword $3E4CCCCD
                 .dword $3EAAAAAB
 fp_one          .dword $3F800000
+fp_two          .dword $40000000
+
+asin_coeff
+                .dword $3CF8E38E
+                .dword $3D36DB6E
+                .dword $3D99999A
+                .dword $3E2AAAAB
+                .dword $3F800000
+
+atan_coeff
+                .dword $3DE38E39
+                .dword $BE124925
+                .dword $3E4CCCCD
+                .dword $BEAAAAAB
+                .dword $3F800000
+
+exp_coeff
+        .dword $3638EF1D
+        .dword $37D00D01
+        .dword $39500D01
+        .dword $3AB60B61
+        .dword $3C088889
+        .dword $3D2AAAAB
+        .dword $3E2AAAAB
+        .dword $3F000000
+        .dword $3F800000
+        .dword $3F800000
+
 
 eexp64          .dword $6DA12CC1
 eexp16          .dword $4B07975F
