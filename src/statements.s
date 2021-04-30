@@ -51,9 +51,10 @@ check_var       CALL ISALPHA        ; Check to see if it's the start of a variab
                 BEQ in_string       ; ... go to copy the string data
 
                 CMP #TYPE_INTEGER   ; If it's an integer...
-                BEQ in_integer      ; ... go to parse the integer
+                BNE chk_float
+                BRL in_integer      ; ... go to parse the integer
 
-                CMP #TYPE_FLOAT     ; If it's a float...
+chk_float       CMP #TYPE_FLOAT     ; If it's a float...
                 BEQ in_float        ; ... go to parse the float
 
                 THROW ERR_TYPE      ; Otherwise, throw a type error
@@ -78,7 +79,26 @@ save_input      setal
 done            PLP
                 RETURN
 
-in_float        NOP                 ; TODO: flesh out floating point input
+in_float        setal               ; Parse the input as an integer (or try to)
+                LDA BIP             ; Save the BIP for later use
+                STA SAVEBIP
+                LDA BIP+2
+                STA SAVEBIP+2
+
+                LDA #<>IOBUF        ; Point to the line that was just input
+                STA BIP
+                LDA #`IOBUF
+                STA BIP+2
+
+                CALL PARSENUM       ; Attempt to parse the number
+
+                setal
+                LDA SAVEBIP         ; Restore the BIP
+                STA BIP
+                LDA SAVEBIP+2
+                STA BIP+2
+                BRA save_input
+
 in_integer      setal               ; Parse the input as an integer (or try to)
                 LDA BIP             ; Save the BIP for later use
                 STA SAVEBIP
