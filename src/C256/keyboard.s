@@ -112,13 +112,50 @@ IGETKEY         .proc
 ;   A = the key read
 ;
 GETKEYE         .proc
+                PHP
                 ;TRACE "GETKEYE"
 
-                CALL GETKEY
+                setas
+loop            CALL GETKEY
+                CMP #K_UP
+                BEQ csr_up
+                CMP #K_DOWN
+                BEQ csr_down
+                CMP #K_LEFT
+                BEQ csr_left
+                CMP #K_RIGHT
+                BEQ csr_right
+                
+                CMP #128                ; Temporary: skip anything outside ASCII
+                BGE loop
+
                 PHA
                 CALL PRINTC
                 PLA
+
+done            PLP
                 RETURN
+
+csr_up          LDA #'A'
+                BRA pr_ansi
+
+csr_down        LDA #'B'
+                BRA pr_ansi
+
+csr_right       LDA #'C'
+                BRA pr_ansi
+
+csr_left        LDA #'D'
+pr_ansi         PHA
+                LDA #CHAR_ESC
+                CALL PRINTC
+                LDA #'['
+                CALL PRINTC
+                PLA
+                CALL PRINTC
+                
+                LDA #0
+                BRA done     
                 .pend
 
 K_UP = $11      ; Keypad UP

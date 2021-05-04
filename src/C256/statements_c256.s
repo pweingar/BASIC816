@@ -1463,6 +1463,7 @@ L_LUT           .byte ?
                 setaxl
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                LDA ARGUMENT1
                 STA L_SPRITE                ; Save it as sprite
 
                 LDA #','
@@ -1543,6 +1544,7 @@ L_X             .word ?
                 setaxl
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                LDA ARGUMENT1
                 STA L_SPRITE                ; Save it as sprite    
 
                 LDA #','
@@ -1594,6 +1596,7 @@ L_VISIBLE       .byte ?
                 setaxl
                 CALL EVALEXPR               ; Get the sprite's number
                 CALL ASS_ARG1_BYTE          ; Make sure it's a byte
+                LDA ARGUMENT1
                 STA L_SPRITE                ; Save it as sprite
 
                 LDA #','
