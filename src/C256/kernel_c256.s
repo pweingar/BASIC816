@@ -26,6 +26,7 @@ FK_SAVE             = $00111C ; Save memory to a binary file
 FK_RUN              = $001124 ; Load and run an executable binary file
 FK_COPY             = $001130 ; Copy a file
 FK_CMDBLOCK         = $001120 ; Send a command to a block device
+FK_TESTBREAK        = $00113C ; Check if BREAK was pressed recently by the user (C is set if true, clear if false)
 
 ;;;
 ;;; Kernel Constants

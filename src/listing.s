@@ -26,8 +26,8 @@ LISTPROG    .proc
             STA BIP+2
             STA CURLINE+2
 
-list_loop   LDA KEYFLAG         ; Check the keyboard flags
-            BMI throw_break     ; If MSB: user pressed an interrupt key, stop the listing
+list_loop   JSL FK_TESTBREAK
+            BCS throw_break     ; If C: user pressed an interrupt key, stop the listing
 
             LDY #LINE_NUMBER
             LDA [CURLINE],Y

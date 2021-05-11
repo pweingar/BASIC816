@@ -42,3 +42,10 @@ KB_PR_LED		  =	$40
 KB_SCROLL_LOCK      = $01
 KB_NUM_LOCK         = $02
 KB_CAPS_LOCK        = $04
+
+;
+; ANSI terminal codes
+;
+
+ANSI_IN_INS = 2     ; ANSI input code for INSERT
+ANSI_IN_DEL = 3     ; ANSI input code for DELETE

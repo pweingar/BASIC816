@@ -24,6 +24,9 @@ textonly    ; Make sure text mode is on
             ORA #Mstr_Ctrl_Text_Mode_En
             STA @l MASTER_CTRL_REG_L
 
+            LDA #CHAN_CONSOLE                   ; Make sure we're writing to the main screen
+            JSL FK_SETOUT
+
 done        PLP
             RETURN
             .pend

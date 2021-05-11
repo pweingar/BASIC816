@@ -572,9 +572,35 @@ FN_PEEK         .proc
                 CMP #TYPE_INTEGER
                 BNE type_mismatch
 
+.if SYSTEM == SYSTEM_C256
+                ;
+                ; For the C256, we cannot simply read from video RAM, we have to request the data
+                ; with a load, which will trigger a request to Vicky to fetch the data. We then
+                ; have to wait for the data to appear in Vicky's memory access FIFO.
+                ;
+
+                LDA ARGUMENT1+2                     ; Check to see if the request is to video memory
+                CMP #`VRAM
+                BLT simple_peek                     ; No: just do an ordinary PEEK
+                CMP #$F0
+                BGE simple_peek
+
                 setas
+                LDA [ARGUMENT1]                     ; Request the data from VRAM
+
+                setal
+wait_vram       LDA @l VMEM2CPU_Fifo_Count_LO       ; Wait for the Vicky FIFO to have a byte in it
+                BIT #$8000
+                BNE wait_vram
+
+                setas
+                LDA @l VMEM2CPU_Data_Port           ; Fetch the byte from the Vicky FIFO
+                BRA save_result                     ; And return it
+.endif
+
+simple_peek     setas
                 LDA [ARGUMENT1]
-                STA ARGUMENT1
+save_result     STA ARGUMENT1
                 STZ ARGUMENT1+1
                 STZ ARGUMENT1+2
                 STZ ARGUMENT1+13

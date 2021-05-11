@@ -56,9 +56,9 @@ MDOS            JML IMDOS
 IMONITOR        CLC                 ; clear the carry flag
                 XCE                 ; move carry to emulation flags
 
-                setal
-                LDA #STACK_END      ; Reset the stack
-                TAS
+                ; setal
+                ; LDA #STACK_END      ; Reset the stack
+                ; TAS
 
                 CLI                 ; Re-enable interrupts
 
@@ -245,6 +245,7 @@ IMREGISTERS     ; Make sure text is displayed
                 ; print Direct Page
                 LDA #' '
                 CALL PRINTC
+                LDA #' '
                 CALL PRINTC
                 LDA @lCPUDP
                 CALL PRHEXW

@@ -179,7 +179,8 @@ IREADLINE       .proc
                 CALL SHOWCURSOR
 
 read_loop       CALL GETKEYE
-                BEQ done
+                CMP #0
+                BEQ read_loop
                 CMP #CHAR_CR
                 BEQ done
                 BRA read_loop
@@ -240,6 +241,8 @@ INTERACT        .proc
 ready_loop      CALL PRREADY        ; Print the READY prompt
 no_ready_loop   CALL READLINE       ; Read characters until the user presses RETURN
                 CALL SCRCOPYLINE    ; Copy the line the cursor is on to the INPUTBUF
+
+                JSL FK_TESTBREAK    ; Make sure the BREAK bit is cleared.
 
                 LDA #0              ; Hide the cursor
                 CALL SHOWCURSOR

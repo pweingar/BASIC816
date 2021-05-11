@@ -673,3 +673,33 @@ ret_false   CALL SET_FALSE              ; Return FALSE
 done        PLP
             RETURN
             .pend
+
+;
+; Normalize a string by converting a null string pointer to an empty string
+;
+STR_NORMAL  .proc
+            PHP
+            TRACE "STR_NORMAL"
+
+            ; Hack! If returning a string of NULL pointer, return an empty string instead
+
+            setas
+            LDA ARGTYPE1            ; Is it a string?
+            CMP #TYPE_STRING
+            BNE done                ; No: return it
+
+            LDA ARGUMENT1           ; Is it a null pointer?
+            BNE done
+            LDA ARGUMENT1+1
+            BNE done
+            LDA ARGUMENT1+2
+            BNE done                ; No: return it
+
+            CALL TEMPSTRING         ; Make a new temporary string
+            LDA #0
+            STA [STRPTR]            ; Make it empty
+            MOVE_D ARGUMENT1,STRPTR ; Save the pointer to the string in ARGUMENT1
+
+done        PLP
+            RETURN
+            .pend

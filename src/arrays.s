@@ -106,6 +106,10 @@ size_loop       setal
                 STA ARGUMENT2
                 LDA #0
                 STA ARGUMENT2+2
+                setas
+                LDA #TYPE_INTEGER
+                STA ARGTYPE2
+                setal
 
                 CALL OP_MULTIPLY            ; ARGUMENT1 := ARGUMENT1 * Ith dimension
 
@@ -237,7 +241,7 @@ ARR_CELL        .proc
                 STZ INDEX+2
 
                 setas
-                LDA @lARRIDXBUF         ; MCOUNT := N (number of dimensions)
+                LDA @l ARRIDXBUF        ; MCOUNT := N (number of dimensions)
                 STA MCOUNT
                 STZ MCOUNT+1
 
@@ -247,6 +251,9 @@ ARR_CELL        .proc
                 LDA [CURRBLOCK]         ; Make sure the dimensions of the array
                 CMP MCOUNT              ; ... match those requested
                 BEQ dims_match          ; Yes: the dimensions match
+
+                LDX MCOUNT
+                BRK
 
 arg_err         THROW ERR_ARGUMENT      ; Throw an argument error
 
@@ -363,10 +370,22 @@ ARR_SET         .proc
                 LDY #HEAPOBJ.TYPE   ; Get the type of the array
                 LDA [CURRHEADER],Y
                 AND #$7F            ; Mask off the ARRAY OF bit
-                CMP ARGTYPE1        ; is it the same as the argument?
-                BNE type_mismatch   ; No: throw a type mismatch error
 
-                LDA ARGTYPE1        ; Save the type
+                CMP #TYPE_STRING    ; Is it a string array?
+                BNE chk_integer
+                CALL ASS_ARG1_STR   ; Yes: make sure the value is a string
+                BRA save_type
+
+chk_integer     CMP #TYPE_INTEGER   ; Is it an integer array?
+                BNE chk_float
+                CALL ASS_ARG1_INT   ; Yes: make sure the value is an integer (cast if needed)
+                BRA save_type
+
+chk_float       CMP #TYPE_FLOAT     ; Is it an float array?
+                BNE type_mismatch   ; No: throw a type mismatch error... something strange...
+                CALL ASS_ARG1_FLOAT ; Yes: make sure the value is a float (cast if needed)
+
+save_type       LDA ARGTYPE1        ; Save the type
                 PHA
 
                 setal
@@ -441,6 +460,8 @@ ARR_REF         .proc
                 LDA [CURRHEADER],Y
                 AND #$7F            ; Mask off the ARRAY OF bit
                 STA ARGTYPE1        ; Set the type of the return value
+
+                CALL STR_NORMAL     ; Hack! If it's a string, make sure we don't return NULL
 
                 PLP
                 RETURN

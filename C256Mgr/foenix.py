@@ -13,8 +13,8 @@ class FoenixDebugPort:
             bytesize=serial.EIGHTBITS,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
-            timeout=60,
-            write_timeout=60)
+            timeout=20,
+            write_timeout=20)
         try:
             self.connection.open()
         except:

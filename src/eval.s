@@ -352,17 +352,17 @@ ARR_GETIDX  .proc
 
             LDX #1
 eval_index  CALL EVALEXPR       ; Evaluate the index
-            CALL ASS_ARG1_INT16 ; Make sure it works out to be an integer
+            CALL ASS_ARG1_INT   ; Make sure it works out to be an integer
 
             setal
             LDA ARGUMENT1       ; Save the index to the array index buffer
-            STA @lARRIDXBUF,X
+            STA @l ARRIDXBUF,X
 
             setas
-            LDA @lARRIDXBUF     ; Increment the index count
+            LDA @l ARRIDXBUF    ; Increment the index count
             INC A
             BMI arg_err         ; If more than 127 dimensions, throw a range error
-            STA @lARRIDXBUF
+            STA @l ARRIDXBUF
             INX
             INX
 
@@ -405,7 +405,25 @@ get_name    CALL VAR_FINDNAME   ; Try to find the variable name
             CALL VAR_REF        ; No: Get the value of the variable (scalar)
             JMP done
 
-is_array    setas
+is_array    CALL VAR_FIND       ; Try to find the array
+            BCC notfound
+
+            setal
+            LDA CURRBLOCK+2
+            PHA
+            LDA CURRBLOCK
+            PHA
+
+            LDY #BINDING.VALUE
+            LDA [INDEX],Y       ; Save the pointer to the array to CURRBLOCK
+            STA CURRBLOCK
+            setas
+            INY
+            INY
+            LDA [INDEX],Y
+            STA CURRBLOCK+2
+
+            setas
             LDA #TOK_LPAREN
             CALL EXPECT_TOK     ; Skip any whitespace before the open parenthesis
 
@@ -419,9 +437,16 @@ is_array    setas
 
             CALL CLOSEPARAMS    ; Stop procssing the array indexes
 
+            setal
+            PLA
+            STA CURRBLOCK+2
+            PLA
+            STA CURRBLOCK
+
 done        PLP
             RETURN
 syntax_err  THROW ERR_SYNTAX
+notfound    THROW ERR_NOTFOUND
             .pend
 
 ;
@@ -731,7 +756,7 @@ is_alpha    CALL EVALREF        ; Attempt to evaluate the variable reference
 done        LDX #<>ARGUMENT1    ; Make sure the result is off the stack
             CALL PLARGUMENT     ; And in ARGUMENT1
 
-            TRACE "/EVALEXPR"
+real_done   TRACE "/EVALEXPR"
             PLX
             PLP
             RETURN

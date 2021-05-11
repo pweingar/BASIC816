@@ -69,7 +69,6 @@ START       CLC                 ; Go to native mode
             setdbr BASIC_BANK
 
             setaxl
-
             CALL INITBASIC
 
             LDA #STACK_END      ; Set the system stack

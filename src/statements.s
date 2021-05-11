@@ -284,7 +284,7 @@ S_DIM           .proc
                 STA @lARRIDXBUF     ; Set the dimension count to 0
 
 dim_loop        CALL EVALEXPR       ; Evaluate the count
-                CALL ASS_ARG1_INT16 ; Make sure it is an integer
+                CALL ASS_ARG1_INT   ; Make sure it is an integer
 
                 setal
                 LDA ARGUMENT1
@@ -1204,6 +1204,15 @@ get_name        CALL VAR_FINDNAME   ; Try to find the variable name
 
 check_array     TRACE "check_array"
                 setas
+                LDA TOFINDTYPE      ; Save the variable name for later
+                PHA                 ; (it will get over-written by variable references)
+                LDA TOFIND+2
+                PHA
+                LDA TOFIND+1
+                PHA
+                LDA TOFIND
+                PHA         
+
                 CALL PEEK_TOK       ; Look ahead to the next token
                 CMP #TOK_LPAREN     ; Is it a "("
                 BNE get_value       ; No: it's a scalar assignment, look for the "="
@@ -1212,11 +1221,11 @@ check_array     TRACE "check_array"
                 CALL EXPECT_TOK     ; Skip any whitespace before the open parenthesis
 
                 LDA #0
-                STA @lARRIDXBUF     ; Blank out the array index buffer
+                STA @l ARRIDXBUF    ; Blank out the array index buffer
                 CALL ARR_GETIDX     ; Yes: get the array indexes
 
 get_value       CALL SKIPWS         ; Scan for an "="
-                TRACE "get_value"
+                TRACE "get_value"  
 
                 setas
                 LDA [BIP]
@@ -1224,16 +1233,7 @@ get_value       CALL SKIPWS         ; Scan for an "="
                 BEQ found_eq        ; If not found: signal an syntax error
                 JMP syntax_err
 
-found_eq        CALL INCBIP         ; Otherwise, skip over it
-
-                LDA TOFINDTYPE      ; Save the variable name for later
-                PHA                 ; (it will get over-written by variable references)
-                LDA TOFIND+2
-                PHA
-                LDA TOFIND+1
-                PHA
-                LDA TOFIND
-                PHA                
+found_eq        CALL INCBIP         ; Otherwise, skip over it       
 
                 CALL EVALEXPR       ; Evaluate the expression
 
@@ -1355,24 +1355,22 @@ PR_STRING       .proc
 
                 setdp GLOBAL_VARS
 
-                setas
-                setxl
-                LDY #0
+                ; setaxl
+                ; LDA ARGUMENT1               ; If string is NULL, print nothing
+                ; BNE start_print
+                ; setas
+                ; LDA ARGUMENT1+2
+                ; BEQ done
 
+                ; BRK
+
+                setas
+start_print     LDY #0
 loop            LDA [ARGUMENT1],Y
                 BEQ done
                 CALL PRINTC
                 INY
                 BRA loop
-
-                ; setas               ; Get the data bank for the string
-                ; LDA ARGUMENT1+2
-                ; PHA
-                ; PLB
-
-                ; setxl
-                ; LDX ARGUMENT1     ; Get the pointer to the string
-                ; CALL PRINTS         ; And print it
 
 done            PLB
                 PLP

@@ -604,8 +604,8 @@ EXECSTMT    .proc
             LDA #EXEC_CONT      ; This will tell EXECLINE and EXECPROG to procede in a
             STA EXECACTION      ; linear fashion through the program
             
-check_break LDA KEYFLAG         ; Check the keyboard flags
-            BMI throw_break     ; If MSB: user pressed an interrupt key, stop the program
+check_break JSL FK_TESTBREAK
+            BCS throw_break     ; If C: user pressed an interrupt key, stop the program
 
             LDA [BIP]           ; If we happen to have a colon, just skip over it.
             CMP #':'            ; This can happen with FOR/NEXT
