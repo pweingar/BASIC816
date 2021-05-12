@@ -127,48 +127,50 @@ ISCRCPYLINE .proc
             setaxl
 
             ; Calculate the address of the first character of the line
-            LDA @lSCREENBEGIN       ; Set INDEX to the first byte of the text screen
+            LDA @l SCREENBEGIN      ; Set INDEX to the first byte of the text screen
             STA INDEX
             setas
-            LDA @lSCREENBEGIN+2
+            LDA @l SCREENBEGIN+2
             setal
             AND #$00FF
             STA INDEX+2
 
-            LDA @lCOLS_PER_LINE     ; Calculate the offset to the current line
-            STA @lM1_OPERAND_A
-            LDA @lCURSORY
+            LDA @l COLS_PER_LINE    ; Calculate the offset to the current line
+            STA @l M1_OPERAND_A
+            LDA @l CURSORY
             DEC A
-            STA @lM1_OPERAND_B
+            STA @l M1_OPERAND_B
 
             CLC                     ; And add it to INDEX
             LDA INDEX
-            ADC @lM1_RESULT
+            ADC @l M1_RESULT
             STA INDEX
             LDA INDEX+2
             ADC #0
             STA INDEX+2
 
             setas
-            LDA @lCOLS_VISIBLE
+            LDA @l COLS_VISIBLE
             STA MCOUNT
+
             LDY #0
             LDX #0
 copy_loop   LDA [INDEX],Y           ; Copy a byte from the screen to the input buffer
-            STA @lINPUTBUF,X
+            STA @l INPUTBUF,X
             INX
             INY
             CPY MCOUNT
             BNE copy_loop
 
-            DEX
-
-trim_loop   LDA @lINPUTBUF,X        ; Replace spaces at the end with NULLs
+            LDA @l COLS_VISIBLE     ; Starting from the end of the line...
+            DEC A
+            TAX
+trim_loop   LDA @l INPUTBUF,X       ; Replace spaces at the end with NULLs
             CMP #CHAR_SP
             BNE done
 
             LDA #0
-            STA @lINPUTBUF,X
+            STA @l INPUTBUF,X
 
             DEX
             BPL trim_loop
