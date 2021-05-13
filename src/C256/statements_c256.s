@@ -905,7 +905,17 @@ SY      .word ?
 PLOT            .proc
                 PHP
                 setal
-                LDA Y0                      ; Get the row          
+                LDA X0                      ; Get the column
+                CMP @l GR_MAX_COLS          ; Make sure it's in range for this graphics mode
+                BLT chk_row                 ; If so: check the row
+
+range_err       THROW ERR_RANGE             ; If not: throw a range error
+
+chk_row         setaxl
+                LDA Y0                      ; Get the row
+                CMP @l GR_MAX_ROWS          ; Make sure it's in range for this graphics mode
+                BGE range_err               ; If not: throw an error
+          
                 STA @lM1_OPERAND_A
                 LDA @lGR_MAX_COLS          
                 STA @lM1_OPERAND_B          ; Multiply by the number of columns in the pixmap
@@ -930,7 +940,7 @@ PLOT            .proc
                 LDA COLOR                   ; Get the color
                 STA [SCRATCH]               ; And write the color to the pixel
 
-                PLP
+done            PLP
                 RETURN
                 .pend
 
@@ -985,8 +995,24 @@ abs_Y           LDA #1                      ; Assume SY = 1
                 LDA #$FFFF                  ; SY := -1
                 STA SY                      ; }
 
-calc_ERR        LDA DY                      ; (DY < DX)
-                CMP DX
+calc_ERR        LDA DY
+                CMP #1                      ; Is DY = 1?
+                BNE cmp_dx                  ; No: compare to DX
+                LDA DX
+                CMP #1                      ; Is DX = 1 too?
+                BNE cmp_dy_dx               ; No: treat normally
+
+                ; Yes: degenerate case of two dots next to each other
+                CALL PLOT                   ; PLOT(X0, Y0)
+                LDA X1
+                STA X0
+                LDA Y1
+                STA Y0
+                CALL PLOT                   ; PLOT(X1, Y1)
+                BRA done
+
+cmp_dy_dx       LDA DY
+cmp_dx          CMP DX                      ; (DY < DX)
                 BGE else
 
                 LDA DX                      ; TRUE CASE: ERR := DX
