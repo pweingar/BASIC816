@@ -408,10 +408,9 @@ found       TRACE_A "found"
             BEQ syntax              ; No: line cannot start with minus... throw error
 
             BIT #$80                ; Is it a token?
-            BPL binaryminus         ; No: leave token unchanged
+            BEQ binaryminus         ; No: leave token unchanged
 
-            CALL TOKTYPE            ; Check the token type
-            CMP #TOK_TY_FUNC        ; Is it a function?
+            CMP #TOK_RPAREN         ; Is the token a right parenthesis?
             BEQ binaryminus         ; Yes: then this should be a binary minus operator
 
             TRACE "make negative"
