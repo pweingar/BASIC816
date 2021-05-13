@@ -265,8 +265,8 @@ not_letter      CMP #'0'                ; Is it in range '0'..'9'?
 
 not_csi_digit   BRL get_reset           ; Bad sequence: reset and keep reading characters
 
-chk_st_code     CMP #GK_ST_CODE         ; Is it the  state?
-                BNE done
+chk_st_code     CMP #GK_ST_CODE         ; Is it the CODE state?
+                BNE chk_st_mods         ; No: check to see if it's MODIFIERS      
 
                 ; CODE state: read digits... end on semicolon or tilda
 
@@ -280,32 +280,70 @@ chk_st_code     CMP #GK_ST_CODE         ; Is it the  state?
                 ; We have a digit... multiply the code by ten and add it
 
                 LDA l_code              ; Multiply l_code by 2
-                ASL A
-                STA SCRATCH
-                ASL A                   ; Multiply l_code by 8
-                ASL A
-                CLC
-                ADC SCRATCH             ; Add to get l_code * 10
+                STA @l UNSIGNED_MULT_A_LO
+                LDA #0
+                STA @l UNSIGNED_MULT_A_HI
+                STA @l UNSIGNED_MULT_B_HI
+                LDA #10
+                STA @l UNSIGNED_MULT_B_LO
 
                 LDA l_character         ; Convert the digit to a number
                 SEC
                 SBC #'0'
 
                 CLC                     ; And add to l_code
-                ADC SCRATCH
+                ADC @l UNSIGNED_MULT_AL_LO
                 STA l_code
 
                 BRL loop                ; And keep processing the sequence
 
-not_digits_2    ; CMP #';'                ; Is it the semicolon?
-                ; BNE not_semi
+not_digits_2    CMP #';'                ; Is it the semicolon?
+                BNE not_semi
 
-                ; LDA #GK_ST_MODS         ; Yes: Move to the MODIFIERS state
-                ; STA l_state
-                ; BRL loop
+                LDA #GK_ST_MODS         ; Yes: Move to the MODIFIERS state
+                STA l_state
+                BRL loop
 
 not_semi        CMP #'~'                ; No: Is it the tilda?
                 BEQ end_sequence        ; Yes: we've gotten the end of the sequence
+                BRL get_reset           ; No: we've got a bad sequence... for now just reset and keep looping
+
+chk_st_mods     CMP #GK_ST_MODS         ; Are we in the MODIFIERS state?
+                BEQ do_mods
+                BRL done                ; No: we're done
+
+                ; MODIFIERS state: read digits... end on tilda
+
+do_mods         LDA l_character         ; Check the character
+
+                CMP #'0'                ; Is it in the range '0'..'9'
+                BLT not_digits_3
+                CMP #'9'+1
+                BGE not_digits_3
+                
+                ; We have a digit... multiply the code by ten and add it
+
+                LDA l_modifiers         ; Multiply l_modifiers by 2
+                STA @l UNSIGNED_MULT_A_LO
+                LDA #0
+                STA @l UNSIGNED_MULT_A_HI
+                STA @l UNSIGNED_MULT_B_HI
+                LDA #10
+                STA @l UNSIGNED_MULT_B_LO
+
+                LDA l_character         ; Convert the digit to a number
+                SEC
+                SBC #'0'
+
+                CLC                     ; And add to l_modifiers
+                ADC @l UNSIGNED_MULT_AL_LO
+                STA l_modifiers
+
+                BRL loop                ; And keep processing the sequence
+
+not_digits_3    CMP #'~'                ; No: Is it the tilda?
+                BEQ end_sequence        ; Yes: we've gotten the end of the sequence
+
                 BRL get_reset           ; No: we've got a bad sequence... for now just reset and keep looping
 
                 ; We have a complete code here... interpret it and send the correct sequence...
@@ -315,6 +353,8 @@ end_sequence    LDA l_code              ; Get the code
                 BEQ do_ins              ; Yes: process the insert
                 CMP #ANSI_IN_DEL        ; Is it DELETE?
                 BEQ do_del              ; Yes: process the delete
+                CMP #ANSI_IN_F12        ; Is it F12?
+                BEQ do_f12              ; Yes: process the F12 key
 
                 ; TODO: handle HOME, END, F12?
 
@@ -326,4 +366,18 @@ do_ins          LDA #'@'                ; Send the ANSI ICH command
 do_del          LDA #'P'                ; Send the ANSI DCH command
 snd_ansi        CALL SEND_ANSI
                 BRL get_reset           ; Reset and keep getting characters
+
+do_f12          LDA STATE               ; Check the state
+                BNE skip_f12            ; If we're running, ignore the F12
+
+                LDA l_modifiers         ; Check to make sure it's CTRL-F12
+                CMP #ANSI_IN_CTRL       ; Modifier flag for CTRL
+                BNE skip_f12
+
+                LDA #CHAR_ESC           ; Send ESC_ (APC) to show the credits
+                CALL PRINTC
+                LDA #'_'
+                CALL PRINTC
+                
+skip_f12        BRL get_reset           ; And reset the state machine
                 .pend

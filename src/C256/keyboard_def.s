@@ -49,3 +49,6 @@ KB_CAPS_LOCK        = $04
 
 ANSI_IN_INS = 2     ; ANSI input code for INSERT
 ANSI_IN_DEL = 3     ; ANSI input code for DELETE
+ANSI_IN_F12 = 24    ; ANSI input code for F12
+
+ANSI_IN_CTRL = 8    ; ANSI input modifier flag for CTRL
