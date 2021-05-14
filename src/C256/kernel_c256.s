@@ -27,6 +27,8 @@ FK_RUN              = $001124 ; Load and run an executable binary file
 FK_COPY             = $001130 ; Copy a file
 FK_CMDBLOCK         = $001120 ; Send a command to a block device
 FK_TESTBREAK        = $00113C ; Check if BREAK was pressed recently by the user (C is set if true, clear if false)
+FK_GETSCANCODE      = $001028 ; Get the next scancode from the keyboard (A = scancode, 0 if none available)
+FK_READVRAM         = $001144 ; Read a byte from video RAM at B:X
 
 ;;;
 ;;; Kernel Constants

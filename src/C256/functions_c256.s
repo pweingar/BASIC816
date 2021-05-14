@@ -194,3 +194,27 @@ FN_RND      .proc
             FN_END
             RETURN
             .pend
+
+;
+; Return a scan code (block until there is one)
+;
+FN_INKEY    .proc
+            FN_START "FN_INKEY"
+            PHP
+
+            CALL EVALEXPR               ; Evaluate the argument, but we don't care what it is
+
+            JSL FK_GETSCANCODE          ; Get the scan code
+
+            setas
+            STA ARGUMENT1
+            STZ ARGUMENT1+1
+            STZ ARGUMENT1+2
+            STZ ARGUMENT1+3
+            LDA #TYPE_INTEGER           ; We'll return an integer number
+            STA ARGTYPE1
+
+            PLP
+            FN_END
+            RETURN
+            .pend

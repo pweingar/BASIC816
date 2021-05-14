@@ -564,38 +564,23 @@ FN_PEEK         .proc
                 FN_START "FN_PEEK"
 
                 CALL EVALEXPR       ; Evaluate the first expression
-
-                ; TODO: convert float to integer
-
-                setas               ; Throw an error if it's not an integer
-                LDA ARGTYPE1
-                CMP #TYPE_INTEGER
-                BNE type_mismatch
+                CALL ASS_ARG1_INT   ; Throw an error if it's not an integer
 
 .if SYSTEM == SYSTEM_C256
-                ;
-                ; For the C256, we cannot simply read from video RAM, we have to request the data
-                ; with a load, which will trigger a request to Vicky to fetch the data. We then
-                ; have to wait for the data to appear in Vicky's memory access FIFO.
-                ;
-
+                setas
                 LDA ARGUMENT1+2                     ; Check to see if the request is to video memory
                 CMP #`VRAM
                 BLT simple_peek                     ; No: just do an ordinary PEEK
                 CMP #$F0
                 BGE simple_peek
 
-                setas
-                LDA [ARGUMENT1]                     ; Request the data from VRAM
-
-                setal
-wait_vram       LDA @l VMEM2CPU_Fifo_Count_LO       ; Wait for the Vicky FIFO to have a byte in it
-                BIT #$8000
-                BNE wait_vram
-
-                setas
-                LDA @l VMEM2CPU_Data_Port           ; Fetch the byte from the Vicky FIFO
-                BRA save_result                     ; And return it
+                PHB                                 ; DBR := bank
+                PHA
+                PLB
+                LDX ARGUMENT1                       ; X := address
+                JSL FK_READVRAM                     ; Fetch the low byte
+                PLB
+                BRA save_result
 .endif
 
 simple_peek     setas
@@ -618,22 +603,51 @@ FN_PEEKL        .proc
                 FN_START "FN_PEEKL"
 
                 CALL EVALEXPR       ; Evaluate the first expression
+                CALL ASS_ARG1_INT   ; Throw an error if it's not an integer
 
-                ; TODO: convert float to integer
+.if SYSTEM == SYSTEM_C256
+                ;
+                ; For the C256, we cannot simply read from video RAM, we have to request the data
+                ; with a load, which will trigger a request to Vicky to fetch the data. We then
+                ; have to wait for the data to appear in Vicky's memory access FIFO.
+                ;
 
-                setas               ; Throw an error if it's not an integer
-                LDA ARGTYPE1
-                CMP #TYPE_INTEGER
-                BNE type_mismatch
+                setas
+                LDA ARGUMENT1+2                     ; Check to see if the request is to video memory
+                CMP #`VRAM
+                BLT simple_peek                     ; No: just do an ordinary PEEK
+                CMP #$F0
+                BGE simple_peek
 
-                setal
+                PHB                                 ; DBR := bank
+                PHA
+                PLB
+                LDX ARGUMENT1                       ; X := address
+                PHX
+                JSL FK_READVRAM                     ; Fetch the low byte
+                STA SCRATCH                         ; Save the low byte
+
+                PLX
+                INX
+                PHX
+                JSL FK_READVRAM                     ; Fetch the middle byte
+                STA SCRATCH+1                       ; Save the middle byte
+
+                PLX
+                INX
+                JSL FK_READVRAM                     ; Fetch the high byte
+                PLB
+                BRA save_result
+.endif
+
+simple_peek     setal
                 LDA [ARGUMENT1]
                 STA SCRATCH
 
                 setas
                 LDY #2
                 LDA [ARGUMENT1],Y
-                STA ARGUMENT1+2
+save_result     STA ARGUMENT1+2
                 STZ ARGUMENT1+3
 
                 setal
@@ -653,18 +667,43 @@ FN_PEEKW        .proc
                 FN_START "FN_PEEKW"
 
                 CALL EVALEXPR       ; Evaluate the first expression
+                CALL ASS_ARG1_INT   ; Throw an error if it's not an integer
 
-                ; TODO: convert float to integer
+.if SYSTEM == SYSTEM_C256
+                ;
+                ; For the C256, we cannot simply read from video RAM, we have to request the data
+                ; with a load, which will trigger a request to Vicky to fetch the data. We then
+                ; have to wait for the data to appear in Vicky's memory access FIFO.
+                ;
 
-                setas               ; Throw an error if it's not an integer
-                LDA ARGTYPE1
-                CMP #TYPE_INTEGER
-                BNE type_mismatch
+                setas
+                LDA ARGUMENT1+2                     ; Check to see if the request is to video memory
+                CMP #`VRAM
+                BLT simple_peek                     ; No: just do an ordinary PEEK
+                CMP #$F0
+                BGE simple_peek
 
+                PHB                                 ; DBR := bank
+                PHA
+                PLB
+                LDX ARGUMENT1                       ; X := address
+                PHX
+                JSL FK_READVRAM                     ; Fetch the low byte
+                STA ARGUMENT1                       ; Save the low byte
+
+                PLX
+                INX
+                JSL FK_READVRAM                     ; Fetch the high byte
+                STA ARGUMENT1+1
+                PLB
                 setal
+                BRA done
+.endif
+
+simple_peek     setal
                 LDA [ARGUMENT1]
                 STA ARGUMENT1
-                STZ ARGUMENT1+2
+done            STZ ARGUMENT1+2
 
                 FN_END
                 RETURN

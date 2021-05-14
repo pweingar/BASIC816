@@ -1064,4 +1064,7 @@ TOK_RECT = $E7
             DEFTOK "EXP", TOK_TY_FUNC, 0, FN_EXP, 0
 ; $F5
             DEFTOK "SQR", TOK_TY_FUNC, 0, FN_SQR, 0
+; $F6
+            DEFTOK "INKEY", TOK_TY_FUNC, 0, FN_INKEY, 0
+            
             .word 0, 0, 0, 0
