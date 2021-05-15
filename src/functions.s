@@ -588,7 +588,7 @@ simple_peek     setas
 save_result     STA ARGUMENT1
                 STZ ARGUMENT1+1
                 STZ ARGUMENT1+2
-                STZ ARGUMENT1+13
+                STZ ARGUMENT1+3
 
                 FN_END
                 RETURN

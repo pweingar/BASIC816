@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.55.2200 listing file
 ; 64tass -D SYSTEM=2 -D C256_SKU=1 -D UARTSUPPORT= -D UNITTEST=0 -D TRACE_LEVEL=0 --long-address --flat -b --m65816 --intel-hex -o basic816_3A0000.hex --list=basic816_3A0000.lst --labels=basic816_3A0000.lbl src\basic816.s
-; Thu May 13 19:27:50 2021
+; Sat May 15 18:49:49 2021
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -11991,7 +11991,7 @@
 .3a4bda	85 23		sta $0823	save_result     STA ARGUMENT1
 .3a4bdc	64 24		stz $0824	                STZ ARGUMENT1+1
 .3a4bde	64 25		stz $0825	                STZ ARGUMENT1+2
-.3a4be0	64 30		stz $0830	                STZ ARGUMENT1+13
+.3a4be0	64 26		stz $0826	                STZ ARGUMENT1+3
 .3a4be2	e2 20		sep #$20	            SEP #$20
 .3a4be4	20 e2 20	jsr $3a20e2	            JSR INCBIP
 .3a4be7	60		rts		            RTS
@@ -19509,8 +19509,8 @@
 
 ;******  Processing file: src\version.s
 
->3ad28c	76 30 2e 32 2e 30 2d 61		.text "v0.2.0-alpha+404"
->3ad294	6c 70 68 61 2b 34 30 34
+>3ad28c	76 30 2e 32 2e 30 2d 61		.text "v0.2.0-alpha+405"
+>3ad294	6c 70 68 61 2b 34 30 35
 
 ;******  Return to file: src\basic816.s
 
