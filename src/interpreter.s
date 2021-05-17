@@ -598,6 +598,8 @@ EXECSTMT    .proc
 
             setdp <>GLOBAL_VARS
 
+            CALL CLRTMPSTR      ; Reset the temporary string pointer
+
             CALL INITEVALSP     ; Make sure the evaluatio stacks are empty
 
             setas               ; Set EXECACTION to EXEC_CONT, the default behavior
@@ -717,8 +719,6 @@ EXECLINE    PHP
             LDA [CURLINE],Y
             STA LINENUM
             TRACE_A "EXECLINE"
-
-            CALL CLRTMPSTR              ; Reset the temporary string pointer
 
             setas
             LDA EXECACTION              ; If the last EXEC action was RETURN

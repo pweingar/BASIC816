@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.55.2200 listing file
 ; 64tass -D SYSTEM=2 -D C256_SKU=2 -D UARTSUPPORT= -D UNITTEST=0 -D TRACE_LEVEL=0 --long-address --flat -b --m65816 --intel-hex -o basic816_1A0000.hex --list=basic816_1A0000.lst --labels=basic816_1A0000.lbl src\basic816.s
-; Sat May 15 18:49:48 2021
+; Mon May 17 13:32:25 2021
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -6594,112 +6594,112 @@
 .1a2268	5b		tcd		            TCD
 .1a2269	68		pla		            PLA
 .1a226a	28		plp		            PLP
-.1a226b	20 50 19	jsr $1a1950	            JSR INITEVALSP
-.1a226e	e2 20		sep #$20	            SEP #$20
-.1a2270	a9 00		lda #$00	            LDA #EXEC_CONT      ; This will tell EXECLINE and EXECPROG to procede in a
-.1a2272	85 dc		sta $08dc	            STA EXECACTION      ; linear fashion through the program
-.1a2274	22 3c 11 00	jsl $00113c	check_break JSL FK_TESTBREAK
-.1a2278	b0 4b		bcs $1a22c5	            BCS throw_break     ; If C: user pressed an interrupt key, stop the program
-.1a227a	a7 00		lda [$0800]	            LDA [BIP]           ; If we happen to have a colon, just skip over it.
-.1a227c	c9 3a		cmp #$3a	            CMP #':'            ; This can happen with FOR/NEXT
-.1a227e	d0 03		bne $1a2283	            BNE eat_ws
-.1a2280	20 e2 20	jsr $1a20e2	            JSR INCBIP
-.1a2283					eat_ws
-.1a2283	20 03 21	jsr $1a2103	            JSR SKIPWS
-.1a2286	a7 00		lda [$0800]	            LDA [BIP]
-.1a2288	d0 03		bne $1a228d	            BNE else
-.1a228a	4c 0f 23	jmp $1a230f	            JMP done            ; If the current byte is 0, we're at the end of the line, just return
-.1a228d					else
-.1a228d	20 a7 04	jsr $1a04a7	            JSR ISALPHA
-.1a2290	b0 52		bcs $1a22e4	            BCS is_variable     ; Yes: we may have a LET statement
-.1a2292	a7 00		lda [$0800]	            LDA [BIP]           ; Check to see if it's any other non-token
-.1a2294	10 10		bpl $1a22a6	            BPL error           ; Yes: it's a syntax error
-.1a2296	20 6c 0c	jsr $1a0c6c	            JSR TOKTYPE
-.1a2299	85 0c		sta $080c	            STA SCRATCH         ; Save the type for later
-.1a229b	c9 20		cmp #$20	            CMP #TOK_TY_STMNT   ; Is it a statement?
-.1a229d	d0 03		bne $1a22a2	            BNE else2
-.1a229f	4c fd 22	jmp $1a22fd	            JMP ok_to_exec      ; Yes: it's ok to try to execute it
-.1a22a2	a5 d2		lda $08d2	else2       LDA STATE           ; Check to see if we're in interactive mode
-.1a22a4	f0 51		beq $1a22f7	            BEQ is_interact
-.1a22a6					error
-.1a22a6	08		php		            PHP
-.1a22a7	c2 20		rep #$20	            REP #$20
-.1a22a9	48		pha		            PHA
-.1a22aa	a9 00 08	lda #$0800	            LDA #<>GLOBAL_VARS
-.1a22ad	5b		tcd		            TCD
-.1a22ae	68		pla		            PLA
-.1a22af	28		plp		            PLP
-.1a22b0	e2 20		sep #$20	            SEP #$20
-.1a22b2	a9 02		lda #$02	            LDA #ERR_SYNTAX
-.1a22b4	8f d3 08 00	sta $0008d3	            STA @lERROR_NUM
-.1a22b8	c2 20		rep #$20	            REP #$20
-.1a22ba	29 ff 00	and #$00ff	            AND #$00FF
-.1a22bd	20 23 1e	jsr $1a1e23	            JSR SET_ERRERL
-.1a22c0	e2 20		sep #$20	            SEP #$20
-.1a22c2	dc d4 08	jmp [$08d4]	            JMP [HANDLEERR]
-.1a22c5					throw_break
-.1a22c5	08		php		            PHP
-.1a22c6	c2 20		rep #$20	            REP #$20
-.1a22c8	48		pha		            PHA
-.1a22c9	a9 00 08	lda #$0800	            LDA #<>GLOBAL_VARS
-.1a22cc	5b		tcd		            TCD
-.1a22cd	68		pla		            PLA
-.1a22ce	28		plp		            PLP
-.1a22cf	e2 20		sep #$20	            SEP #$20
-.1a22d1	a9 01		lda #$01	            LDA #ERR_BREAK
-.1a22d3	8f d3 08 00	sta $0008d3	            STA @lERROR_NUM
-.1a22d7	c2 20		rep #$20	            REP #$20
-.1a22d9	29 ff 00	and #$00ff	            AND #$00FF
-.1a22dc	20 23 1e	jsr $1a1e23	            JSR SET_ERRERL
-.1a22df	e2 20		sep #$20	            SEP #$20
-.1a22e1	dc d4 08	jmp [$08d4]	            JMP [HANDLEERR]
-.1a22e4					is_variable
-.1a22e4	20 94 44	jsr $1a4494	            JSR S_LET
-.1a22e7	4c 0f 23	jmp $1a230f	            JMP done
-.1a22ea					STSTUB
-.1a22ea	08		php		            PHP
-.1a22eb	e2 20		sep #$20	            SEP #$20
-.1a22ed	48		pha		            PHA
-.1a22ee	a9 00		lda #$00	            LDA #`GLOBAL_VARS
+.1a226b	20 bd 14	jsr $1a14bd	            JSR CLRTMPSTR
+.1a226e	20 50 19	jsr $1a1950	            JSR INITEVALSP
+.1a2271	e2 20		sep #$20	            SEP #$20
+.1a2273	a9 00		lda #$00	            LDA #EXEC_CONT      ; This will tell EXECLINE and EXECPROG to procede in a
+.1a2275	85 dc		sta $08dc	            STA EXECACTION      ; linear fashion through the program
+.1a2277	22 3c 11 00	jsl $00113c	check_break JSL FK_TESTBREAK
+.1a227b	b0 4b		bcs $1a22c8	            BCS throw_break     ; If C: user pressed an interrupt key, stop the program
+.1a227d	a7 00		lda [$0800]	            LDA [BIP]           ; If we happen to have a colon, just skip over it.
+.1a227f	c9 3a		cmp #$3a	            CMP #':'            ; This can happen with FOR/NEXT
+.1a2281	d0 03		bne $1a2286	            BNE eat_ws
+.1a2283	20 e2 20	jsr $1a20e2	            JSR INCBIP
+.1a2286					eat_ws
+.1a2286	20 03 21	jsr $1a2103	            JSR SKIPWS
+.1a2289	a7 00		lda [$0800]	            LDA [BIP]
+.1a228b	d0 03		bne $1a2290	            BNE else
+.1a228d	4c 12 23	jmp $1a2312	            JMP done            ; If the current byte is 0, we're at the end of the line, just return
+.1a2290					else
+.1a2290	20 a7 04	jsr $1a04a7	            JSR ISALPHA
+.1a2293	b0 52		bcs $1a22e7	            BCS is_variable     ; Yes: we may have a LET statement
+.1a2295	a7 00		lda [$0800]	            LDA [BIP]           ; Check to see if it's any other non-token
+.1a2297	10 10		bpl $1a22a9	            BPL error           ; Yes: it's a syntax error
+.1a2299	20 6c 0c	jsr $1a0c6c	            JSR TOKTYPE
+.1a229c	85 0c		sta $080c	            STA SCRATCH         ; Save the type for later
+.1a229e	c9 20		cmp #$20	            CMP #TOK_TY_STMNT   ; Is it a statement?
+.1a22a0	d0 03		bne $1a22a5	            BNE else2
+.1a22a2	4c 00 23	jmp $1a2300	            JMP ok_to_exec      ; Yes: it's ok to try to execute it
+.1a22a5	a5 d2		lda $08d2	else2       LDA STATE           ; Check to see if we're in interactive mode
+.1a22a7	f0 51		beq $1a22fa	            BEQ is_interact
+.1a22a9					error
+.1a22a9	08		php		            PHP
+.1a22aa	c2 20		rep #$20	            REP #$20
+.1a22ac	48		pha		            PHA
+.1a22ad	a9 00 08	lda #$0800	            LDA #<>GLOBAL_VARS
+.1a22b0	5b		tcd		            TCD
+.1a22b1	68		pla		            PLA
+.1a22b2	28		plp		            PLP
+.1a22b3	e2 20		sep #$20	            SEP #$20
+.1a22b5	a9 02		lda #$02	            LDA #ERR_SYNTAX
+.1a22b7	8f d3 08 00	sta $0008d3	            STA @lERROR_NUM
+.1a22bb	c2 20		rep #$20	            REP #$20
+.1a22bd	29 ff 00	and #$00ff	            AND #$00FF
+.1a22c0	20 23 1e	jsr $1a1e23	            JSR SET_ERRERL
+.1a22c3	e2 20		sep #$20	            SEP #$20
+.1a22c5	dc d4 08	jmp [$08d4]	            JMP [HANDLEERR]
+.1a22c8					throw_break
+.1a22c8	08		php		            PHP
+.1a22c9	c2 20		rep #$20	            REP #$20
+.1a22cb	48		pha		            PHA
+.1a22cc	a9 00 08	lda #$0800	            LDA #<>GLOBAL_VARS
+.1a22cf	5b		tcd		            TCD
+.1a22d0	68		pla		            PLA
+.1a22d1	28		plp		            PLP
+.1a22d2	e2 20		sep #$20	            SEP #$20
+.1a22d4	a9 01		lda #$01	            LDA #ERR_BREAK
+.1a22d6	8f d3 08 00	sta $0008d3	            STA @lERROR_NUM
+.1a22da	c2 20		rep #$20	            REP #$20
+.1a22dc	29 ff 00	and #$00ff	            AND #$00FF
+.1a22df	20 23 1e	jsr $1a1e23	            JSR SET_ERRERL
+.1a22e2	e2 20		sep #$20	            SEP #$20
+.1a22e4	dc d4 08	jmp [$08d4]	            JMP [HANDLEERR]
+.1a22e7					is_variable
+.1a22e7	20 94 44	jsr $1a4494	            JSR S_LET
+.1a22ea	4c 12 23	jmp $1a2312	            JMP done
+.1a22ed					STSTUB
+.1a22ed	08		php		            PHP
+.1a22ee	e2 20		sep #$20	            SEP #$20
 .1a22f0	48		pha		            PHA
-.1a22f1	ab		plb		            PLB
-.1a22f2	68		pla		            PLA
-.1a22f3	28		plp		            PLP
-.1a22f4	6c 2f 08	jmp ($082f)	            JMP (JMP16PTR)      ; Annoying JMP to get around the fact we don't have an indirect JSR
-.1a22f7	a5 0c		lda $080c	is_interact LDA SCRATCH         ; Get the token type
-.1a22f9	c9 10		cmp #$10	            CMP #TOK_TY_CMD     ; Is it a command?
-.1a22fb	d0 a9		bne $1a22a6	            BNE error           ; If not, it's an error
-.1a22fd					ok_to_exec
-.1a22fd	a7 00		lda [$0800]	            LDA [BIP]           ; Get the original token again
-.1a22ff	20 49 0c	jsr $1a0c49	            JSR TOKEVAL
-.1a2302	c2 20		rep #$20	            REP #$20
-.1a2304	85 2f		sta $082f	            STA JMP16PTR        ; Store it in the jump pointer
-.1a2306	20 50 19	jsr $1a1950	            JSR INITEVALSP
-.1a2309	20 e2 20	jsr $1a20e2	            JSR INCBIP
-.1a230c	20 ea 22	jsr $1a22ea	            JSR STSTUB
-.1a230f	ab		plb		done        PLB
-.1a2310	2b		pld		            PLD
-.1a2311	28		plp		            PLP
-.1a2312	60		rts		            RTS
-.1a2313					EXECCMD
-.1a2313	08		php		            PHP
-.1a2314	58		cli		            CLI
-.1a2315	20 a3 20	jsr $1a20a3	            JSR SETINTERACT
-.1a2318	20 c8 1d	jsr $1a1dc8	            JSR INITRETURN
-.1a231b	e2 20		sep #$20	            SEP #$20
-.1a231d	9c 8a 0f	stz $0f8a	            STZ KEYFLAG                 ; Clear the key flag... interrupt handler will raise MSB
-.1a2320	c2 20		rep #$20	            REP #$20
-.1a2322	a5 1a		lda $081a	            LDA CURLINE         ; Set the BASIC Instruction Pointer to the first byte of the line
-.1a2324	85 00		sta $0800	            STA BIP
-.1a2326	a5 1c		lda $081c	            LDA CURLINE+2
-.1a2328	85 02		sta $0802	            STA BIP+2
-.1a232a	4c 54 23	jmp $1a2354	            JMP exec_loop
-.1a232d	08		php		EXECLINE    PHP
-.1a232e	c2 20		rep #$20	            REP #$20
-.1a2330	a0 02 00	ldy #$0002	            LDY #LINE_NUMBER            ; Set the current line number
-.1a2333	b7 1a		lda [$081a],y	            LDA [CURLINE],Y
-.1a2335	85 d7		sta $08d7	            STA LINENUM
-.1a2337	20 bd 14	jsr $1a14bd	            JSR CLRTMPSTR
+.1a22f1	a9 00		lda #$00	            LDA #`GLOBAL_VARS
+.1a22f3	48		pha		            PHA
+.1a22f4	ab		plb		            PLB
+.1a22f5	68		pla		            PLA
+.1a22f6	28		plp		            PLP
+.1a22f7	6c 2f 08	jmp ($082f)	            JMP (JMP16PTR)      ; Annoying JMP to get around the fact we don't have an indirect JSR
+.1a22fa	a5 0c		lda $080c	is_interact LDA SCRATCH         ; Get the token type
+.1a22fc	c9 10		cmp #$10	            CMP #TOK_TY_CMD     ; Is it a command?
+.1a22fe	d0 a9		bne $1a22a9	            BNE error           ; If not, it's an error
+.1a2300					ok_to_exec
+.1a2300	a7 00		lda [$0800]	            LDA [BIP]           ; Get the original token again
+.1a2302	20 49 0c	jsr $1a0c49	            JSR TOKEVAL
+.1a2305	c2 20		rep #$20	            REP #$20
+.1a2307	85 2f		sta $082f	            STA JMP16PTR        ; Store it in the jump pointer
+.1a2309	20 50 19	jsr $1a1950	            JSR INITEVALSP
+.1a230c	20 e2 20	jsr $1a20e2	            JSR INCBIP
+.1a230f	20 ed 22	jsr $1a22ed	            JSR STSTUB
+.1a2312	ab		plb		done        PLB
+.1a2313	2b		pld		            PLD
+.1a2314	28		plp		            PLP
+.1a2315	60		rts		            RTS
+.1a2316					EXECCMD
+.1a2316	08		php		            PHP
+.1a2317	58		cli		            CLI
+.1a2318	20 a3 20	jsr $1a20a3	            JSR SETINTERACT
+.1a231b	20 c8 1d	jsr $1a1dc8	            JSR INITRETURN
+.1a231e	e2 20		sep #$20	            SEP #$20
+.1a2320	9c 8a 0f	stz $0f8a	            STZ KEYFLAG                 ; Clear the key flag... interrupt handler will raise MSB
+.1a2323	c2 20		rep #$20	            REP #$20
+.1a2325	a5 1a		lda $081a	            LDA CURLINE         ; Set the BASIC Instruction Pointer to the first byte of the line
+.1a2327	85 00		sta $0800	            STA BIP
+.1a2329	a5 1c		lda $081c	            LDA CURLINE+2
+.1a232b	85 02		sta $0802	            STA BIP+2
+.1a232d	4c 54 23	jmp $1a2354	            JMP exec_loop
+.1a2330	08		php		EXECLINE    PHP
+.1a2331	c2 20		rep #$20	            REP #$20
+.1a2333	a0 02 00	ldy #$0002	            LDY #LINE_NUMBER            ; Set the current line number
+.1a2336	b7 1a		lda [$081a],y	            LDA [CURLINE],Y
+.1a2338	85 d7		sta $08d7	            STA LINENUM
 .1a233a	e2 20		sep #$20	            SEP #$20
 .1a233c	a5 dc		lda $08dc	            LDA EXECACTION              ; If the last EXEC action was RETURN
 .1a233e	c9 03		cmp #$03	            CMP #EXEC_RETURN            ; BIP has already been set, so...
@@ -6762,7 +6762,7 @@
 .1a23aa	a0 02 00	ldy #$0002	exec_loop   LDY #LINE_NUMBER
 .1a23ad	b7 1a		lda [$081a],y	            LDA [CURLINE],Y             ; Get the line number of the current line
 .1a23af	f0 29		beq $1a23da	            BEQ done                    ; If it's 0, we are finished running code (implicit END)
-.1a23b1	20 2d 23	jsr $1a232d	            JSR EXECLINE
+.1a23b1	20 30 23	jsr $1a2330	            JSR EXECLINE
 .1a23b4	e2 20		sep #$20	            SEP #$20
 .1a23b6	a5 dc		lda $08dc	            LDA EXECACTION              ; Check the EXECACTION from the last line
 .1a23b8	c9 01		cmp #$01	            CMP #EXEC_STOP              ; Stop execution of the program?
@@ -7305,7 +7305,7 @@
 .1a276f	c2 20		rep #$20	            REP #$20
 .1a2771	a5 d7		lda $08d7	                LDA LINENUM             ; Did we get a line number?
 .1a2773	d0 05		bne $1a277a	                BNE update_line         ; Yes: attempt to add it to the program
-.1a2775	20 13 23	jsr $1a2313	            JSR EXECCMD
+.1a2775	20 16 23	jsr $1a2316	            JSR EXECCMD
 .1a2778	80 07		bra $1a2781	                BRA done
 .1a277a					update_line
 .1a277a	20 2c 26	jsr $1a262c	            JSR ADDLINE
@@ -19511,8 +19511,8 @@
 
 ;******  Processing file: src\version.s
 
->1ad28c	76 30 2e 32 2e 30 2d 61		.text "v0.2.0-alpha+405"
->1ad294	6c 70 68 61 2b 34 30 35
+>1ad28c	76 30 2e 32 2e 30 2d 61		.text "v0.2.0-alpha+406"
+>1ad294	6c 70 68 61 2b 34 30 36
 
 ;******  Return to file: src\basic816.s
 
