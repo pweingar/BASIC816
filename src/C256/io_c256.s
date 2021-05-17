@@ -21,7 +21,7 @@ TEXT_ROWS_WOB = 60              ; Number of rows of text with no border enabled
 INITIO      .proc
             setas
 
-            ; CALL INITRNG        ; Initialize the random number generator
+            CALL INITRNG        ; Initialize the random number generator
 
             LDX #0              ; Clear all the sprite control shadow registers
             LDA #0
@@ -59,9 +59,6 @@ INITRNG     .proc
             PHP
 
             setas
-            LDA #'0'
-            JSL FK_PUTC
-
             LDA @l RTC_CTRL         ; Pause updates to the clock registers
             ORA #%00001000
             STA @l RTC_CTRL
@@ -71,14 +68,8 @@ INITRNG     .proc
             LDA @l RTC_MIN
             STA @l GABE_RNG_SEED_HI
 
-            LDA #'1'
-            JSL FK_PUTC
-
             LDA #GABE_RNG_CTRL_DV | GABE_RNG_CTRL_EN
             STA @l GABE_RNG_CTRL    ; Load the seed into the RNG
-
-            LDA #'2'
-            JSL FK_PUTC
 
             LDA @l RTC_CTRL         ; Re-enable updates to the clock registers
             AND #%11110111
@@ -88,14 +79,8 @@ INITRNG     .proc
             NOP
             NOP
 
-            LDA #'3'
-            JSL FK_PUTC
-
             LDA #GABE_RNG_CTRL_EN   ; Turn on the random number genertator
             STA @l GABE_RNG_CTRL
-
-            LDA #'4'
-            JSL FK_PUTC
 
             PLP
             RETURN
