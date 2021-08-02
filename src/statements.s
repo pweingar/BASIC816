@@ -456,8 +456,8 @@ scan_data       TRACE "scan_data"
 read_string     CALL EVALSTRING     ; Try to read a string
                 BRA done
 
-                ; Read an integer literal
-read_number     CALL EVALNUMBER     ; Try to read a number
+                ; Read an integer or floating point literal
+read_number     CALL PARSENUM       ; Try to read a number
 
                 TRACE "got number"
 
