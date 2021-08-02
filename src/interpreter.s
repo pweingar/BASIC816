@@ -447,6 +447,8 @@ syntax_err2 TRACE "SKIP SYNTAX 2"
 NEXTLINE    .proc
             PHP
 
+            TRACE "NEXTLINE"
+
             setaxl
             LDY #LINE_LINK
             LDA [CURLINE],Y     ; Get the offset to the next line
@@ -811,7 +813,6 @@ exec_loop   LDY #LINE_NUMBER
             LDA CURLINE
             ADC [CURLINE],Y
             STA CURLINE
-            setas
             LDA CURLINE+2
             ADC #0
             STA CURLINE+2
