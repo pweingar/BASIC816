@@ -666,7 +666,8 @@ ok_to_exec  TRACE "ok_to_exec"
 
             CALL STSTUB         ; And call the subroutine to execute the statement or command
 
-done        PLB
+done        TRACE "/EXECSTMT"
+            PLB
             PLD
             PLP
             RETURN
@@ -737,6 +738,8 @@ EXECLINE    PHP
             ADC #0
             STA BIP+2
 
+            TRACE_L "BIP", BIP
+
 exec_loop   setal
             CALL EXECSTMT               ; Try to execute a statement
 
@@ -791,7 +794,8 @@ EXECPROGRAM .proc
             setaxl
             STZ GOSUBDEPTH              ; Clear the count of GOSUBs
 
-exec_loop   LDY #LINE_NUMBER
+exec_loop   setal
+            LDY #LINE_NUMBER
             LDA [CURLINE],Y             ; Get the line number of the current line
             BEQ done                    ; If it's 0, we are finished running code (implicit END)
 
@@ -839,12 +843,12 @@ done        setas
 ;
 FINDLINE    .proc
             PHP
-            setaxl
             TRACE_L "FINDLINE", ARGUMENT1
+
+            setaxl
 
             ; MOVE_L INDEX,CURLINE        ; INDEX := CURLINE
 
-            setal
             ; LDA LINENUM                 ; Compare the target to the current line number
             ; CMP ARGUMENT1
             ; BEQ ret_true                ; If they're the same, just return true
@@ -855,7 +859,6 @@ FINDLINE    .proc
             LDA #`BASIC_BOT
             STA INDEX+2
 
-            setal
 check_nmbrs LDY #LINE_NUMBER            ; Get the number of the possible target line
             LDA [INDEX],Y
             BEQ ret_false               ; If new line number is 0, we got to the
@@ -863,17 +866,15 @@ check_nmbrs LDY #LINE_NUMBER            ; Get the number of the possible target 
             BEQ found
             BGE ret_false               ; If the line number > target line number, the line is not present
 
-next_line   setal                       ; The line may still be further in the program
+next_line                               ; The line may still be further in the program
             LDY #LINE_LINK              ; INDEX := INDEX + [INDEX].LINK
             CLC
             LDA INDEX
             ADC [INDEX],Y
             STA SCRATCH
-            setas
             LDA INDEX+2
             ADC #0
             STA INDEX+2
-            setal
             LDA SCRATCH
             STA INDEX
             BRA check_nmbrs             ; And go back to check the new line INDEX is pointing to
@@ -881,11 +882,13 @@ next_line   setal                       ; The line may still be further in the p
 found       MOVE_L CURLINE,INDEX        ; INDEX points to the line we want, so....
                                         ; CURLINE := INDEX
 
-ret_true    PLP                         ; Return true to indicate we've found the line
+ret_true    TRACE "FINDLINE SUCCESS"
+            PLP                         ; Return true to indicate we've found the line
             SEC
             RETURN
 
-ret_false   PLP
+ret_false   TRACE "FINDLINE FAIL"
+            PLP
             CLC
             RETURN
             .pend

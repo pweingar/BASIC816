@@ -1116,7 +1116,7 @@ S_IF            .proc
                 CALL FINDLINE               ; Try to find the line
                 BCC not_found               ; If not found... LINE NOT FOUND error
 
-                TRACE "TRUE"
+                TRACE_L "TRUE",CURLINE
 
                 setas                       ; Tell the interpreter to restart at the selected line
                 LDA #EXEC_GOTO
